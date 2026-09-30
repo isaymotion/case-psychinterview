@@ -71,7 +71,42 @@ textarea.big{min-height:180px}
 .bar h1 small{display:block;font:500 12.5px/1.2 var(--sans);color:var(--ink-3);margin-top:2px}
 .cases .who .kind{display:block;font-size:13px;font-weight:600;color:var(--blue);margin-bottom:1px}
 .cases .who .kind.pn{color:#2F7A6B}
-@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .cases .who .kind.pn{color:#7FCBB9} }
+.cases .who .kind.dc{color:#7A4E7E}
+.cases .who .kind.mc{color:#8A5A12}
+.cases .who .kind.ca{color:#4E5A96}
+.starts-label{font-size:13px;font-weight:600;letter-spacing:.02em;color:var(--ink-3);margin:18px 0 -6px}
+.starts + .starts-label{margin-top:0}
+.warn-box{background:var(--risk-wash);border-left:3px solid var(--risk);padding:10px 12px;border-radius:0 8px 8px 0;color:var(--ink)!important}
+.cert table.info{width:100%;border-collapse:collapse;margin:6px 0 14px;font-size:14.5px}
+.cert table.info th,.cert table.info td{border:1px solid #B7C9DB;padding:6px 10px;text-align:left;vertical-align:top}
+.cert table.info th{background:#EAF2F8;width:30%;font-weight:700}
+.cert table.meds th{background:#D9EAF7;width:auto}
+.cert .tblwrap{overflow-x:auto}
+.cert h4{color:#365F91;font-size:16.5px;margin:22px 0 6px}
+.cert .lbl{font-weight:700;margin:10px 0 2px}
+.cert .txt{margin:0 0 8px;text-align:justify}
+.cert{background:#fff;color:#1B2A3A;border:1px solid var(--line);border-radius:6px;box-shadow:0 2px 14px rgba(20,40,60,.08);padding:40px 48px;margin:0 0 28px;font:15.5px/1.6 Calibri,Carlito,var(--sans)}
+.cert header{text-align:center;border-bottom:2px solid #365F91;padding-bottom:10px}
+.cert header .h0{font-weight:700;font-size:19px}
+.cert header .h2{font-size:13px;color:#6B7785}
+.cert h3{text-align:center;font:700 22px/1.2 Calibri,Carlito,var(--sans);letter-spacing:.04em;margin:30px 0 22px}
+.cert .date{text-align:right}
+.cert .body{text-align:justify;line-height:1.8}
+.cert .dx{margin-left:44px;font-weight:700}
+.cert .dx.normal{font-weight:400}
+.cert em{color:#9E3A38;font-style:normal;font-weight:600}
+.cert .sigs{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:56px}
+.cert .sig{text-align:center;display:flex;flex-direction:column;font-size:14.5px}
+.cert .sig .line{border-top:1px solid #1B2A3A;margin-bottom:4px}
+.cert .warn{color:#9E3A38;font-weight:600;margin-top:16px}
+.starts{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0 26px}
+.starts button{text-align:left;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:14px 16px;min-height:84px}
+.starts button strong{display:block;font-size:17px;color:var(--blue-deep)}
+.starts button span{display:block;font-size:14px;color:var(--ink-3);margin-top:3px;line-height:1.35}
+.starts #new{background:var(--blue);border-color:var(--blue)}
+.starts #new strong,.starts #new span{color:#fff}
+.sheet p.small{font-size:14px}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .cases .who .kind.pn{color:#7FCBB9} :root:not([data-theme="light"]) .cases .who .kind.dc{color:#D2A6D6} :root:not([data-theme="light"]) .starts #new strong,:root:not([data-theme="light"]) .starts #new span{color:#0E151D} }
 .pick{list-style:none;margin:0 0 16px;padding:0;border-top:1px solid var(--line);max-height:44vh;overflow:auto}
 .pick li{border-bottom:1px solid var(--line)}
 .pick button{display:block;width:100%;text-align:left;background:none;border:0;padding:12px 4px;min-height:44px}
@@ -155,6 +190,8 @@ textarea.big{min-height:180px}
 
 /* ----- narrower iPads / portrait ----- */
 @media (max-width:980px){
+  .starts{grid-template-columns:1fr 1fr}
+  .cert{padding:28px 24px}
   .carry{flex-direction:column;align-items:flex-start}
   .layout{grid-template-columns:1fr}
   .rail{position:fixed;top:calc(var(--bar) + env(safe-area-inset-top,0px));left:0;bottom:0;height:auto;width:min(330px,86vw);z-index:30;transform:translateX(-105%);visibility:hidden;transition:transform .2s ease,visibility 0s linear .2s}
@@ -163,6 +200,7 @@ textarea.big{min-height:180px}
   .main{padding:22px 20px 80px}
   .bar .status{display:none}
 }
+@media (max-width:640px){ .starts{grid-template-columns:1fr} }
 @media (max-width:600px){ .bar .hide-sm{display:none} .meter{width:80px} .bar h1{font-size:17px} }
 @media (prefers-reduced-motion:reduce){ .rail{transition:none} }
 
@@ -455,7 +493,7 @@ const SAFETY_CHIPS = ['Suicidal ideation','Homicidal / violent ideation','NSSI']
 
 /* Build a new progress note from a case or an earlier progress note */
 function progressFromSource(src, srcKind, now, author){
-  const d = { datetime: now.toLocaleString('en-US',{dateStyle:'medium',timeStyle:'short'}), author: author||'' };
+  const d = { datetime: now.toLocaleString('en-US',{dateStyle:'medium',timeStyle:'short'}), author: author || str(src.author) || str(src.interviewer) || '' };
   ['patient','agesex','location','attending','primaryDx','differential','otherDx'].forEach(k=>{ if(str(src[k])) d[k]=src[k]; });
   d.admitDate = srcKind==='case' ? str(src.datetime).replace(/,?\s*\d{1,2}:\d{2}.*$/,'') : str(src.admitDate);
   const ad = parseLooseDate(d.admitDate);
@@ -473,6 +511,369 @@ function progressFromSource(src, srcKind, now, author){
   return { data:d, prev, lastMSE };
 }
 if (typeof module !== 'undefined') module.exports = { PN_SECTIONS, SCHEMAS, parseLooseDate, progressFromSource };
+
+/* ---------- Discharge summary structure ---------- */
+const DC_SECTIONS = [
+  { id:'dcInfo', num:'A', title:'Patient & admission information', fields:[
+    {t:'text', id:'patient', label:'Patient / MRN'},
+    {t:'text', id:'agesex', label:'Age / sex'},
+    {t:'text', id:'location', label:'Location / unit'},
+    {t:'text', id:'admitDate', label:'Admission date'},
+    {t:'text', id:'dischargeDate', label:'Discharge date'},
+    {t:'text', id:'los', label:'Length of stay', hint:'Calculated from the two dates above when they can be read.'},
+    {t:'text', id:'author', label:'Resident / author'},
+    {t:'text', id:'attending', label:'Attending'}
+  ]},
+  { id:'dcAdm', num:'1', title:'Reason for admission', note:'Filled in from the admission case. Trim it to what the next clinician needs.', fields:[
+    {t:'area', id:'cc', label:'Chief complaint', quote:true},
+    {t:'area', id:'admitSummary', label:'Presenting history', big:true},
+    {t:'radio', id:'admitStatus', label:'Admission status', o:['Voluntary','Involuntary'], detail:'Details'},
+    {t:'area', id:'admitRisk', label:'Risk on admission'},
+    {t:'area', id:'admitMSE', label:'MSE on admission'},
+    {t:'area', id:'admitDx', label:'Admission diagnosis'}
+  ]},
+  { id:'dcCourse', num:'2', title:'Hospital course', fields:[
+    {t:'area', id:'course', label:'Hospital course', hint:'Treatment given, response, key turning points, by hospital day or by problem.', big:true, tool:'course'},
+    {t:'area', id:'consults', label:'Consults / procedures / ECT'},
+    {t:'area', id:'incidents', label:'Significant events', hint:'Restraint or seclusion, falls, adverse drug reactions, AWOL, leave.'},
+    {t:'area', id:'keyResults', label:'Key labs / results'}
+  ]},
+  { id:'dcStatus', num:'3', title:'Condition at discharge', risk:true, note:'Assess today. Previous values are shown for reference only.', fields:[
+    {t:'radio', id:'condition', label:'Overall condition', o:['Improved','Stable','Unchanged','Worse'], detail:'Details'},
+    {t:'area', id:'dcMSE', label:'MSE at discharge', big:true, tool:'lastMSE'},
+    {t:'radios', id:'si', label:'Suicide — at discharge', p:[['SI',['Denied','Passive','Active']],['Plan',['None','Present']],['Intent',['None','Present']]]},
+    {t:'radios', id:'hi', label:'Homicide / violence — at discharge', p:[['HI',['Denied','Present']],['Plan',['None','Present']],['Intent',['None','Present']]]},
+    {t:'radio', id:'suicideRisk', label:'Suicide risk', o:['Low','Moderate','High'], prev:'suicideRisk'},
+    {t:'radio', id:'violenceRisk', label:'Violence risk', o:['Low','Moderate','High'], prev:'violenceRisk'},
+    {t:'area', id:'riskRationale', label:'Risk rationale at discharge', hint:'Acute and chronic factors, protective factors, what changed during admission.'}
+  ]},
+  { id:'dcDx', num:'4', title:'Final diagnosis', fields:[
+    {t:'area', id:'finalDx', label:'Principal diagnosis'},
+    {t:'area', id:'otherDx', label:'Other psychiatric diagnoses'},
+    {t:'area', id:'medicalDx', label:'Medical conditions'}
+  ]},
+  { id:'dcMeds', num:'5', title:'Discharge medications', fields:[
+    {t:'table', id:'dcMeds', label:'Discharge medications', hint:'Filled in from the latest progress note. Mark each as new, changed, or continued.', c:['Medication','Dose / frequency','New / changed / continued','Instructions'], rows:4},
+    {t:'area', id:'stoppedMeds', label:'Medications stopped during admission', hint:'Name, reason stopped.'},
+    {t:'text', id:'rxGiven', label:'Prescriptions / supply given'}
+  ]},
+  { id:'dcPlan', num:'6', title:'Disposition & follow-up', fields:[
+    {t:'radio', id:'dispoTo', label:'Discharged to', o:['Home','Home with family','Another facility','Day / partial program','Other'], detail:'Details'},
+    {t:'table', id:'fuTable', label:'Follow-up appointments', c:['Service / clinician','Date / time','Purpose','Contact'], rows:3},
+    {t:'area', id:'safetyPlan', label:'Safety plan', hint:'Filled in from the admission case, if one was written. Update it.'},
+    {t:'area', id:'instructions', label:'Patient / family instructions', hint:'Warning signs, when to return, crisis contacts.'},
+    {t:'area', id:'pending', label:'Pending results / tasks for next clinician'}
+  ]}
+];
+SCHEMAS.dc = { sections:DC_SECTIONS, title:'Psychiatric Discharge Summary', name:'Discharge summary', file:'DischargeSummary' };
+
+const shortDate = dt => dt.toLocaleDateString('en-US',{month:'short', day:'numeric', year:'numeric'});
+function daysBetween(a, b){ const x=parseLooseDate(a), y=parseLooseDate(b); if(!x||!y) return ''; const n=Math.round((y-x)/86400000); return n>=0 && n<5000 ? (n===1?'1 day':n+' days') : ''; }
+const hdNum = r => { const n=parseInt(str(r.hday),10); return isNaN(n)?-1:n; };
+
+/* Build a discharge summary from the admission case plus any progress notes */
+function dischargeFromSources(caseD, pns, now, author){
+  pns = (pns||[]).slice().sort((a,b)=>hdNum(a)-hdNum(b));
+  const last = pns[pns.length-1] || null;
+  const c = caseD || {};
+  const pickv = k => (last && str(last[k])) ? last[k] : (str(c[k]) ? c[k] : '');
+  const d = { author: author || (last && str(last.author)) || str(c.interviewer) || '' };
+  ['patient','agesex','location','attending'].forEach(k=>{ const v=pickv(k); if(v) d[k]=v; });
+  d.admitDate = (last && str(last.admitDate)) || str(c.datetime).replace(/,?\s*\d{1,2}:\d{2}.*$/,'');
+  d.dischargeDate = shortDate(now);
+  d.los = daysBetween(d.admitDate, d.dischargeDate);
+  if(caseD){
+    if(str(c.cc)) d.cc = c.cc;
+    if(str(c.hpi)) d.admitSummary = c.hpi;
+    if(c.loc==='Inpatient voluntary') d.admitStatus='Voluntary';
+    if(c.loc==='Inpatient involuntary') d.admitStatus='Involuntary';
+    const r=[c.suicideRisk&&'Suicide risk: '+c.suicideRisk, c.violenceRisk&&'Violence risk: '+c.violenceRisk].filter(Boolean).join('. ');
+    const rf = c.riskForm && str(c.riskForm['Overall rationale']);
+    if(r||rf) d.admitRisk = [r&&r+'.', rf].filter(Boolean).join(' ');
+    const mse = str(c.mseNarr) || draftMSE(c); if(mse) d.admitMSE = mse;
+    const dx = [str(c.primaryDx), str(c.differential)&&'Rule out: '+str(c.differential)].filter(Boolean).join('\n'); if(dx) d.admitDx = dx;
+    if(str(c.safetyPlan)) d.safetyPlan = c.safetyPlan;
+    if(str(c.medhx)) d.medicalDx = c.medhx;
+  }
+  const fd = pickv('primaryDx'); if(fd) d.finalDx = fd;
+  const od = pickv('otherDx'); if(od) d.otherDx = od;
+  const rows = t => (t||[]).filter(r=>r.some(x=>str(x)));
+  const medSrc = last ? rows(last.meds) : rows(c.meds);
+  d.dcMeds = medSrc.map(r=>[r[0]||'', r[1]||'', '', '']);
+  const prev = { suicideRisk: pickv('suicideRisk'), violenceRisk: pickv('violenceRisk') };
+  const lastMSE = last ? (str(last.mseNarr) || draftMSE(last)) : '';
+  const courseNotes = pns.map(p=>({ hday:str(p.hday), date:str(p.datetime).replace(/,?\s*\d{1,2}:\d{2}.*$/,''), changes:str(p.changes), assessment:str(p.assessment), risk:p.suicideRisk||'', dispo:p.dispo||'' }));
+  return { data:d, prev, lastMSE, courseNotes };
+}
+
+/* One line per progress note, oldest first, for the resident to edit */
+function draftCourse(notes){
+  const first = s => { s=str(s); const m=s.match(/^.*?[.!?](\s|$)/); return (m?m[0]:s).trim(); };
+  return (notes||[]).map(n=>{
+    const head = (n.hday?'Hospital day '+n.hday:'Progress note')+(n.date?' ('+n.date+')':'')+': ';
+    const bits = [first(n.assessment), n.changes && endDot(n.changes), n.risk && 'Suicide risk '+n.risk.toLowerCase()+'.', n.dispo && n.dispo+'.'].filter(Boolean);
+    return bits.length ? head+bits.join(' ') : '';
+  }).filter(Boolean).join('\n');
+}
+if (typeof module !== 'undefined') module.exports = { DC_SECTIONS, dischargeFromSources, draftCourse, daysBetween };
+
+/* ---------- Medical certificate ---------- */
+const MC_SECTIONS = [
+  { id:'mcInst', num:'A', title:'Institution', note:'Remembered on this iPad for your next certificate.', fields:[
+    {t:'text', id:'instName', label:'Hospital / institution'},
+    {t:'text', id:'instDept', label:'Department'},
+    {t:'text', id:'instAddress', label:'Address'}
+  ]},
+  { id:'mcPt', num:'1', title:'Patient', fields:[
+    {t:'text', id:'patientName', label:'Patient name', hint:'Full name as it should appear on the certificate.'},
+    {t:'text', id:'age', label:'Age'},
+    {t:'radio', id:'sex', label:'Sex', o:['Male','Female']},
+    {t:'text', id:'civil', label:'Civil status'},
+    {t:'text', id:'address', label:'Address'}
+  ]},
+  { id:'mcVisit', num:'2', title:'Treatment setting & dates', fields:[
+    {t:'radio', id:'setting', label:'Treated as', o:['Inpatient','Outpatient']},
+    {t:'text', id:'admitDate', label:'Admission date (inpatient)'},
+    {t:'text', id:'dischargeDate', label:'Discharge date (inpatient)', hint:'Leave blank if the patient is still admitted.'},
+    {t:'text', id:'consultDates', label:'Consultation date(s) (outpatient)', hint:'For example: Sep 30, Oct 7 and Oct 14, 2026.'}
+  ]},
+  { id:'mcDx', num:'3', title:'Diagnosis & remarks', fields:[
+    {t:'area', id:'diagnosis', label:'Diagnosis', hint:'Write it as it should appear. Confirm the patient consents to disclosing it on this certificate.'},
+    {t:'area', id:'remarks', label:'Remarks / recommendations', hint:'For example: advised to rest for 7 days; may return to work on Oct 14, 2026.'}
+  ]},
+  { id:'mcReq', num:'4', title:'Request & date issued', fields:[
+    {t:'text', id:'requestedBy', label:'Requested by', hint:'Leave blank if the patient requested it.'},
+    {t:'text', id:'purpose', label:'Purpose', hint:'Leave blank to use: whatever purpose it may serve, except medico-legal.'},
+    {t:'text', id:'certDate', label:'Date issued'}
+  ]},
+  { id:'mcSign', num:'5', title:'Signing physicians', note:'PRC license numbers are remembered on this iPad for each physician.', fields:[
+    {t:'text', id:'resName', label:'Resident physician', hint:'Full name as signed, e.g., Juan S. Santos, MD.'},
+    {t:'text', id:'resTitle', label:'Resident title'},
+    {t:'text', id:'resLic', label:'Resident PRC Lic. No.'},
+    {t:'text', id:'attName', label:'Attending physician', hint:'Full name as signed.'},
+    {t:'text', id:'attTitle', label:'Attending title'},
+    {t:'text', id:'attLic', label:'Attending PRC Lic. No.'}
+  ]},
+  { id:'mcPreview', num:'6', title:'Preview', preview:true, note:'This is how the certificate will read. Tap a section on the left to change anything.', fields:[] }
+];
+SCHEMAS.mc = { sections:MC_SECTIONS, title:'Medical Certificate', name:'Medical certificate', file:'MedCert' };
+
+const normName = s => str(s).toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+
+/* Pre-fill a certificate from a case, progress note, or discharge summary */
+function certFromSource(src, kind, now, last){
+  last = last || {};
+  const d = { certDate: shortDate(now), instName:last.instName||'', instDept:last.instDept||'Department of Psychiatry', instAddress:last.instAddress||'',
+    resTitle:last.resTitle||'Resident Physician', attTitle:last.attTitle||'Attending Physician' };
+  if(src){
+    d.patientName = splitPatient(src.patient).name;
+    Object.assign(d, splitAgeSex(src.agesex));
+    if(str(src.marital)) d.civil = src.marital;
+    const dateOnly = s => str(s).replace(/,?\s*\d{1,2}:\d{2}.*$/,'');
+    if(kind==='dc'){ d.setting='Inpatient'; d.admitDate=str(src.admitDate); d.dischargeDate=str(src.dischargeDate); }
+    else if(kind==='pn'){ d.setting='Inpatient'; d.admitDate=str(src.admitDate); }
+    else if(kind==='case'){
+      if(/^Inpatient/.test(src.loc||'')){ d.setting='Inpatient'; d.admitDate=dateOnly(src.datetime); }
+      else if(src.loc==='Outpatient'){ d.setting='Outpatient'; d.consultDates=dateOnly(src.datetime); }
+    }
+    d.diagnosis = str(kind==='dc' ? src.finalDx : src.primaryDx);
+    d.resName = str(src.author) || str(src.interviewer);
+    d.attName = str(src.attending);
+  }
+  const lic = last.lic || {};
+  if(d.resName && lic[normName(d.resName)]) d.resLic = lic[normName(d.resName)];
+  if(d.attName && lic[normName(d.attName)]) d.attLic = lic[normName(d.attName)];
+  return d;
+}
+
+/* Shared by certificates and abstracts */
+function headerOf(d){ return [str(d.instName), str(d.instDept), str(d.instAddress)]; }
+function signersOf(d){
+  const s=[];
+  if(str(d.resName)) s.push({name:str(d.resName), title:str(d.resTitle)||'Resident Physician', lic:str(d.resLic)});
+  if(str(d.attName)) s.push({name:str(d.attName), title:str(d.attTitle)||'Attending Physician', lic:str(d.attLic)});
+  return s;
+}
+function splitPatient(p){ const parts=str(p).split(/\s*[\/|]\s*/); const name=parts[0].replace(/\s+MRN\b.*$/i,'').trim(); const m=str(p).match(/MRN[:#\s]*([\w-]+)/i); return { name, mrn: m?m[1]:(parts[1]||'').trim() }; }
+function splitAgeSex(s){ const as=str(s).split(/\s*[\/,]\s*/); const out={}; if(as[0]) out.age=as[0].replace(/\s*(y\/?o|yrs?|years? old)\.?$/i,'').trim(); const sx=(as[1]||'').toLowerCase(); if(/^m/.test(sx)) out.sex='Male'; else if(/^f/.test(sx)) out.sex='Female'; return out; }
+
+/* The certificate's wording, shared by the in-app preview and the Word file */
+function certParts(d){
+  const blank = '________________';
+  const inst = str(d.instName) || 'this institution';
+  const age = str(d.age) ? (/^\d+$/.test(str(d.age)) ? str(d.age)+'-year-old' : str(d.age)) : '';
+  const desc = [age, str(d.sex).toLowerCase(), str(d.civil).toLowerCase(), str(d.address) && 'of '+str(d.address)].filter(Boolean).join(', ');
+  let visit;
+  if(d.setting==='Inpatient'){
+    const a=str(d.admitDate), b=str(d.dischargeDate);
+    visit = a && b ? `was admitted and treated as an inpatient at ${inst} from ${a} to ${b}`
+      : a ? `has been admitted and treated as an inpatient at ${inst} since ${a}, and remains admitted as of this date`
+      : `was admitted and treated as an inpatient at ${inst}`;
+  } else if(d.setting==='Outpatient'){
+    visit = `was seen and treated as an outpatient at ${inst}` + (str(d.consultDates) ? ` on ${str(d.consultDates)}` : '');
+  } else visit = `was seen and treated at ${inst}`;
+  const dx = str(d.diagnosis).split(/\n+/).map(s=>s.trim()).filter(Boolean);
+  const purpose = str(d.purpose).replace(/^for\s+/i,'').replace(/\.$/,'') || 'whatever purpose it may serve, except medico-legal';
+  const signers = signersOf(d);
+  return {
+    header:headerOf(d),
+    date: str(d.certDate),
+    lead: 'This is to certify that ',
+    name: str(d.patientName) || blank,
+    rest: (desc ? ', '+desc+',' : '') + ' ' + visit + (dx.length ? ', with the following diagnosis:' : '.'),
+    dx,
+    remarks: str(d.remarks),
+    closing: `This certification is issued upon the request of ${str(d.requestedBy) || 'the patient'} for ${purpose}.`,
+    signers
+  };
+}
+if (typeof module !== 'undefined') module.exports = { MC_SECTIONS, certFromSource, certParts, normName, headerOf, signersOf, splitPatient, splitAgeSex };
+
+/* ---------- Clinical abstract ---------- */
+const CA_SECTIONS = [
+  { id:'caInst', num:'A', title:'Institution', note:'Shared with medical certificates and remembered on this iPad.', fields:[
+    {t:'text', id:'instName', label:'Hospital / institution'},
+    {t:'text', id:'instDept', label:'Department'},
+    {t:'text', id:'instAddress', label:'Address'}
+  ]},
+  { id:'caPt', num:'1', title:'Patient information', fields:[
+    {t:'text', id:'patientName', label:'Patient name', hint:'Full name as it should appear on the abstract.'},
+    {t:'text', id:'mrn', label:'Hospital no. / MRN'},
+    {t:'text', id:'age', label:'Age'},
+    {t:'radio', id:'sex', label:'Sex', o:['Male','Female']},
+    {t:'text', id:'civil', label:'Civil status'},
+    {t:'text', id:'address', label:'Address'}
+  ]},
+  { id:'caAdm', num:'2', title:'Admission details', fields:[
+    {t:'radio', id:'setting', label:'Type of care', o:['Inpatient','Outpatient']},
+    {t:'text', id:'ward', label:'Ward / unit'},
+    {t:'text', id:'admitDate', label:'Date admitted (inpatient)'},
+    {t:'text', id:'dischargeDate', label:'Date discharged (inpatient)', hint:'Leave blank if the patient is still admitted.'},
+    {t:'text', id:'los', label:'Length of stay'},
+    {t:'text', id:'consultDates', label:'Consultation date(s) (outpatient)'}
+  ]},
+  { id:'caHist', num:'3', title:'Clinical history', fields:[
+    {t:'area', id:'cc', label:'Chief complaint', quote:true},
+    {t:'area', id:'hpi', label:'History of present illness', big:true},
+    {t:'area', id:'pastHx', label:'Pertinent past history', hint:'Past psychiatric history, previous admissions, medical history.'}
+  ]},
+  { id:'caFind', num:'4', title:'Findings on admission', fields:[
+    {t:'area', id:'mseAdmit', label:'Mental status examination'},
+    {t:'area', id:'peAdmit', label:'Physical & neurological findings'},
+    {t:'area', id:'labs', label:'Laboratory & diagnostic results'}
+  ]},
+  { id:'caDx', num:'5', title:'Diagnoses', fields:[
+    {t:'area', id:'admitDx', label:'Admitting diagnosis'},
+    {t:'area', id:'finalDx', label:'Final diagnosis'},
+    {t:'area', id:'otherDx', label:'Other diagnoses / comorbidities'},
+    {t:'text', id:'icd', label:'ICD-10 code(s)', hint:'If required, for example for PhilHealth, HMO, or insurance claims.'}
+  ]},
+  { id:'caCourse', num:'6', title:'Course & treatment', fields:[
+    {t:'area', id:'course', label:'Course in the hospital', big:true},
+    {t:'area', id:'procedures', label:'Procedures / consults / ECT'},
+    {t:'table', id:'dischargeMeds', label:'Discharge medications', c:['Medication','Dose / frequency','Duration / instructions'], rows:3}
+  ]},
+  { id:'caOut', num:'7', title:'Condition on discharge', fields:[
+    {t:'radio', id:'condition', label:'Condition', o:['Improved','Stable','Unchanged','Worse'], detail:'Details'},
+    {t:'area', id:'dcMSE', label:'Mental status on discharge'},
+    {t:'text', id:'disposition', label:'Disposition'},
+    {t:'area', id:'followup', label:'Follow-up'}
+  ]},
+  { id:'caReq', num:'8', title:'Request & date issued', fields:[
+    {t:'text', id:'requestedBy', label:'Requested by', hint:'Leave blank if the patient requested it.'},
+    {t:'text', id:'purpose', label:'Purpose', hint:'For example: PhilHealth claim, HMO, insurance, referral, transfer.'},
+    {t:'text', id:'dateIssued', label:'Date issued'}
+  ]},
+  { id:'caSign', num:'9', title:'Signing physicians', note:'PRC license numbers are remembered on this iPad for each physician.', fields:[
+    {t:'text', id:'resName', label:'Resident physician', hint:'Full name as signed, e.g., Juan S. Santos, MD.'},
+    {t:'text', id:'resTitle', label:'Resident title'},
+    {t:'text', id:'resLic', label:'Resident PRC Lic. No.'},
+    {t:'text', id:'attName', label:'Attending physician', hint:'Full name as signed.'},
+    {t:'text', id:'attTitle', label:'Attending title'},
+    {t:'text', id:'attLic', label:'Attending PRC Lic. No.'}
+  ]},
+  { id:'caPreview', num:'10', title:'Preview', preview:true, note:'This is how the abstract will read. Tap a section on the left to change anything.', fields:[] }
+];
+SCHEMAS.ca = { sections:CA_SECTIONS, title:'Clinical Abstract', name:'Clinical abstract', file:'ClinicalAbstract' };
+
+/* Fill an abstract from whatever this patient has: discharge summary, case, latest progress note */
+function abstractFromSources(dc, cs, pn, now, last){
+  last = last || {}; dc = dc || null; cs = cs || null; pn = pn || null;
+  const first = (...v) => { for(const x of v){ if(str(x)) return str(x); } return ''; };
+  const any = dc || pn || cs || {};
+  const pt = splitPatient(any.patient);
+  const d = { dateIssued: shortDate(now), instName:last.instName||'', instDept:last.instDept||'Department of Psychiatry', instAddress:last.instAddress||'',
+    resTitle:last.resTitle||'Resident Physician', attTitle:last.attTitle||'Attending Physician',
+    patientName:pt.name, mrn:pt.mrn, ...splitAgeSex(first(dc&&dc.agesex, pn&&pn.agesex, cs&&cs.agesex)) };
+  if(cs && str(cs.marital)) d.civil = cs.marital;
+  d.ward = first(dc&&dc.location, pn&&pn.location, cs&&cs.location);
+  const dateOnly = s => str(s).replace(/,?\s*\d{1,2}:\d{2}.*$/,'');
+  if(dc || pn || (cs && /^Inpatient/.test(cs.loc||''))){
+    d.setting='Inpatient';
+    d.admitDate = first(dc&&dc.admitDate, pn&&pn.admitDate, cs&&dateOnly(cs.datetime));
+    if(dc){ d.dischargeDate = str(dc.dischargeDate); d.los = str(dc.los); }
+  } else if(cs && cs.loc==='Outpatient'){ d.setting='Outpatient'; d.consultDates = dateOnly(cs.datetime); }
+  d.cc = first(dc&&dc.cc, cs&&cs.cc);
+  d.hpi = first(dc&&dc.admitSummary, cs&&cs.hpi);
+  if(cs){
+    const past = [['Prior psychiatric diagnoses',cs.priorDx],['Previous hospitalizations / ECT',cs.hosp],['Past medication trials',cs.pastMeds],['Medical history',cs.medhx]]
+      .filter(([,v])=>str(v)).map(([k,v])=>k+': '+str(v));
+    if(past.length) d.pastHx = past.join('\n');
+    const v = cs.vitals||{}; const vit = Object.keys(v).filter(k=>str(v[k])).map(k=>k+' '+str(v[k])).join(', ');
+    d.peAdmit = [vit && 'Vital signs: '+vit+'.', str(cs.neuro)].filter(Boolean).join('\n');
+    const L = cs.labs||{}; const lab = Object.keys(L).filter(k=>str(L[k])).map(k=>k+': '+str(L[k])).join('; ');
+    const labsCase = [lab, str(cs.imaging)].filter(Boolean).join('\n');
+    d.labs = first(dc&&dc.keyResults, labsCase);
+  } else if(dc) d.labs = str(dc.keyResults);
+  d.mseAdmit = first(dc&&dc.admitMSE, cs&&cs.mseNarr, cs&&draftMSE(cs));
+  d.admitDx = first(dc&&dc.admitDx, cs&&cs.primaryDx);
+  d.finalDx = first(dc&&dc.finalDx, pn&&pn.primaryDx, cs&&cs.primaryDx);
+  d.otherDx = dc ? [str(dc.otherDx), str(dc.medicalDx)].filter(Boolean).join('\n') : first(pn&&pn.otherDx, cs&&cs.otherDx);
+  if(dc){
+    d.course = str(dc.course); d.procedures = str(dc.consults);
+    if(dc.condition) d.condition = dc.condition; if(str(dc.condition__d)) d.condition__d = dc.condition__d;
+    d.dcMSE = str(dc.dcMSE);
+    d.disposition = [dc.dispoTo, str(dc.dispoTo__d)].filter(Boolean).join(': ');
+    d.followup = (dc.fuTable||[]).filter(r=>r.some(x=>str(x))).map(r=>r.map(str).filter(Boolean).join(', ')).join('\n');
+  }
+  const medRows = (t => (t||[]).filter(r=>r.some(x=>str(x))))(dc ? dc.dcMeds : pn ? pn.meds : null);
+  d.dischargeMeds = medRows.map(r=>[r[0]||'', r[1]||'', dc ? (r[3]||'') : '']);
+  d.resName = first(dc&&dc.author, pn&&pn.author, cs&&cs.interviewer);
+  d.attName = first(dc&&dc.attending, pn&&pn.attending, cs&&cs.attending);
+  const lic = last.lic || {};
+  if(d.resName && lic[normName(d.resName)]) d.resLic = lic[normName(d.resName)];
+  if(d.attName && lic[normName(d.attName)]) d.attLic = lic[normName(d.attName)];
+  Object.keys(d).forEach(k=>{ if(d[k]==='' ) delete d[k]; });
+  return d;
+}
+
+/* The abstract's content, shared by the in-app preview and the Word file */
+function abstractParts(d){
+  const info = [['Patient name', str(d.patientName)], ['Hospital no. / MRN', str(d.mrn)],
+    ['Age / sex', [str(d.age), str(d.sex)].filter(Boolean).join(' / ')], ['Civil status', str(d.civil)], ['Address', str(d.address)],
+    ['Type of care', str(d.setting)], ['Ward / unit', str(d.ward)]];
+  if(d.setting!=='Outpatient'){
+    info.push(['Date admitted', str(d.admitDate)]);
+    info.push(['Date discharged', str(d.dischargeDate) || (str(d.admitDate) ? 'Currently admitted' : '')]);
+    info.push(['Length of stay', str(d.los)]);
+  }
+  if(d.setting!=='Inpatient') info.push(['Consultation date(s)', str(d.consultDates)]);
+  const T = (label, text) => ({label, text:str(text)});
+  const cond = [d.condition, str(d.condition__d)].filter(Boolean).join('. ');
+  const meds = (d.dischargeMeds||[]).filter(r=>r.some(x=>str(x)));
+  const sections = [
+    {title:'Clinical history', items:[T('Chief complaint', quoted(d.cc)), T('History of present illness', d.hpi), T('Pertinent past history', d.pastHx)]},
+    {title:'Findings on admission', items:[T('Mental status examination', d.mseAdmit), T('Physical & neurological findings', d.peAdmit), T('Laboratory & diagnostic results', d.labs)]},
+    {title:'Diagnoses', items:[T('Admitting diagnosis', d.admitDx), T('Final diagnosis', d.finalDx), T('Other diagnoses / comorbidities', d.otherDx), T('ICD-10 code(s)', d.icd)]},
+    {title:'Course & treatment', items:[T('Course in the hospital', d.course), T('Procedures / consults / ECT', d.procedures), meds.length ? {label:'Discharge medications', table:{cols:['Medication','Dose / frequency','Duration / instructions'], rows:meds}} : null]},
+    {title:'Condition on discharge', items:[T('Condition', cond), T('Mental status on discharge', d.dcMSE), T('Disposition', d.disposition), T('Follow-up', d.followup)]}
+  ].map(s=>({title:s.title, items:s.items.filter(i=>i && (i.table || i.text))})).filter(s=>s.items.length);
+  const purpose = str(d.purpose).replace(/^for\s+/i,'').replace(/\.$/,'');
+  return { header:headerOf(d), date:str(d.dateIssued), info:info.filter(([,v])=>v), sections,
+    closing:`This clinical abstract is issued upon the request of ${str(d.requestedBy)||'the patient'}${purpose?' for '+purpose:''}.`,
+    signers:signersOf(d) };
+}
+if (typeof module !== 'undefined') module.exports = { CA_SECTIONS, abstractFromSources, abstractParts };
 
 /* ---------- Minimal, dependency-free .docx writer ---------- */
 const DocxGen = (() => {
@@ -539,7 +940,9 @@ const DocxGen = (() => {
     const sch = SCHEMAS[kind||'case'];
     const body=[];
     body.push(para({style:'Title', runs:[{text:sch.title}]}));
-    const sub = [str(d.patient), str(d.datetime), (kind==='pn' && str(d.hday)) ? 'Hospital day '+str(d.hday) : ''].filter(Boolean).join('  |  ');
+    const sub = (kind==='dc'
+      ? [str(d.patient), str(d.admitDate)&&'Admitted '+str(d.admitDate), str(d.dischargeDate)&&'Discharged '+str(d.dischargeDate)]
+      : [str(d.patient), str(d.datetime), (kind==='pn' && str(d.hday)) ? 'Hospital day '+str(d.hday) : '']).filter(Boolean).join('  |  ');
     if(sub) body.push(para({align:'center', after:200, runs:[{text:sub, color:C.grey, sz:20}]}));
     let lastGroup = null;
     sch.sections.forEach(s=>{
@@ -621,10 +1024,99 @@ const DocxGen = (() => {
     let p=0; for(const a of all){ out.set(a,p); p+=a.length; }
     return out;
   }
+  /* ---- Medical certificate: a letter, not a form ---- */
+  function lpara(runs, o={}){
+    const pp = (o.keepNext?'<w:keepNext/>':'')+(o.border?`<w:pBdr><w:${o.border} w:val="single" w:sz="6" w:space="4" w:color="${o.bcolor||'1B2A3A'}"/></w:pBdr>`:'')+
+      `<w:spacing w:before="${o.before||0}" w:after="${o.after||0}"${o.line?` w:line="${o.line}" w:lineRule="auto"`:''}/>`+
+      (o.ind?`<w:ind w:left="${o.ind}"/>`:'')+(o.align?`<w:jc w:val="${o.align}"/>`:'');
+    return `<w:p><w:pPr>${pp}</w:pPr>${runs.map(run).join('')}</w:p>`;
+  }
+  const LMAR = 1296, CW = PAGE_W - 2*LMAR;
+  function headerXML(lines){
+    const hdr = lines.filter(Boolean);
+    return hdr.map((t,i)=>lpara([{text:t, b:i===0, sz:i===0?28:(i===1?22:18), color:i===hdr.length-1&&i>0&&i===2?C.grey:undefined}], {align:'center', after:i===hdr.length-1?120:20, border:i===hdr.length-1?'bottom':null, bcolor:C.head})).join('');
+  }
+  function signaturesXML(signers){
+    const half = CW/2, SZ=22;
+    const signCell = s => s ? [
+        lpara([], {before:720, after:0}),
+        lpara([{text:s.name, b:true, sz:SZ}], {align:'center', border:'top'}),
+        lpara([{text:s.title, sz:20}], {align:'center'}),
+        lpara([{text:'PRC Lic. No. '+(s.lic||'________________'), sz:20}], {align:'center'})
+      ].join('') : lpara([]);
+    const cells = signers.length>=2 ? [signers[0], signers[1]] : [null, signers[0]||{name:'________________', title:'Attending Physician', lic:''}];
+    const nob = `<w:tblBorders>${['top','left','bottom','right','insideH','insideV'].map(b=>`<w:${b} w:val="nil"/>`).join('')}</w:tblBorders>`;
+    return lpara([], {after:360}) + `<w:tbl><w:tblPr><w:tblW w:w="${CW}" w:type="dxa"/>${nob}<w:tblLayout w:type="fixed"/><w:tblCellMar><w:left w:w="360" w:type="dxa"/><w:right w:w="360" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid><w:gridCol w:w="${half}"/><w:gridCol w:w="${half}"/></w:tblGrid><w:tr><w:trPr><w:cantSplit/></w:trPr>${cells.map(c=>`<w:tc><w:tcPr><w:tcW w:w="${half}" w:type="dxa"/></w:tcPr>${signCell(c)}</w:tc>`).join('')}</w:tr></w:tbl>`;
+  }
+  /* One paragraph per line, so justified text never stretches a short line before a break */
+  function textParas(text, runOpt, o){
+    const lines = String(text).split(/\r?\n/).filter((l,i,a)=>l.trim() || (i>0 && i<a.length-1));
+    return lines.map((l,i)=>lpara([{text:l, ...runOpt}], {...o, after: i===lines.length-1 ? o.after : 40})).join('');
+  }
+  const letterSect = footer => `<w:sectPr>${footer?'<w:footerReference w:type="default" r:id="rId2"/>':''}<w:pgSz w:w="${PAGE_W}" w:h="15840"/><w:pgMar w:top="1080" w:right="${LMAR}" w:bottom="1080" w:left="${LMAR}" w:header="432" w:footer="432" w:gutter="0"/></w:sectPr>`;
+  const wrapDoc = inner => `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document ${W}><w:body>${inner}</w:body></w:document>`;
+
+  function buildCertificate(d){
+    const P = certParts(d), B=[], SZ=22;
+    B.push(headerXML(P.header));
+    B.push(lpara([{text:'MEDICAL CERTIFICATE', b:true, sz:32}], {align:'center', before:P.header.some(Boolean)?480:0, after:360}));
+    B.push(lpara([{text:'Date: '+(P.date||'________________'), sz:SZ}], {align:'right', after:360}));
+    B.push(lpara([{text:'To whom it may concern:', b:true, sz:SZ}], {after:240}));
+    B.push(lpara([{text:P.lead, sz:SZ},{text:P.name, b:true, sz:SZ},{text:P.rest, sz:SZ}], {align:'both', line:360, after:P.dx.length?120:240}));
+    P.dx.forEach((t,i)=>B.push(lpara([{text:t, b:true, sz:SZ}], {ind:720, line:300, after:i===P.dx.length-1?240:40})));
+    if(P.remarks){ B.push(lpara([{text:'Remarks / recommendations:', b:true, sz:SZ}], {after:60, keepNext:true})); B.push(textParas(P.remarks, {sz:SZ}, {ind:720, line:300, after:240, align:'both'})); }
+    B.push(lpara([{text:P.closing, sz:SZ}], {align:'both', line:360, after:240}));
+    B.push(signaturesXML(P.signers));
+    return wrapDoc(B.join('')+letterSect(false));
+  }
+
+  function buildAbstract(d){
+    const P = abstractParts(d), B=[], SZ=21;
+    B.push(headerXML(P.header));
+    B.push(lpara([{text:'CLINICAL ABSTRACT', b:true, sz:32}], {align:'center', before:P.header.some(Boolean)?360:0, after:240}));
+    B.push(lpara([{text:'Date: '+(P.date||'________________'), sz:SZ}], {align:'right', after:200}));
+    if(P.info.length){
+      const LW=2600;
+      B.push(table([LW, CW-LW], P.info.map(([k,v])=>({cells:[{fill:C.label, paras:[{runs:[{text:k, b:true, sz:SZ}]}]},{paras:[{runs:[{text:v, sz:SZ}]}]}]}))));
+    }
+    P.sections.forEach(sec=>{
+      B.push(para({style:'Heading1', runs:[{text:sec.title}]}));
+      sec.items.forEach(it=>{
+        B.push(lpara([{text:it.label, b:true, sz:SZ}], {keepNext:true, after:40}));
+        if(it.table){
+          const n=it.table.cols.length, w=Math.floor(CW/n), widths=it.table.cols.map((_,i)=> i<n-1 ? w : CW-w*(n-1));
+          B.push(table(widths, [{header:true, cells:it.table.cols.map(h=>({fill:C.thead, paras:[{runs:[{text:h,b:true,sz:18}]}]}))}]
+            .concat(it.table.rows.map(r=>({cells:it.table.cols.map((_,i)=>({paras:[{runs:[{text:str(r[i]||''), sz:SZ}]}]}))})))));
+          B.push(lpara([], {after:120}));
+        } else B.push(textParas(it.text, {sz:SZ}, {align:'both', line:276, after:140}));
+      });
+    });
+    B.push(lpara([{text:P.closing, sz:SZ}], {before:240, align:'both', line:300, after:120}));
+    B.push(signaturesXML(P.signers));
+    return wrapDoc(B.join('')+letterSect(true));
+  }
+  /* Hidden copy of the entered data (document properties), so the app can reopen a certificate */
+  function textPrint(xml){
+    let t=''; xml.replace(/<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/g,(m,x)=>{ t+=x; return m; });
+    t=t.replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&amp;/g,'&').replace(/\s+/g,'');
+    let h=0x811c9dc5; for(let i=0;i<t.length;i++){ h^=t.charCodeAt(i); h=Math.imul(h,0x01000193)>>>0; } return h.toString(16);
+  }
+  function customProps(kind, d, docXml){
+    const json = JSON.stringify(d), chunks=[]; for(let i=0;i<json.length;i+=240) chunks.push(json.slice(i,i+240));
+    const prop = (pid,name,val)=>`<property fmtid="{D5CDD505-2E9C-101B-9397-08002B2CF9AE}" pid="${pid}" name="${name}"><vt:lpwstr>${esc(val)}</vt:lpwstr></property>`;
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/custom-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">`+
+      prop(2,'CaseAppKind',kind)+prop(3,'CaseAppPrint',textPrint(docXml))+chunks.map((c,i)=>prop(4+i,'CaseAppData'+String(i).padStart(3,'0'),c)).join('')+`</Properties>`;
+  }
   function build(d, kind){
+    if(kind==='mc' || kind==='ca'){
+      const doc = kind==='mc' ? buildCertificate(d) : buildAbstract(d);
+      const ct = CT.replace('</Types>','<Override PartName="/docProps/custom.xml" ContentType="application/vnd.openxmlformats-officedocument.custom-properties+xml"/></Types>');
+      const rels = RELS.replace('</Relationships>','<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/custom-properties" Target="docProps/custom.xml"/></Relationships>');
+      return zip([['[Content_Types].xml',ct],['_rels/.rels',rels],['word/_rels/document.xml.rels',DOCRELS],['word/document.xml',doc],['word/styles.xml',STYLES],['word/footer1.xml',FOOTER],['docProps/custom.xml',customProps(kind,d,doc)]]);
+    }
     return zip([['[Content_Types].xml',CT],['_rels/.rels',RELS],['word/_rels/document.xml.rels',DOCRELS],['word/document.xml',buildDocument(d, kind)],['word/styles.xml',STYLES],['word/footer1.xml',FOOTER]]);
   }
-  return { build };
+  return { build, textPrint };
 })();
 if (typeof module !== 'undefined') module.exports = DocxGen;
 
@@ -709,12 +1201,27 @@ const DocxImport = (() => {
     }
   }
 
+  /* Certificates carry a hidden copy of their data in the document properties */
+  async function embedded(buf){
+    let xml; try{ xml = await readPart(buf, 'docProps/custom.xml'); }catch(e){ return null; }
+    const doc = new DOMParser().parseFromString(xml, 'application/xml');
+    const props = {}; Array.from(doc.getElementsByTagName('*')).filter(n=>n.localName==='property').forEach(p=>{ props[p.getAttribute('name')] = p.textContent; });
+    if(!props.CaseAppKind || !SCHEMAS[props.CaseAppKind]) return null;
+    const json = Object.keys(props).filter(k=>/^CaseAppData\d+$/.test(k)).sort().map(k=>props[k]).join('');
+    let data; try{ data = JSON.parse(json); }catch(e){ return null; }
+    let edited = false;
+    try{ const docXml = await readPart(buf, 'word/document.xml'); edited = !!props.CaseAppPrint && DocxGen.textPrint(docXml)!==props.CaseAppPrint; }catch(e){}
+    return { kind:props.CaseAppKind, data, filled:Object.keys(data).length, missed:[], edited };
+  }
   async function fileToData(file){
-    const xml = await readPart(await file.arrayBuffer(), 'word/document.xml');
+    const buf = await file.arrayBuffer();
+    const emb = await embedded(buf); if(emb) return emb;
+    const xml = await readPart(buf, 'word/document.xml');
     const doc = new DOMParser().parseFromString(xml, 'application/xml');
     const body = doc.getElementsByTagNameNS(NS,'body')[0]; if(!body) throw new Error('not-docx');
-    const firstText = Array.from(doc.getElementsByTagNameNS(NS,'p')).slice(0,4).map(paraText).join(' ');
-    const kind = /progress note/i.test(firstText) ? 'pn' : 'case';
+    const firstText = Array.from(doc.getElementsByTagNameNS(NS,'p')).slice(0,8).map(paraText).join(' ');
+    if(/medical certificate|clinical abstract/i.test(firstText)) throw new Error('letter-stripped');
+    const kind = /discharge summary/i.test(firstText) ? 'dc' : /progress note/i.test(firstText) ? 'pn' : 'case';
     const SECS = SCHEMAS[kind].sections;
     const d={}, miss=[]; let sec=null, filled=0;
     const tableFields=[]; SECS.forEach(s=>s.fields.forEach(f=>{ if(f.t==='table') tableFields.push(f); }));
@@ -761,7 +1268,7 @@ const DocxImport = (() => {
   const VERSION='September 30, 2026';
   const $ = (s,el=document)=>el.querySelector(s);
   const h = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  const FIELDS = {case:{}, pn:{}};
+  const FIELDS = {}; Object.keys(SCHEMAS).forEach(k=>FIELDS[k]={});
   Object.entries(SCHEMAS).forEach(([k,sc])=>sc.sections.forEach(s=>s.fields.forEach(f=>FIELDS[k][f.id]=f)));
 
   let store = load();
@@ -784,8 +1291,9 @@ const DocxImport = (() => {
   const newId = () => Date.now().toString(36)+Math.random().toString(36).slice(2,6);
   const when = t => new Date(t).toLocaleString('en-US',{dateStyle:'medium',timeStyle:'short'});
   const progress = rec => SECS(rec).filter(s=>sectionStarted(s,rec.data)).length;
-  const recTitle = rec => str(rec.data.patient) || (rec.kind==='pn' ? 'Untitled progress note' : 'Untitled case');
-  const recKind = rec => rec.kind==='pn' ? ('Progress note'+(str(rec.data.hday)?', hospital day '+str(rec.data.hday):'')) : 'Case';
+  const recTitle = rec => str(rec.data.patient) || str(rec.data.patientName) || ('Untitled '+SCHEMAS[rec.kind].name.toLowerCase());
+  const recKind = rec => rec.kind==='pn' ? ('Progress note'+(str(rec.data.hday)?', hospital day '+str(rec.data.hday):'')) : rec.kind==='dc' ? ('Discharge summary'+(str(rec.data.dischargeDate)?', '+str(rec.data.dischargeDate):'')) : rec.kind==='mc' ? ('Medical certificate'+(str(rec.data.certDate)?', '+str(rec.data.certDate):'')) : rec.kind==='ca' ? ('Clinical abstract'+(str(rec.data.dateIssued)?', '+str(rec.data.dateIssued):'')) : 'Case';
+  const samePt = (a,b) => !!str(a) && str(a).toLowerCase().replace(/\s+/g,' ')===str(b).toLowerCase().replace(/\s+/g,' ');
 
   function sheet(html, onReady){
     const s=document.createElement('div'); s.className='scrim';
@@ -803,12 +1311,20 @@ const DocxImport = (() => {
     document.body.innerHTML = `
       <header class="bar"><h1>Case &amp; MSE</h1>
         <button class="btn" id="imp">Open Word file</button>
-        <button class="btn" id="newpn">New progress note</button>
-        <button class="btn primary" id="new">New case</button>
         <input type="file" id="impFile" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden></header>
       <main class="home">
         <h2>Patient records</h2>
-        <p class="lede">Start a <strong>case</strong> for the initial interview. For follow-up visits, start a <strong>progress note</strong> from an existing case or earlier note; it fills in the identifiers, diagnosis, medications, and plan so you only enter what changed.</p>
+        <p class="starts-label">During the admission</p>
+        <div class="starts">
+          <button id="new"><strong>New case</strong><span>Initial interview and MSE</span></button>
+          <button id="newpn"><strong>New progress note</strong><span>Follow-up visit, built from the case or last note</span></button>
+          <button id="newdc"><strong>New discharge summary</strong><span>End of admission, built from the case and notes</span></button>
+        </div>
+        <p class="starts-label">Documents for the patient</p>
+        <div class="starts">
+          <button id="newmc"><strong>New medical certificate</strong><span>Diagnosis, dates of care, and signatures</span></button>
+          <button id="newca"><strong>New clinical abstract</strong><span>Summary of the admission for claims, referrals, and transfers</span></button>
+        </div>
         ${list.length ? `<ul class="cases">${list.map(c=>{
           const n=SECS(c).length, p=progress(c), pct=Math.round(p/n*100);
           return `<li><button class="open" data-open="${c.id}">
@@ -822,16 +1338,19 @@ const DocxImport = (() => {
       </main>`;
     $('#new').onclick = newCase;
     $('#newpn').onclick = chooseProgressSource;
+    $('#newdc').onclick = chooseDischargeSource;
+    $('#newmc').onclick = chooseCertSource;
+    $('#newca').onclick = chooseAbstractSource;
     $('#imp').onclick = ()=>{ pickFile(importFile); };
     document.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>openRec(b.dataset.open));
     const w=$('#wipe'); if(w) w.onclick=()=>{ if(confirm('Delete ALL records from this iPad? This cannot be undone.')){ store.cases={}; persist(); renderHome(); } };
     window.scrollTo(0,0);
   }
-  function pickFile(cb){ const i=$('#impFile'); i.onchange=e=>{ const f=e.target.files[0]; e.target.value=''; if(f) cb(f); }; i.click(); }
+  function pickFile(cb, multi){ const i=$('#impFile'); i.multiple=!!multi; i.onchange=e=>{ const fs=Array.from(e.target.files); e.target.value=''; if(fs.length) cb(multi?fs:fs[0]); }; i.click(); }
   async function readWord(file){
     try{ const res = await DocxImport.fileToData(file); if(!res.filled){ toast('No information was found in that file. Choose a Word file exported from this app.'); return null; } return res; }
     catch(err){
-      toast(err && err.message==='old-ios' ? 'This file was re-saved in Word or Pages, and this iPad needs iPadOS 16.4 or later to read it.' : 'This file could not be read. Choose a .docx file that was exported from this app.');
+      toast(err && err.message==='letter-stripped' ? 'This document was re-saved without the app\'s saved details, so it cannot be reopened here. Start a new one instead.' : err && err.message==='old-ios' ? 'This file was re-saved in Word or Pages, and this iPad needs iPadOS 16.4 or later to read it.' : 'This file could not be read. Choose a .docx file that was exported from this app.');
       return null;
     }
   }
@@ -842,6 +1361,7 @@ const DocxImport = (() => {
     persist(); openRec(id);
     const rec=store.cases[id], what = res.kind==='pn' ? 'progress note' : 'case';
     sheet(`<h3>${res.kind==='pn'?'Progress note':'Case'} opened from Word file</h3>
+      ${res.edited?`<p class="warn-box"><strong>This file was changed after it was exported.</strong> The app restored the details as they were at export. Changes made in Word are not included, so re-enter them here if they are still needed.</p>`:''}
       <p>${h(file.name)} filled ${progress(rec)} of ${SECS(rec).length} sections. It was added as a new ${what}, so the original file is unchanged. Review each section before exporting again.</p>
       ${res.missed.length?`<p><strong>This text could not be placed in a field.</strong> Re-enter it where it belongs:</p><ul>${res.missed.slice(0,40).map(m=>`<li>${h(m)}</li>`).join('')}</ul>`:''}
       <button class="btn primary" data-close>Review ${what}</button>`, (s,close)=>{ s.querySelector('[data-close]').onclick=close; });
@@ -854,14 +1374,14 @@ const DocxImport = (() => {
 
   /* ----- progress notes ----- */
   function chooseProgressSource(){
-    const list = Object.values(store.cases).sort((a,b)=>b.updated-a.updated);
+    const list = Object.values(store.cases).filter(c=>c.kind==='case'||c.kind==='pn').sort((a,b)=>b.updated-a.updated);
     sheet(`<h3>New progress note</h3>
       <p>Start from the patient's case or most recent progress note. Identifiers, diagnosis, medications, and plan carry over.</p>
       ${list.length?`<ul class="pick">${list.map(c=>`<li><button data-src="${c.id}"><strong>${h(recTitle(c))}</strong><span>${h(recKind(c))}${str(c.data.datetime)?'. '+h(str(c.data.datetime)):''}</span></button></li>`).join('')}</ul>`:''}
       <div class="tools"><button class="btn primary" data-file>Choose Word file</button><button class="btn" data-blank>Start blank</button><button class="btn quiet" data-close>Cancel</button></div>`,
     (s,close)=>{
-      s.querySelectorAll('[data-src]').forEach(b=>b.onclick=()=>{ close(); const src=store.cases[b.dataset.src]; createProgress(src.data, src.kind, recTitle(src)+' ('+recKind(src).toLowerCase()+')'); });
-      s.querySelector('[data-file]').onclick=()=>{ close(); pickFile(async f=>{ const res=await readWord(f); if(res) createProgress(res.data, res.kind, f.name); }); };
+      s.querySelectorAll('[data-src]').forEach(b=>b.onclick=()=>{ close(); const src=store.cases[b.dataset.src]; createProgress(src.data, src.kind, recTitle(src)+' ('+lc(recKind(src))+')'); });
+      s.querySelector('[data-file]').onclick=()=>{ close(); pickFile(async f=>{ const res=await readWord(f); if(!res) return; if(res.kind!=='case' && res.kind!=='pn'){ toast('Choose a case or progress note for this.'); return; } createProgress(res.data, res.kind, f.name); }); };
       s.querySelector('[data-blank]').onclick=()=>{ close(); createProgress({}, 'blank', null); };
       s.querySelector('[data-close]').onclick=close;
     });
@@ -876,6 +1396,137 @@ const DocxImport = (() => {
     if(label) toast('Started from '+label+'. Check the carried-over details.');
   }
 
+  /* ----- discharge summaries ----- */
+  function chooseDischargeSource(){
+    const list = Object.values(store.cases).filter(c=>c.kind==='case'||c.kind==='pn').sort((a,b)=>(a.kind===b.kind?0:a.kind==='case'?-1:1) || b.updated-a.updated);
+    sheet(`<h3>New discharge summary</h3>
+      <p>Choose the patient's admission case. Progress notes for the same patient on this iPad are added automatically.</p>
+      ${list.length?`<ul class="pick">${list.map(c=>`<li><button data-src="${c.id}"><strong>${h(recTitle(c))}</strong><span>${h(recKind(c))}${str(c.data.datetime)?'. '+h(str(c.data.datetime)):''}</span></button></li>`).join('')}</ul>`:''}
+      <p class="small">Working from Word files instead? Select the case and the progress notes together.</p>
+      <div class="tools"><button class="btn primary" data-file>Choose Word files</button><button class="btn" data-blank>Start blank</button><button class="btn quiet" data-close>Cancel</button></div>`,
+    (s,close)=>{
+      s.querySelectorAll('[data-src]').forEach(b=>b.onclick=()=>{
+        close(); const pick=store.cases[b.dataset.src], pt=pick.data.patient;
+        const same = Object.values(store.cases).filter(c=>c.id===pick.id || samePt(c.data.patient, pt));
+        const cs = pick.kind==='case' ? pick : same.filter(c=>c.kind==='case').sort((a,b)=>b.updated-a.updated)[0];
+        const pns = same.filter(c=>c.kind==='pn').map(c=>c.data);
+        createDischarge(cs?cs.data:null, pns, 'this iPad');
+      });
+      s.querySelector('[data-file]').onclick=()=>{ close(); pickFile(async files=>{
+        let cs=null; const pns=[];
+        for(const f of files){ const res=await readWord(f); if(!res) continue; if(res.kind==='case' && !cs) cs=res.data; else if(res.kind==='pn') pns.push(res.data); }
+        if(!cs && !pns.length){ toast('Choose the case and progress notes for this patient.'); return; }
+        if(!cs && !pns.length) return;
+        createDischarge(cs, pns, files.length===1?files[0].name:files.length+' Word files');
+      }, true); };
+      s.querySelector('[data-blank]').onclick=()=>{ close(); createDischarge(null, [], null); };
+      s.querySelector('[data-close]').onclick=close;
+    });
+  }
+  function createDischarge(caseD, pns, from){
+    const built = dischargeFromSources(caseD, pns, new Date(), store.last.interviewer);
+    built.data.author = built.data.author || store.last.interviewer || '';
+    built.data.attending = built.data.attending || store.last.attending || '';
+    const parts = [caseD?'the case':'', pns.length?(pns.length===1?'1 progress note':pns.length+' progress notes'):''].filter(Boolean).join(' and ');
+    const label = parts ? parts+(from?' ('+from+')':'') : null;
+    const id=newId();
+    store.cases[id] = {id, kind:'dc', created:Date.now(), updated:Date.now(), source:label, prev:built.prev, lastMSE:built.lastMSE, courseNotes:built.courseNotes, data:built.data};
+    persist(); openRec(id);
+    if(label) toast('Built from '+label+'. Check every carried-over detail.');
+    if(!caseD && (pns.length || from)) setTimeout(()=>toast('No admission case was found, so "Reason for admission" is blank.'), 3700);
+  }
+
+  /* ----- medical certificates ----- */
+  const ORDER = {dc:0, pn:1, case:2};
+  const newest = (list, kind) => list.filter(c=>c.kind===kind).sort((a,b)=>(kind==='pn' ? (parseInt(str(b.data.hday),10)||0)-(parseInt(str(a.data.hday),10)||0) : 0) || b.updated-a.updated)[0];
+  function chooseCertSource(){
+    const list = Object.values(store.cases).filter(c=>c.kind in ORDER).sort((a,b)=>ORDER[a.kind]-ORDER[b.kind] || b.updated-a.updated);
+    sheet(`<h3>New medical certificate</h3>
+      <p>Choose the record to build it from. A discharge summary gives the inpatient dates, final diagnosis, and signing physicians.</p>
+      ${list.length?`<ul class="pick">${list.map(c=>`<li><button data-src="${c.id}"><strong>${h(recTitle(c))}</strong><span>${h(recKind(c))}${c.kind!=='dc'&&str(c.data.datetime)?'. '+h(str(c.data.datetime)):''}</span></button></li>`).join('')}</ul>`:''}
+      <div class="tools"><button class="btn primary" data-file>Choose Word file</button><button class="btn" data-blank>Start blank</button><button class="btn quiet" data-close>Cancel</button></div>`,
+    (s,close)=>{
+      s.querySelectorAll('[data-src]').forEach(b=>b.onclick=()=>{ close(); const r=store.cases[b.dataset.src]; createCert(r.data, r.kind, recTitle(r)+' ('+lc(recKind(r))+')'); });
+      s.querySelector('[data-file]').onclick=()=>{ close(); pickFile(async f=>{ const res=await readWord(f); if(!res) return; if(res.kind==='mc'||res.kind==='ca'){ toast('Choose a case, progress note, or discharge summary.'); return; } createCert(res.data, res.kind, f.name); }); };
+      s.querySelector('[data-blank]').onclick=()=>{ close(); createCert(null, null, null); };
+      s.querySelector('[data-close]').onclick=close;
+    });
+  }
+  function createCert(src, kind, label){
+    const d = certFromSource(src, kind, new Date(), store.last);
+    const id=newId();
+    store.cases[id] = {id, kind:'mc', created:Date.now(), updated:Date.now(), source:label, data:d};
+    persist(); openRec(id);
+    if(label) toast('Started from '+label+'. Check every detail before printing.');
+  }
+  function chooseAbstractSource(){
+    const list = Object.values(store.cases).filter(c=>c.kind in ORDER).sort((a,b)=>ORDER[a.kind]-ORDER[b.kind] || b.updated-a.updated);
+    sheet(`<h3>New clinical abstract</h3>
+      <p>Choose any record for the patient. The case, latest progress note, and discharge summary for the same patient on this iPad are all used.</p>
+      ${list.length?`<ul class="pick">${list.map(c=>`<li><button data-src="${c.id}"><strong>${h(recTitle(c))}</strong><span>${h(recKind(c))}${c.kind!=='dc'&&str(c.data.datetime)?'. '+h(str(c.data.datetime)):''}</span></button></li>`).join('')}</ul>`:''}
+      <p class="small">Working from Word files instead? Select the discharge summary, case, and notes together.</p>
+      <div class="tools"><button class="btn primary" data-file>Choose Word files</button><button class="btn" data-blank>Start blank</button><button class="btn quiet" data-close>Cancel</button></div>`,
+    (s,close)=>{
+      s.querySelectorAll('[data-src]').forEach(b=>b.onclick=()=>{
+        close(); const pick=store.cases[b.dataset.src];
+        const same = Object.values(store.cases).filter(c=>c.kind in ORDER && (c.id===pick.id || samePt(c.data.patient, pick.data.patient)));
+        const get = k => pick.kind===k ? pick : newest(same, k);
+        const dc=get('dc'), cs=get('case'), pn=get('pn');
+        const used=[cs&&'case', pn&&'progress note', dc&&'discharge summary'].filter(Boolean);
+        createAbstract(dc&&dc.data, cs&&cs.data, pn&&pn.data, recTitle(pick)+': '+used.join(', '));
+      });
+      s.querySelector('[data-file]').onclick=()=>{ close(); pickFile(async files=>{
+        let dc=null, cs=null, pn=null;
+        for(const f of files){ const res=await readWord(f); if(!res) continue;
+          if(res.kind==='dc' && !dc) dc=res.data; else if(res.kind==='case' && !cs) cs=res.data;
+          else if(res.kind==='pn' && (!pn || (parseInt(str(res.data.hday),10)||0) >= (parseInt(str(pn.hday),10)||0))) pn=res.data; }
+        if(!dc && !cs && !pn){ toast('Choose the case, progress notes, or discharge summary for this patient.'); return; }
+        createAbstract(dc, cs, pn, files.length===1?files[0].name:files.length+' Word files');
+      }, true); };
+      s.querySelector('[data-blank]').onclick=()=>{ close(); createAbstract(null, null, null, null); };
+      s.querySelector('[data-close]').onclick=close;
+    });
+  }
+  function createAbstract(dc, cs, pn, label){
+    const d = abstractFromSources(dc, cs, pn, new Date(), store.last);
+    const id=newId();
+    store.cases[id] = {id, kind:'ca', created:Date.now(), updated:Date.now(), source:label, data:d};
+    persist(); openRec(id);
+    if(label) toast('Built from '+label+'. Check every detail before printing.');
+  }
+  function abstractPreviewHTML(d){
+    const P=abstractParts(d), e=t=>h(t).replace(/\n/g,'<br>');
+    const sig = s => s ? `<div class="sig"><div class="line"></div><strong>${h(s.name)}</strong><span>${h(s.title)}</span><span>PRC Lic. No. ${s.lic?h(s.lic):'<em>missing</em>'}</span></div>` : '<div class="sig empty"></div>';
+    const cells = P.signers.length>=2 ? [P.signers[0],P.signers[1]] : [null, P.signers[0]];
+    return `<article class="cert abstract" aria-label="Abstract preview">
+      <header>${P.header.filter(Boolean).map((t,i)=>`<div class="h${i}">${h(t)}</div>`).join('') || '<div class="h2"><em>Institution not entered</em></div>'}</header>
+      <h3>CLINICAL ABSTRACT</h3>
+      <p class="date">Date: ${P.date?h(P.date):'<em>missing</em>'}</p>
+      ${P.info.length?`<table class="info">${P.info.map(([k,v])=>`<tr><th scope="row">${h(k)}</th><td>${h(v)}</td></tr>`).join('')}</table>`:''}
+      ${P.sections.map(sec=>`<h4>${h(sec.title)}</h4>${sec.items.map(it=>`<p class="lbl">${h(it.label)}</p>${it.table?`<div class="tblwrap"><table class="info meds"><tr>${it.table.cols.map(c=>`<th>${h(c)}</th>`).join('')}</tr>${it.table.rows.map(r=>`<tr>${it.table.cols.map((_,i)=>`<td>${h(r[i]||'')}</td>`).join('')}</tr>`).join('')}</table></div>`:`<p class="txt">${e(it.text)}</p>`}`).join('')}`).join('') || '<p class="warn">No clinical details entered yet.</p>'}
+      <p class="body">${h(P.closing)}</p>
+      <div class="sigs">${cells.map(sig).join('')}</div>
+      ${P.signers.length?'':'<p class="warn">No signing physician entered.</p>'}
+    </article>`;
+  }
+  function previewHTML(d){
+    const P=certParts(d), e=t=>h(t).replace(/\n/g,'<br>');
+    const sig = s => s ? `<div class="sig"><div class="line"></div><strong>${h(s.name)}</strong><span>${h(s.title)}</span><span>PRC Lic. No. ${s.lic?h(s.lic):'<em>missing</em>'}</span></div>` : '<div class="sig empty"></div>';
+    const cells = P.signers.length>=2 ? [P.signers[0],P.signers[1]] : [null, P.signers[0]];
+    return `<article class="cert" aria-label="Certificate preview">
+      <header>${P.header.filter(Boolean).map((t,i)=>`<div class="h${i}">${h(t)}</div>`).join('') || '<div class="h2"><em>Institution not entered</em></div>'}</header>
+      <h3>MEDICAL CERTIFICATE</h3>
+      <p class="date">Date: ${P.date?h(P.date):'<em>missing</em>'}</p>
+      <p><strong>To whom it may concern:</strong></p>
+      <p class="body">${h(P.lead)}<strong>${h(P.name)}</strong>${h(P.rest)}</p>
+      ${P.dx.map(t=>`<p class="dx">${h(t)}</p>`).join('')}
+      ${P.remarks?`<p><strong>Remarks / recommendations:</strong></p><p class="dx normal">${e(P.remarks)}</p>`:''}
+      <p class="body">${h(P.closing)}</p>
+      <div class="sigs">${cells.map(sig).join('')}</div>
+      ${P.signers.length?'':'<p class="warn">No signing physician entered.</p>'}
+    </article>`;
+  }
+
   /* ----- editor ----- */
   function openRec(id){ cur=id; secIdx=0; renderEditor(); }
   function renderEditor(){
@@ -886,14 +1537,14 @@ const DocxImport = (() => {
         <button class="btn only-narrow" id="menu" aria-expanded="false" aria-controls="rail">Sections</button>
         <h1 id="title">${h(recTitle(rec))}<small>${h(recKind(rec))}</small></h1>
         <span class="status" id="status">Saved on this iPad</span>
-        <button class="btn hide-sm" id="rem">Reminders</button>
+        ${rec.kind==='mc'||rec.kind==='ca'?'':'<button class="btn hide-sm" id="rem">Reminders</button>'}
         <button class="btn quiet danger hide-sm" id="del">Delete</button>
         <button class="btn primary" id="export">Export Word file</button>
       </header>
       <div class="layout"><nav class="rail" id="rail" aria-label="Sections"></nav><main class="main" id="main"></main></div>`;
     $('#back').onclick = ()=>{ persist(); renderHome(); };
     $('#menu').onclick = ()=>{ const r=$('#rail'); const o=r.classList.toggle('open'); $('#menu').setAttribute('aria-expanded',o); };
-    $('#rem').onclick = showReminders;
+    if($('#rem')) $('#rem').onclick = showReminders;
     $('#del').onclick = ()=>{ if(confirm('Delete this record from this iPad? Export it first if you need a copy.')){ delete store.cases[cur]; persist(); renderHome(); } };
     $('#export').onclick = exportDocx;
     renderRail(); renderSection();
@@ -904,14 +1555,14 @@ const DocxImport = (() => {
       if(s.group && s.group!==g) html+=`<div class="grp">${h(s.num.replace(/[A-Z]$/,''))} &nbsp;${h(s.group)}</div>`;
       g=s.group||null;
       const on=sectionStarted(s,d);
-      html+=`<button class="${s.group?'sub ':''}${s.risk?'risk ':''}${i===secIdx?'cur':''}" data-sec="${i}" ${i===secIdx?'aria-current="step"':''}><span class="n">${h(s.num)}</span><span>${h(s.title)}</span><span class="dot ${on?'on':''}" aria-label="${on?'started':'not started'}"></span></button>`;
+      html+=`<button class="${s.group?'sub ':''}${s.risk?'risk ':''}${i===secIdx?'cur':''}" data-sec="${i}" ${i===secIdx?'aria-current="step"':''}><span class="n">${h(s.num)}</span><span>${h(s.title)}</span>${s.preview?'<span></span>':`<span class="dot ${on?'on':''}" aria-label="${on?'started':'not started'}"></span>`}</button>`;
     });
     const r=$('#rail'); r.innerHTML=html;
     r.querySelectorAll('[data-sec]').forEach(b=>b.onclick=()=>{ secIdx=+b.dataset.sec; r.classList.remove('open'); $('#menu').setAttribute('aria-expanded','false'); renderRail(); renderSection(); window.scrollTo(0,0); });
   }
   function updateRailDots(){
     const d=D();
-    document.querySelectorAll('#rail [data-sec]').forEach(b=>{ const on=sectionStarted(SECS()[+b.dataset.sec],d); const dot=b.querySelector('.dot'); dot.classList.toggle('on',on); dot.setAttribute('aria-label',on?'started':'not started'); });
+    document.querySelectorAll('#rail [data-sec]').forEach(b=>{ const on=sectionStarted(SECS()[+b.dataset.sec],d); const dot=b.querySelector('.dot'); if(!dot) return; dot.classList.toggle('on',on); dot.setAttribute('aria-label',on?'started':'not started'); });
   }
 
   function fieldHTML(f, d, rec){
@@ -920,7 +1571,7 @@ const DocxImport = (() => {
     const v = d[f.id];
     switch(f.t){
       case 'text': return `<div class="field">${lab}<input type="text" data-f="${f.id}" aria-labelledby="l-${f.id}" value="${h(v)}" autocomplete="off"></div>`;
-      case 'area': return `<div class="field">${lab}<textarea class="${f.big?'big':''}" data-f="${f.id}" aria-labelledby="l-${f.id}">${h(v)}</textarea>${f.mseTools?`<div class="tools"><button class="btn" id="draft">${h(typeof f.mseTools==='string'?f.mseTools:'Draft from 11A–11F')}</button><button class="btn" id="copy">Copy paragraph</button></div>`:''}</div>`;
+      case 'area': return `<div class="field">${lab}<textarea class="${f.big?'big':''}" data-f="${f.id}" aria-labelledby="l-${f.id}">${h(v)}</textarea>${f.tool==='course' && rec.courseNotes && rec.courseNotes.length?`<div class="tools"><button class="btn" id="draftCourse">Draft from ${rec.courseNotes.length===1?'1 progress note':rec.courseNotes.length+' progress notes'}</button></div>`:''}${f.tool==='lastMSE' && str(rec.lastMSE)?`<div class="tools"><button class="btn" id="insLastMSE">Insert last progress-note MSE</button></div>`:''}${f.mseTools?`<div class="tools"><button class="btn" id="draft">${h(typeof f.mseTools==='string'?f.mseTools:'Draft from 11A–11F')}</button><button class="btn" id="copy">Copy paragraph</button></div>`:''}</div>`;
       case 'checks': { const sel=v||[]; return `<div class="field" role="group" aria-labelledby="l-${f.id}">${lab}<div class="chips">${f.o.map(o=>`<button class="chip" data-chk="${f.id}" data-o="${h(o)}" aria-pressed="${sel.includes(o)}">${h(o)}</button>`).join('')}</div>${f.score?`<div class="score" id="sc-${f.id}">${sel.length}/${f.o.length} positive</div>`:''}</div>`; }
       case 'radio': return `<div class="field" role="group" aria-labelledby="l-${f.id}">${lab}<div class="seg">${f.o.map(o=>`<button data-rad="${f.id}" data-o="${h(o)}" aria-pressed="${v===o}">${h(o)}</button>`).join('')}</div>${f.detail?`<div class="detail"><input type="text" data-f="${f.id}__d" placeholder="${h(f.detail)}" aria-label="${h(f.label+': '+f.detail)}" value="${h(d[f.id+'__d'])}"></div>`:''}</div>`;
       case 'radios': { const o=v||{}; return `<div class="field">${lab}<div class="radios">${f.p.map(([k,opts])=>`<div class="row" role="group" aria-label="${h(k)}"><span>${h(k)}</span><div class="seg">${opts.map(x=>`<button data-rads="${f.id}" data-k="${h(k)}" data-o="${h(x)}" aria-pressed="${o[k]===x}">${h(x)}</button>`).join('')}</div></div>`).join('')}</div></div>`; }
@@ -947,7 +1598,9 @@ const DocxImport = (() => {
         ${s.note?`<p class="note">${h(s.note)}</p>`:''}
       </div>
       ${hasLast?`<div class="carry"><div><strong>Start from the last MSE?</strong> Copies the previous selections for 3A–3C so you only change what's different. SI, HI, and self-harm stay blank to be asked today.</div><button class="btn" id="copymse">Start from last MSE</button></div>`:''}
-      ${s.id==='pnInfo' && rec.source?`<p class="source">Started from ${h(rec.source)}.</p>`:''}
+      ${(s.id==='pnInfo'||s.id==='dcInfo') && rec.source?`<p class="source">Started from ${h(rec.source)}.</p>`:''}
+      ${(s.id==='mcInst'||s.id==='caInst') && rec.source?`<p class="source">Started from ${h(rec.source)}.</p>`:''}
+      ${s.preview?(rec.kind==='ca'?abstractPreviewHTML(d):previewHTML(d)):''}
       <div class="${s.risk?'risky':''}">${s.fields.map(f=>fieldHTML(f,d,rec)).join('')}</div>
       <div class="pager">
         ${prev?`<button class="btn" id="prev">‹ ${h(prev.num)} ${h(prev.title)}</button>`:'<span></span>'}
@@ -961,6 +1614,15 @@ const DocxImport = (() => {
       if(touched && !confirm('Replace your current 3A–3C selections with the last MSE?')) return;
       Object.entries(L).forEach(([k,v])=>{ d[k]=Array.isArray(v)?v.slice():v; });
       touch(); renderSection(); toast('Copied. Review each finding; SI, HI, and self-harm were left blank.');
+    };
+    const dc=$('#draftCourse'); if(dc) dc.onclick=()=>{
+      const t=draftCourse(rec.courseNotes); if(!t){ toast('Those progress notes have no assessment or plan changes to draft from.'); return; }
+      const ta=$('[data-f="course"]'); if(str(ta.value) && !confirm('Replace the current hospital course with a new draft?')) return;
+      ta.value=t; setVal('course',null,t); grow(ta); toast('Draft added. Edit it into a narrative.');
+    };
+    const im=$('#insLastMSE'); if(im) im.onclick=()=>{
+      const ta=$('[data-f="dcMSE"]'); if(str(ta.value) && !confirm('Replace the current text with the last progress-note MSE?')) return;
+      ta.value=rec.lastMSE; setVal('dcMSE',null,rec.lastMSE); grow(ta); toast('Inserted. Update it to today\'s findings, including SI and HI.');
     };
     const dr=$('#draft'); if(dr) dr.onclick=()=>{
       const t=draftMSE(D()); if(!t){ toast('Nothing to draft yet. Fill in the MSE sections first.'); return; }
@@ -982,6 +1644,15 @@ const DocxImport = (() => {
     if(id==='patient'){ const t=$('#title'); if(t) t.firstChild.textContent=str(val)||recTitle({kind:R().kind,data:{}}); }
     if(id==='interviewer'||id==='author') store.last.interviewer=val;
     if(id==='attending') store.last.attending=val;
+    if(R().kind==='mc' || R().kind==='ca'){
+      if(['instName','instDept','instAddress','resTitle','attTitle'].includes(id)) store.last[id]=val;
+      store.last.lic = store.last.lic || {};
+      if(id==='resLic' && str(d.resName)) store.last.lic[normName(d.resName)]=val;
+      if(id==='attLic' && str(d.attName)) store.last.lic[normName(d.attName)]=val;
+      if((id==='resName'||id==='attName') && store.last.lic[normName(val)]){ const lk=id==='resName'?'resLic':'attLic'; if(!str(d[lk])){ d[lk]=store.last.lic[normName(val)]; const el=$(`[data-f="${lk}"]`); if(el) el.value=d[lk]; } }
+    }
+    if(id==='patientName'){ const t=$('#title'); if(t) t.firstChild.textContent=str(val)||'Untitled medical certificate'; }
+    if(R().kind==='dc' && (id==='admitDate'||id==='dischargeDate')){ const l=daysBetween(d.admitDate,d.dischargeDate); if(l){ d.los=l; const el=$('[data-f="los"]'); if(el) el.value=l; } }
     touch();
   }
 
@@ -1013,7 +1684,7 @@ const DocxImport = (() => {
     persist();
     const rec=R(), d=D();
     const bytes = DocxGen.build(d, rec.kind);
-    const base = (str(d.patient)||'Patient').replace(/[^\w\- ]+/g,' ').trim().replace(/\s+/g,'_').slice(0,50) || 'Patient';
+    const base = (str(d.patient)||str(d.patientName)||'Patient').replace(/[^\w\- ]+/g,' ').trim().replace(/\s+/g,'_').slice(0,50) || 'Patient';
     const hd = rec.kind==='pn' && /^\d+$/.test(str(d.hday)) ? '_HD'+str(d.hday) : '';
     const name = `${base}_${SCHEMAS[rec.kind].file}${hd}_${new Date().toISOString().slice(0,10)}.docx`;
     const file = new File([bytes], name, {type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
