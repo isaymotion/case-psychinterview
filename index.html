@@ -68,6 +68,19 @@ textarea.big{min-height:180px}
 .privacy{margin-top:34px;padding:16px 18px;border-left:3px solid var(--blue);background:var(--wash);border-radius:0 8px 8px 0;font-size:15px;color:var(--ink-2)}
 .privacy strong{color:var(--ink)}
 .home .foot{margin-top:18px;display:flex;justify-content:flex-end}
+.bar h1 small{display:block;font:500 12.5px/1.2 var(--sans);color:var(--ink-3);margin-top:2px}
+.cases .who .kind{display:block;font-size:13px;font-weight:600;color:var(--blue);margin-bottom:1px}
+.cases .who .kind.pn{color:#2F7A6B}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .cases .who .kind.pn{color:#7FCBB9} }
+.pick{list-style:none;margin:0 0 16px;padding:0;border-top:1px solid var(--line);max-height:44vh;overflow:auto}
+.pick li{border-bottom:1px solid var(--line)}
+.pick button{display:block;width:100%;text-align:left;background:none;border:0;padding:12px 4px;min-height:44px}
+.pick button strong{display:block;font-size:16.5px}
+.pick button span{font-size:14px;color:var(--ink-3)}
+.carry{display:flex;gap:16px;align-items:center;justify-content:space-between;background:var(--wash);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:0 0 24px;font-size:15px;color:var(--ink-2)}
+.carry strong{color:var(--ink)}
+.carry .btn{flex:none}
+.source{font-size:14px;color:var(--ink-3);margin:-8px 0 20px}
 .credit{margin-top:48px;padding-top:16px;border-top:1px solid var(--line);font-size:14px;color:var(--ink-3);line-height:1.5}
 .credit p{margin:0}
 .credit a{color:var(--blue)}
@@ -142,6 +155,7 @@ textarea.big{min-height:180px}
 
 /* ----- narrower iPads / portrait ----- */
 @media (max-width:980px){
+  .carry{flex-direction:column;align-items:flex-start}
   .layout{grid-template-columns:1fr}
   .rail{position:fixed;top:calc(var(--bar) + env(safe-area-inset-top,0px));left:0;bottom:0;height:auto;width:min(330px,86vw);z-index:30;transform:translateX(-105%);visibility:hidden;transition:transform .2s ease,visibility 0s linear .2s}
   .rail.open{transform:none;visibility:visible;transition:transform .2s ease;box-shadow:0 0 30px rgba(0,0,0,.18)}
@@ -349,6 +363,117 @@ function draftMSE(d){
 }
 if (typeof module !== 'undefined') module.exports = { SECTIONS, REMINDERS, isFilled, sectionStarted, draftMSE, str, lc, quoted, endDot };
 
+/* ---------- Progress note structure (SOAP). Field ids match the case template where the meaning is the same. ---------- */
+const PN_SECTIONS = [
+  { id:'pnInfo', num:'A', title:'Patient & note information', fields:[
+    {t:'text', id:'patient', label:'Patient / MRN'},
+    {t:'text', id:'datetime', label:'Note date / time'},
+    {t:'text', id:'agesex', label:'Age / sex'},
+    {t:'text', id:'location', label:'Location / unit'},
+    {t:'text', id:'admitDate', label:'Admission date'},
+    {t:'text', id:'hday', label:'Hospital day'},
+    {t:'text', id:'author', label:'Resident / author'},
+    {t:'text', id:'attending', label:'Attending'}
+  ]},
+  { id:'pnS', num:'1', title:'Subjective / interval history', fields:[
+    {t:'area', id:'interval', label:'Interval history', hint:"Patient's report since the last note: symptoms, response to treatment, concerns, goals.", big:true},
+    {t:'area', id:'quote', label:"Patient's words", hint:'A short direct quote, when useful.', quote:true},
+    {t:'parts', id:'sleepEtc', label:'Sleep, appetite & participation', p:['Sleep','Appetite','Unit participation']},
+    {t:'radio', id:'adherence', label:'Medication adherence', o:['Adherent','Partial','Refusing'], detail:'Details'},
+    {t:'area', id:'sideEffects', label:'Side effects'}
+  ]},
+  { id:'pnO', num:'2', title:'Objective', fields:[
+    {t:'parts', id:'vitals', label:'Vitals', p:['BP','HR','RR','Temp','SpO₂'], inline:true},
+    {t:'area', id:'events', label:'Overnight / nursing events', hint:'Incidents, PRNs given, restraint or seclusion, observation level, visitors.'},
+    {t:'area', id:'labs', label:'New labs / results'},
+    {t:'area', id:'collateral', label:'Collateral since last note'},
+    {t:'table', id:'meds', label:'Current medications', hint:'Carried forward from the source file. Update to reflect today.', c:['Medication','Dose / frequency','Change today','Adherence / side effects'], rows:4}
+  ]},
+  { id:'pnMse1', num:'3A', group:'Mental status examination', title:'Appearance, behavior & speech', copyMSE:true, fields:[
+    {t:'checks', id:'appChecks', label:'Appearance / behavior', o:SECTIONS.find(s=>s.id==='app').fields[0].o},
+    {t:'area', id:'appNarr', label:'Appearance / behavior notes'},
+    {t:'checks', id:'speechChecks', label:'Speech / thought process', o:SECTIONS.find(s=>s.id==='speech').fields[0].o},
+    {t:'area', id:'thoughtNarr', label:'Speech / thought process notes'}
+  ]},
+  { id:'pnMse2', num:'3B', group:'Mental status examination', risk:true, title:'Thought content & perception', note:'Ask about SI, HI, and self-harm at every visit.', fields:[
+    {t:'checks', id:'tcChecks', label:'Thought content', o:SECTIONS.find(s=>s.id==='tc').fields[0].o},
+    {t:'area', id:'delusions', label:'Thought content notes'},
+    {t:'radios', id:'si', label:'Suicide — current', p:[['SI',['Denied','Passive','Active']],['Plan',['None','Present']],['Intent',['None','Present']],['Actions taken',['None','Present']]]},
+    {t:'radios', id:'hi', label:'Homicide / violence — current', p:[['HI',['Denied','Present']],['Plan',['None','Present']],['Intent',['None','Present']],['Actions / access',['None','Present']]]},
+    {t:'radio', id:'nssi', label:'Self-harm (NSSI thoughts / behavior)', o:['Denied','Present'], detail:'Details'},
+    {t:'checks', id:'percChecks', label:'Perception', o:SECTIONS.find(s=>s.id==='perc').fields[0].o},
+    {t:'area', id:'percNarr', label:'Perception notes'}
+  ]},
+  { id:'pnMse3', num:'3C', group:'Mental status examination', title:'Mood, affect & cognition', fields:[
+    {t:'area', id:'mood', label:"Mood — patient's words", quote:true},
+    {t:'checks', id:'affectChecks', label:'Affect', o:SECTIONS.find(s=>s.id==='mood').fields[1].o},
+    {t:'area', id:'affectNarr', label:'Affect notes'},
+    {t:'radio', id:'congruence', label:'Congruence', o:['Congruent','Incongruent','Notable discrepancy'], detail:'Details'},
+    {t:'checks', id:'cogChecks', label:'Sensorium', o:SECTIONS.find(s=>s.id==='cog').fields[0].o},
+    {t:'area', id:'testResults', label:'Cognition notes / testing'},
+    {t:'radio', id:'insight', label:'Insight', o:['None','Partial','Full'], detail:'Details'},
+    {t:'radio', id:'judgment', label:'Judgment', o:['Good','Fair','Poor'], detail:'Basis / example'}
+  ]},
+  { id:'pnMse4', num:'3D', group:'Mental status examination', title:'MSE paragraph (EHR-ready)', note:'Tap "Draft from 3A–3C" to assemble a starting paragraph, then edit it.', fields:[
+    {t:'area', id:'mseNarr', label:'MSE narrative', big:true, mseTools:'Draft from 3A–3C'}
+  ]},
+  { id:'pnRisk', num:'4', title:'Risk assessment', risk:true, note:'Reassess today. The last documented rating is shown for reference only.', fields:[
+    {t:'radio', id:'suicideRisk', label:'Suicide risk', o:['Low','Moderate','High'], prev:'suicideRisk'},
+    {t:'radio', id:'violenceRisk', label:'Violence risk', o:['Low','Moderate','High'], prev:'violenceRisk'},
+    {t:'area', id:'riskNotes', label:'Risk rationale / change since last note'}
+  ]},
+  { id:'pnA', num:'5', title:'Assessment & diagnosis', fields:[
+    {t:'area', id:'assessment', label:'Assessment', hint:'Response to treatment, progress toward goals, updated formulation.', big:true},
+    {t:'area', id:'primaryDx', label:'Primary diagnosis'},
+    {t:'area', id:'differential', label:'Differential / rule-outs'},
+    {t:'area', id:'otherDx', label:'Other relevant diagnoses'}
+  ]},
+  { id:'pnP', num:'6', title:'Plan', fields:[
+    {t:'area', id:'changes', label:'Changes today', hint:'New orders, dose changes, new referrals.'},
+    {t:'table', id:'planTable', label:'Plan by domain', hint:'Carried forward from the source file. Update to reflect today.', c:['Domain','Plan / intervention','Dose / frequency / timing','Monitoring / follow-up'], rows:5},
+    {t:'text', id:'obs', label:'Safety measures / observation level'},
+    {t:'radio', id:'dispo', label:'Level of care / disposition', o:['Continue current level','Increase level of care','Step down','Discharge planned','Discharge today'], detail:'Details / estimated discharge', prev:'level'},
+    {t:'area', id:'followup', label:'Follow-up / next steps'}
+  ]}
+];
+
+const SCHEMAS = {
+  case: { sections:SECTIONS, title:'Psychiatric Case Presentation + Mental Status Examination', name:'Case', file:'Case' },
+  pn:   { sections:PN_SECTIONS, title:'Psychiatric Progress Note', name:'Progress note', file:'ProgressNote' }
+};
+
+/* Loose date reader for "Sep 30, 2026", "30 Sep 2026", or "2026-09-30" */
+function parseLooseDate(s){
+  s=str(s); if(!s) return null;
+  const M=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+  let m=s.match(/(\d{4})-(\d{1,2})-(\d{1,2})/); if(m) return new Date(+m[1],+m[2]-1,+m[3]);
+  m=s.match(/([A-Za-z]{3})[a-z]*\.?\s+(\d{1,2}),?\s+(\d{4})/); if(m && M.includes(m[1].toLowerCase())) return new Date(+m[3],M.indexOf(m[1].toLowerCase()),+m[2]);
+  m=s.match(/(\d{1,2})\s+([A-Za-z]{3})[a-z]*\.?,?\s+(\d{4})/); if(m && M.includes(m[2].toLowerCase())) return new Date(+m[3],M.indexOf(m[2].toLowerCase()),+m[1]);
+  return null;
+}
+const SAFETY_CHIPS = ['Suicidal ideation','Homicidal / violent ideation','NSSI'];
+
+/* Build a new progress note from a case or an earlier progress note */
+function progressFromSource(src, srcKind, now, author){
+  const d = { datetime: now.toLocaleString('en-US',{dateStyle:'medium',timeStyle:'short'}), author: author||'' };
+  ['patient','agesex','location','attending','primaryDx','differential','otherDx'].forEach(k=>{ if(str(src[k])) d[k]=src[k]; });
+  d.admitDate = srcKind==='case' ? str(src.datetime).replace(/,?\s*\d{1,2}:\d{2}.*$/,'') : str(src.admitDate);
+  const ad = parseLooseDate(d.admitDate);
+  if(ad){ const today=new Date(now.getFullYear(),now.getMonth(),now.getDate()); const n=Math.round((today-ad)/86400000)+1; if(n>=1 && n<1000) d.hday=String(n); }
+  const rows = t => (t||[]).filter(r=>r.some(c=>str(c)));
+  if(srcKind==='case') d.meds = rows(src.meds).map(r=>[r[0]||'', r[1]||'', '', r[3]||'']);
+  else d.meds = rows(src.meds).map(r=>[r[0]||'', r[1]||'', '', r[3]||'']);   // "Change today" starts blank
+  d.planTable = rows(src.planTable).map(r=>r.slice(0,4));
+  if(srcKind==='pn' && str(src.obs)) d.obs = src.obs;
+  const prev = { suicideRisk:src.suicideRisk||'', violenceRisk:src.violenceRisk||'', level: srcKind==='case' ? (src.loc||'') : (src.dispo||'') };
+  const lastMSE = {};
+  ['appChecks','speechChecks','percChecks','affectChecks','cogChecks'].forEach(k=>{ if((src[k]||[]).length) lastMSE[k]=src[k].slice(); });
+  if((src.tcChecks||[]).length) lastMSE.tcChecks = src.tcChecks.filter(x=>!SAFETY_CHIPS.includes(x));
+  ['congruence','insight','judgment'].forEach(k=>{ if(src[k]) lastMSE[k]=src[k]; });
+  return { data:d, prev, lastMSE };
+}
+if (typeof module !== 'undefined') module.exports = { PN_SECTIONS, SCHEMAS, parseLooseDate, progressFromSource };
+
 /* ---------- Minimal, dependency-free .docx writer ---------- */
 const DocxGen = (() => {
   const W = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"';
@@ -410,15 +535,16 @@ const DocxGen = (() => {
     return null;
   }
 
-  function buildDocument(d){
+  function buildDocument(d, kind){
+    const sch = SCHEMAS[kind||'case'];
     const body=[];
-    body.push(para({style:'Title', runs:[{text:'Psychiatric Case Presentation + Mental Status Examination'}]}));
-    const sub = [str(d.patient), str(d.datetime)].filter(Boolean).join('  |  ');
+    body.push(para({style:'Title', runs:[{text:sch.title}]}));
+    const sub = [str(d.patient), str(d.datetime), (kind==='pn' && str(d.hday)) ? 'Hospital day '+str(d.hday) : ''].filter(Boolean).join('  |  ');
     if(sub) body.push(para({align:'center', after:200, runs:[{text:sub, color:C.grey, sz:20}]}));
     let lastGroup = null;
-    SECTIONS.forEach(s=>{
+    sch.sections.forEach(s=>{
       if(s.group && s.group!==lastGroup){
-        body.push(para({style:'Heading1', runs:[{text:'11. '+s.group}]}));
+        body.push(para({style:'Heading1', runs:[{text:s.num.replace(/[A-Z]$/,'')+'. '+s.group}]}));
         if(s.groupNote) body.push(para({after:60, runs:[{text:s.groupNote, i:true, color:C.grey, sz:18}]}));
       }
       lastGroup = s.group || null;
@@ -495,8 +621,8 @@ const DocxGen = (() => {
     let p=0; for(const a of all){ out.set(a,p); p+=a.length; }
     return out;
   }
-  function build(d){
-    return zip([['[Content_Types].xml',CT],['_rels/.rels',RELS],['word/_rels/document.xml.rels',DOCRELS],['word/document.xml',buildDocument(d)],['word/styles.xml',STYLES],['word/footer1.xml',FOOTER]]);
+  function build(d, kind){
+    return zip([['[Content_Types].xml',CT],['_rels/.rels',RELS],['word/_rels/document.xml.rels',DOCRELS],['word/document.xml',buildDocument(d, kind)],['word/styles.xml',STYLES],['word/footer1.xml',FOOTER]]);
   }
   return { build };
 })();
@@ -587,17 +713,20 @@ const DocxImport = (() => {
     const xml = await readPart(await file.arrayBuffer(), 'word/document.xml');
     const doc = new DOMParser().parseFromString(xml, 'application/xml');
     const body = doc.getElementsByTagNameNS(NS,'body')[0]; if(!body) throw new Error('not-docx');
+    const firstText = Array.from(doc.getElementsByTagNameNS(NS,'p')).slice(0,4).map(paraText).join(' ');
+    const kind = /progress note/i.test(firstText) ? 'pn' : 'case';
+    const SECS = SCHEMAS[kind].sections;
     const d={}, miss=[]; let sec=null, filled=0;
-    const tableFields=[]; SECTIONS.forEach(s=>s.fields.forEach(f=>{ if(f.t==='table') tableFields.push(f); }));
+    const tableFields=[]; SECS.forEach(s=>s.fields.forEach(f=>{ if(f.t==='table') tableFields.push(f); }));
     const findField = label => {
       const L=norm(label); if(!L) return null;
       if(sec){ const f=sec.fields.find(f=>f.t!=='table' && norm(f.label)===L); if(f) return f; }
-      for(const s of SECTIONS){ const f=s.fields.find(f=>f.t!=='table' && norm(f.label)===L); if(f) return f; }
+      for(const s of SECS){ const f=s.fields.find(f=>f.t!=='table' && norm(f.label)===L); if(f) return f; }
       return null;
     };
     const handleP = p => {
       const t=paraText(p).trim(); const m=t.match(/^(A|\d{1,2}[A-G]?)\.\s+(.+)$/); if(!m) return;
-      const s=SECTIONS.find(s=>s.num===m[1]);
+      const s=SECS.find(s=>s.num===m[1]);
       const ps=p.getElementsByTagNameNS(NS,'pStyle')[0]; const style=ps ? (ps.getAttributeNS(NS,'val')||ps.getAttribute('w:val')||'') : '';
       if(s && (/heading/i.test(style) || norm(m[2]).startsWith(norm(s.title).slice(0,8)))) sec=s;
       else if(!s && /^\d+$/.test(m[1]) && t.length<60) sec=null;
@@ -621,7 +750,7 @@ const DocxImport = (() => {
     const walk = n => { for(const c of n.childNodes){ if(c.nodeType!==1||c.namespaceURI!==NS) continue;
       if(c.localName==='p') handleP(c); else if(c.localName==='tbl') handleTbl(c); else if(c.localName==='sdt'||c.localName==='sdtContent') walk(c); } };
     walk(body);
-    return { data:d, filled, missed:miss };
+    return { kind, data:d, filled, missed:miss };
   }
   return { fileToData };
 })();
@@ -632,91 +761,130 @@ const DocxImport = (() => {
   const VERSION='September 30, 2026';
   const $ = (s,el=document)=>el.querySelector(s);
   const h = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  const FIELDS = {}; SECTIONS.forEach(s=>s.fields.forEach(f=>FIELDS[f.id]=f));
+  const FIELDS = {case:{}, pn:{}};
+  Object.entries(SCHEMAS).forEach(([k,sc])=>sc.sections.forEach(s=>s.fields.forEach(f=>FIELDS[k][f.id]=f)));
 
   let store = load();
-  let cur = null;          // current case id
-  let secIdx = 0;          // current section index
-  let saveTimer = null;
+  let cur = null, secIdx = 0, saveTimer = null;
 
   function load(){
-    try{ const s = JSON.parse(localStorage.getItem(KEY)); if(s && s.cases) return s; }catch(e){}
+    try{ const s = JSON.parse(localStorage.getItem(KEY)); if(s && s.cases){ Object.values(s.cases).forEach(c=>{ c.kind=c.kind||'case'; }); s.last=s.last||{}; return s; } }catch(e){}
     return {cases:{}, last:{}};
   }
   function persist(){
     try{ localStorage.setItem(KEY, JSON.stringify(store)); setStatus('Saved on this iPad'); }
-    catch(e){ setStatus('Not saved: storage is full or blocked'); toast('This case could not be saved. Export it now, then delete old cases.'); }
+    catch(e){ setStatus('Not saved: storage is full or blocked'); toast('This record could not be saved. Export it now, then delete old records.'); }
   }
   function queueSave(){ setStatus('Saving…'); clearTimeout(saveTimer); saveTimer=setTimeout(persist, 400); }
   function setStatus(t){ const el=$('#status'); if(el) el.textContent=t; }
-  function toast(t){ const el=document.createElement('div'); el.className='toast'; el.setAttribute('role','status'); el.textContent=t; document.body.appendChild(el); setTimeout(()=>el.remove(), 3200); }
-  const C = () => store.cases[cur];
-  const D = () => C().data;
-  const nowLabel = () => new Date().toLocaleString('en-US',{dateStyle:'medium',timeStyle:'short'});
-  const progress = d => SECTIONS.filter(s=>sectionStarted(s,d)).length;
+  function toast(t){ document.querySelectorAll('.toast').forEach(x=>x.remove()); const el=document.createElement('div'); el.className='toast'; el.setAttribute('role','status'); el.textContent=t; document.body.appendChild(el); setTimeout(()=>el.remove(), 3600); }
+  const R = () => store.cases[cur];
+  const D = () => R().data;
+  const SECS = rec => SCHEMAS[(rec||R()).kind].sections;
+  const newId = () => Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+  const when = t => new Date(t).toLocaleString('en-US',{dateStyle:'medium',timeStyle:'short'});
+  const progress = rec => SECS(rec).filter(s=>sectionStarted(s,rec.data)).length;
+  const recTitle = rec => str(rec.data.patient) || (rec.kind==='pn' ? 'Untitled progress note' : 'Untitled case');
+  const recKind = rec => rec.kind==='pn' ? ('Progress note'+(str(rec.data.hday)?', hospital day '+str(rec.data.hday):'')) : 'Case';
 
-  /* ----- case list ----- */
+  function sheet(html, onReady){
+    const s=document.createElement('div'); s.className='scrim';
+    s.innerHTML=`<div class="sheet" role="dialog" aria-modal="true">${html}</div>`;
+    document.body.appendChild(s);
+    const close=()=>s.remove(); s.onclick=e=>{ if(e.target===s) close(); };
+    onReady(s, close);
+    const f=s.querySelector('button'); if(f) f.focus();
+  }
+
+  /* ----- home ----- */
   function renderHome(){
     cur=null; document.title='Case & MSE';
     const list = Object.values(store.cases).sort((a,b)=>b.updated-a.updated);
     document.body.innerHTML = `
-      <header class="bar"><h1>Case &amp; MSE</h1><button class="btn" id="imp">Open Word file</button><button class="btn primary" id="new">New case</button><input type="file" id="impFile" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden></header>
+      <header class="bar"><h1>Case &amp; MSE</h1>
+        <button class="btn" id="imp">Open Word file</button>
+        <button class="btn" id="newpn">New progress note</button>
+        <button class="btn primary" id="new">New case</button>
+        <input type="file" id="impFile" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden></header>
       <main class="home">
-        <h2>Patient cases</h2>
-        <p class="lede">Each case follows the Integrated Psychiatric Case Presentation + MSE template. When the interview is done, export it as a Word file. To keep working on an earlier case, tap <strong>Open Word file</strong> and choose a file this app exported.</p>
+        <h2>Patient records</h2>
+        <p class="lede">Start a <strong>case</strong> for the initial interview. For follow-up visits, start a <strong>progress note</strong> from an existing case or earlier note; it fills in the identifiers, diagnosis, medications, and plan so you only enter what changed.</p>
         ${list.length ? `<ul class="cases">${list.map(c=>{
-          const p=progress(c.data), pct=Math.round(p/SECTIONS.length*100);
+          const n=SECS(c).length, p=progress(c), pct=Math.round(p/n*100);
           return `<li><button class="open" data-open="${c.id}">
-            <span class="who"><strong>${h(str(c.data.patient)||'Untitled case')}</strong>
-            <span>${h(str(c.data.datetime)||'')}${str(c.data.datetime)?'. ':''}Edited ${h(new Date(c.updated).toLocaleString('en-US',{dateStyle:'medium',timeStyle:'short'}))}</span></span>
-            <span class="meter">${p} of ${SECTIONS.length} sections<i><b style="width:${pct}%"></b></i></span></button></li>`;}).join('')}</ul>`
-          : `<p class="empty">No cases yet. Tap <strong>New case</strong> to start an interview.</p>`}
-        <div class="privacy"><strong>Where your data lives.</strong> Cases are saved only in this app on this iPad; nothing is uploaded anywhere. Export the Word file to your hospital's approved storage, then delete the case here.</div>
-        ${list.length?`<div class="foot"><button class="btn quiet danger" id="wipe">Delete all cases</button></div>`:''}
+            <span class="who"><span class="kind ${c.kind}">${h(recKind(c))}</span><strong>${h(recTitle(c))}</strong>
+            <span>${h(str(c.data.datetime))}${str(c.data.datetime)?'. ':''}Edited ${h(when(c.updated))}</span></span>
+            <span class="meter">${p} of ${n} sections<i><b style="width:${pct}%"></b></i></span></button></li>`;}).join('')}</ul>`
+          : `<p class="empty">Nothing here yet. Tap <strong>New case</strong> to start an interview, or <strong>Open Word file</strong> to continue one you exported.</p>`}
+        <div class="privacy"><strong>Where your data lives.</strong> Records are saved only in this app on this iPad; nothing is uploaded anywhere. Export the Word file to your hospital's approved storage, then delete the record here.</div>
+        ${list.length?`<div class="foot"><button class="btn quiet danger" id="wipe">Delete all records</button></div>`:''}
         <footer class="credit"><p>Web app developed in 2026 by Isabella Navarro, MD.</p><p>Latest version ${VERSION}.</p><p><a href="mailto:isaymotion@gmail.com">isaymotion@gmail.com</a></p></footer>
       </main>`;
     $('#new').onclick = newCase;
-    $('#imp').onclick = ()=>$('#impFile').click();
-    $('#impFile').onchange = e=>{ const f=e.target.files[0]; e.target.value=''; if(f) importFile(f); };
-    document.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>openCase(b.dataset.open));
-    const w=$('#wipe'); if(w) w.onclick=()=>{ if(confirm('Delete ALL cases from this iPad? This cannot be undone.')){ store.cases={}; persist(); renderHome(); } };
+    $('#newpn').onclick = chooseProgressSource;
+    $('#imp').onclick = ()=>{ pickFile(importFile); };
+    document.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>openRec(b.dataset.open));
+    const w=$('#wipe'); if(w) w.onclick=()=>{ if(confirm('Delete ALL records from this iPad? This cannot be undone.')){ store.cases={}; persist(); renderHome(); } };
     window.scrollTo(0,0);
   }
-  async function importFile(file){
-    let res;
-    try{ res = await DocxImport.fileToData(file); }
+  function pickFile(cb){ const i=$('#impFile'); i.onchange=e=>{ const f=e.target.files[0]; e.target.value=''; if(f) cb(f); }; i.click(); }
+  async function readWord(file){
+    try{ const res = await DocxImport.fileToData(file); if(!res.filled){ toast('No information was found in that file. Choose a Word file exported from this app.'); return null; } return res; }
     catch(err){
-      const m = err && err.message==='old-ios' ? 'This file was re-saved in Word or Pages, and this iPad needs iPadOS 16.4 or later to read it. Update the iPad, or open the file on a newer device.'
-        : 'This file could not be read. Choose a .docx file that was exported from this app.';
-      toast(m); return;
+      toast(err && err.message==='old-ios' ? 'This file was re-saved in Word or Pages, and this iPad needs iPadOS 16.4 or later to read it.' : 'This file could not be read. Choose a .docx file that was exported from this app.');
+      return null;
     }
-    if(!res.filled){ toast('No case information was found in that file. Choose a Word file exported from this app.'); return; }
-    const id = Date.now().toString(36)+Math.random().toString(36).slice(2,6);
-    store.cases[id] = {id, created:Date.now(), updated:Date.now(), importedFrom:file.name, data:res.data};
-    persist(); openCase(id);
-    const secs = progress(res.data);
-    const s=document.createElement('div'); s.className='scrim';
-    s.innerHTML=`<div class="sheet" role="dialog" aria-modal="true" aria-labelledby="ih"><h3 id="ih">Case opened from Word file</h3>
-      <p>${h(file.name)} filled ${secs} of ${SECTIONS.length} sections. It was added as a new case, so the original file is unchanged. Review each section before exporting again.</p>
+  }
+  async function importFile(file){
+    const res = await readWord(file); if(!res) return;
+    const id=newId();
+    store.cases[id] = {id, kind:res.kind, created:Date.now(), updated:Date.now(), importedFrom:file.name, data:res.data};
+    persist(); openRec(id);
+    const rec=store.cases[id], what = res.kind==='pn' ? 'progress note' : 'case';
+    sheet(`<h3>${res.kind==='pn'?'Progress note':'Case'} opened from Word file</h3>
+      <p>${h(file.name)} filled ${progress(rec)} of ${SECS(rec).length} sections. It was added as a new ${what}, so the original file is unchanged. Review each section before exporting again.</p>
       ${res.missed.length?`<p><strong>This text could not be placed in a field.</strong> Re-enter it where it belongs:</p><ul>${res.missed.slice(0,40).map(m=>`<li>${h(m)}</li>`).join('')}</ul>`:''}
-      <button class="btn primary" id="iclose">Review case</button></div>`;
-    document.body.appendChild(s); const close=()=>s.remove(); $('#iclose').onclick=close; s.onclick=e=>{ if(e.target===s) close(); }; $('#iclose').focus();
+      <button class="btn primary" data-close>Review ${what}</button>`, (s,close)=>{ s.querySelector('[data-close]').onclick=close; });
   }
   function newCase(){
-    const id = Date.now().toString(36)+Math.random().toString(36).slice(2,6);
-    store.cases[id] = {id, created:Date.now(), updated:Date.now(), data:{ datetime:nowLabel(), interviewer:store.last.interviewer||'', attending:store.last.attending||'' }};
-    persist(); openCase(id);
+    const id=newId();
+    store.cases[id] = {id, kind:'case', created:Date.now(), updated:Date.now(), data:{ datetime:when(Date.now()), interviewer:store.last.interviewer||'', attending:store.last.attending||'' }};
+    persist(); openRec(id);
   }
-  function openCase(id){ cur=id; secIdx=0; renderCase(); }
 
-  /* ----- case editor ----- */
-  function renderCase(){
-    const c=C(); document.title=(str(c.data.patient)||'Untitled case')+' | Case & MSE';
+  /* ----- progress notes ----- */
+  function chooseProgressSource(){
+    const list = Object.values(store.cases).sort((a,b)=>b.updated-a.updated);
+    sheet(`<h3>New progress note</h3>
+      <p>Start from the patient's case or most recent progress note. Identifiers, diagnosis, medications, and plan carry over.</p>
+      ${list.length?`<ul class="pick">${list.map(c=>`<li><button data-src="${c.id}"><strong>${h(recTitle(c))}</strong><span>${h(recKind(c))}${str(c.data.datetime)?'. '+h(str(c.data.datetime)):''}</span></button></li>`).join('')}</ul>`:''}
+      <div class="tools"><button class="btn primary" data-file>Choose Word file</button><button class="btn" data-blank>Start blank</button><button class="btn quiet" data-close>Cancel</button></div>`,
+    (s,close)=>{
+      s.querySelectorAll('[data-src]').forEach(b=>b.onclick=()=>{ close(); const src=store.cases[b.dataset.src]; createProgress(src.data, src.kind, recTitle(src)+' ('+recKind(src).toLowerCase()+')'); });
+      s.querySelector('[data-file]').onclick=()=>{ close(); pickFile(async f=>{ const res=await readWord(f); if(res) createProgress(res.data, res.kind, f.name); }); };
+      s.querySelector('[data-blank]').onclick=()=>{ close(); createProgress({}, 'blank', null); };
+      s.querySelector('[data-close]').onclick=close;
+    });
+  }
+  function createProgress(src, srcKind, label){
+    const built = srcKind==='blank' ? {data:{datetime:when(Date.now())}, prev:{}, lastMSE:{}} : progressFromSource(src, srcKind, new Date(), store.last.interviewer);
+    built.data.author = built.data.author || store.last.interviewer || '';
+    built.data.attending = built.data.attending || store.last.attending || '';
+    const id=newId();
+    store.cases[id] = {id, kind:'pn', created:Date.now(), updated:Date.now(), source:label, prev:built.prev, lastMSE:built.lastMSE, data:built.data};
+    persist(); openRec(id);
+    if(label) toast('Started from '+label+'. Check the carried-over details.');
+  }
+
+  /* ----- editor ----- */
+  function openRec(id){ cur=id; secIdx=0; renderEditor(); }
+  function renderEditor(){
+    const rec=R(); document.title=recTitle(rec)+' | Case & MSE';
     document.body.innerHTML = `
       <header class="bar">
-        <button class="btn quiet" id="back" aria-label="All cases">‹ Cases</button>
+        <button class="btn quiet" id="back" aria-label="All records">‹ Records</button>
         <button class="btn only-narrow" id="menu" aria-expanded="false" aria-controls="rail">Sections</button>
-        <h1 id="title">${h(str(c.data.patient)||'Untitled case')}</h1>
+        <h1 id="title">${h(recTitle(rec))}<small>${h(recKind(rec))}</small></h1>
         <span class="status" id="status">Saved on this iPad</span>
         <button class="btn hide-sm" id="rem">Reminders</button>
         <button class="btn quiet danger hide-sm" id="del">Delete</button>
@@ -726,38 +894,41 @@ const DocxImport = (() => {
     $('#back').onclick = ()=>{ persist(); renderHome(); };
     $('#menu').onclick = ()=>{ const r=$('#rail'); const o=r.classList.toggle('open'); $('#menu').setAttribute('aria-expanded',o); };
     $('#rem').onclick = showReminders;
-    $('#del').onclick = ()=>{ if(confirm('Delete this case from this iPad? Export it first if you need a copy.')){ delete store.cases[cur]; persist(); renderHome(); } };
+    $('#del').onclick = ()=>{ if(confirm('Delete this record from this iPad? Export it first if you need a copy.')){ delete store.cases[cur]; persist(); renderHome(); } };
     $('#export').onclick = exportDocx;
     renderRail(); renderSection();
   }
   function renderRail(){
     const d=D(); let g=null, html='';
-    SECTIONS.forEach((s,i)=>{
-      if(s.group && s.group!==g) html+=`<div class="grp">11 &nbsp;${h(s.group)}</div>`;
+    SECS().forEach((s,i)=>{
+      if(s.group && s.group!==g) html+=`<div class="grp">${h(s.num.replace(/[A-Z]$/,''))} &nbsp;${h(s.group)}</div>`;
       g=s.group||null;
-      html+=`<button class="${s.group?'sub ':''}${s.risk?'risk ':''}${i===secIdx?'cur':''}" data-sec="${i}" ${i===secIdx?'aria-current="step"':''}><span class="n">${h(s.num)}</span><span>${h(s.title)}</span><span class="dot ${sectionStarted(s,d)?'on':''}" aria-label="${sectionStarted(s,d)?'started':'not started'}"></span></button>`;
+      const on=sectionStarted(s,d);
+      html+=`<button class="${s.group?'sub ':''}${s.risk?'risk ':''}${i===secIdx?'cur':''}" data-sec="${i}" ${i===secIdx?'aria-current="step"':''}><span class="n">${h(s.num)}</span><span>${h(s.title)}</span><span class="dot ${on?'on':''}" aria-label="${on?'started':'not started'}"></span></button>`;
     });
     const r=$('#rail'); r.innerHTML=html;
     r.querySelectorAll('[data-sec]').forEach(b=>b.onclick=()=>{ secIdx=+b.dataset.sec; r.classList.remove('open'); $('#menu').setAttribute('aria-expanded','false'); renderRail(); renderSection(); window.scrollTo(0,0); });
   }
   function updateRailDots(){
     const d=D();
-    document.querySelectorAll('#rail [data-sec]').forEach(b=>{ const s=SECTIONS[+b.dataset.sec], on=sectionStarted(s,d); const dot=b.querySelector('.dot'); dot.classList.toggle('on',on); dot.setAttribute('aria-label',on?'started':'not started'); });
+    document.querySelectorAll('#rail [data-sec]').forEach(b=>{ const on=sectionStarted(SECS()[+b.dataset.sec],d); const dot=b.querySelector('.dot'); dot.classList.toggle('on',on); dot.setAttribute('aria-label',on?'started':'not started'); });
   }
 
-  function fieldHTML(f, d){
-    const lab = `<span class="lab" id="l-${f.id}">${h(f.label)}</span>${f.hint?`<span class="hint">${h(f.hint)}</span>`:''}`;
+  function fieldHTML(f, d, rec){
+    const prevV = f.prev && rec.prev && rec.prev[f.prev];
+    const lab = `<span class="lab" id="l-${f.id}">${h(f.label)}</span>${f.hint?`<span class="hint">${h(f.hint)}</span>`:''}${prevV?`<span class="hint prev">Last documented: <strong>${h(prevV)}</strong></span>`:''}`;
     const v = d[f.id];
     switch(f.t){
       case 'text': return `<div class="field">${lab}<input type="text" data-f="${f.id}" aria-labelledby="l-${f.id}" value="${h(v)}" autocomplete="off"></div>`;
-      case 'area': return `<div class="field">${lab}<textarea class="${f.big?'big':''}" data-f="${f.id}" aria-labelledby="l-${f.id}">${h(v)}</textarea>${f.mseTools?`<div class="tools"><button class="btn" id="draft">Draft from 11A–11F</button><button class="btn" id="copy">Copy paragraph</button></div>`:''}</div>`;
+      case 'area': return `<div class="field">${lab}<textarea class="${f.big?'big':''}" data-f="${f.id}" aria-labelledby="l-${f.id}">${h(v)}</textarea>${f.mseTools?`<div class="tools"><button class="btn" id="draft">${h(typeof f.mseTools==='string'?f.mseTools:'Draft from 11A–11F')}</button><button class="btn" id="copy">Copy paragraph</button></div>`:''}</div>`;
       case 'checks': { const sel=v||[]; return `<div class="field" role="group" aria-labelledby="l-${f.id}">${lab}<div class="chips">${f.o.map(o=>`<button class="chip" data-chk="${f.id}" data-o="${h(o)}" aria-pressed="${sel.includes(o)}">${h(o)}</button>`).join('')}</div>${f.score?`<div class="score" id="sc-${f.id}">${sel.length}/${f.o.length} positive</div>`:''}</div>`; }
       case 'radio': return `<div class="field" role="group" aria-labelledby="l-${f.id}">${lab}<div class="seg">${f.o.map(o=>`<button data-rad="${f.id}" data-o="${h(o)}" aria-pressed="${v===o}">${h(o)}</button>`).join('')}</div>${f.detail?`<div class="detail"><input type="text" data-f="${f.id}__d" placeholder="${h(f.detail)}" aria-label="${h(f.label+': '+f.detail)}" value="${h(d[f.id+'__d'])}"></div>`:''}</div>`;
       case 'radios': { const o=v||{}; return `<div class="field">${lab}<div class="radios">${f.p.map(([k,opts])=>`<div class="row" role="group" aria-label="${h(k)}"><span>${h(k)}</span><div class="seg">${opts.map(x=>`<button data-rads="${f.id}" data-k="${h(k)}" data-o="${h(x)}" aria-pressed="${o[k]===x}">${h(x)}</button>`).join('')}</div></div>`).join('')}</div></div>`; }
       case 'parts': { const o=v||{}; return `<div class="field">${lab}<div class="grid ${f.long?'long':''} ${f.inline?'inline':''}">${f.p.map(k=>`<label>${h(k)}${f.long?`<textarea data-f="${f.id}" data-k="${h(k)}">${h(o[k])}</textarea>`:`<input type="text" data-f="${f.id}" data-k="${h(k)}" value="${h(o[k])}" autocomplete="off">`}</label>`).join('')}</div></div>`; }
       case 'table': {
-        const rows = (v && v.length) ? v : Array.from({length:f.rows},()=>f.c.map(()=>''));
-        if(!v) d[f.id]=rows;
+        let rows = (v && v.length) ? v : [];
+        while(rows.length<f.rows) rows.push(f.c.map(()=>''));
+        d[f.id]=rows;
         return `<div class="field">${lab}<div class="tbl"><table><thead><tr>${f.c.map(c=>`<th scope="col">${h(c)}</th>`).join('')}</tr></thead><tbody>${rows.map((r,ri)=>`<tr>${f.c.map((c,ci)=>`<td><textarea data-f="${f.id}" data-r="${ri}" data-c="${ci}" aria-label="${h(c+', row '+(ri+1))}">${h(r[ci])}</textarea></td>`).join('')}</tr>`).join('')}</tbody></table></div><div class="tbl-actions"><button class="btn quiet" data-addrow="${f.id}">Add row</button>${rows.length>1?`<button class="btn quiet" data-delrow="${f.id}">Remove last row</button>`:''}</div></div>`;
       }
     }
@@ -765,16 +936,19 @@ const DocxImport = (() => {
   }
 
   function renderSection(){
-    const s=SECTIONS[secIdx], d=D();
-    const prev=SECTIONS[secIdx-1], next=SECTIONS[secIdx+1];
+    const rec=R(), secs=SECS(), s=secs[secIdx], d=D();
+    const prev=secs[secIdx-1], next=secs[secIdx+1];
+    const hasLast = s.copyMSE && rec.lastMSE && Object.keys(rec.lastMSE).length;
     $('#main').innerHTML = `
       <div class="sec-head ${s.risk?'risk':''}">
-        ${s.group?`<p class="kicker">11. ${h(s.group)}</p>`:''}
+        ${s.group?`<p class="kicker">${h(s.num.replace(/[A-Z]$/,''))}. ${h(s.group)}</p>`:''}
         <h2>${h(s.num)}. ${h(s.title)}</h2>
         ${s.groupNote?`<p class="note">${h(s.groupNote)}</p>`:''}
         ${s.note?`<p class="note">${h(s.note)}</p>`:''}
       </div>
-      <div class="${s.risk?'risky':''}">${s.fields.map(f=>fieldHTML(f,d)).join('')}</div>
+      ${hasLast?`<div class="carry"><div><strong>Start from the last MSE?</strong> Copies the previous selections for 3A–3C so you only change what's different. SI, HI, and self-harm stay blank to be asked today.</div><button class="btn" id="copymse">Start from last MSE</button></div>`:''}
+      ${s.id==='pnInfo' && rec.source?`<p class="source">Started from ${h(rec.source)}.</p>`:''}
+      <div class="${s.risk?'risky':''}">${s.fields.map(f=>fieldHTML(f,d,rec)).join('')}</div>
       <div class="pager">
         ${prev?`<button class="btn" id="prev">‹ ${h(prev.num)} ${h(prev.title)}</button>`:'<span></span>'}
         ${next?`<button class="btn primary" id="next">${h(next.num)} ${h(next.title)} ›</button>`:`<button class="btn primary" id="done">Export Word file</button>`}
@@ -782,62 +956,67 @@ const DocxImport = (() => {
     const go = i => { secIdx=i; renderRail(); renderSection(); window.scrollTo(0,0); };
     if(prev) $('#prev').onclick=()=>go(secIdx-1);
     if(next) $('#next').onclick=()=>go(secIdx+1); else $('#done').onclick=exportDocx;
+    const cm=$('#copymse'); if(cm) cm.onclick=()=>{
+      const L=rec.lastMSE, touched=Object.keys(L).some(k=>{ const x=d[k]; return Array.isArray(x)?x.length:!!x; });
+      if(touched && !confirm('Replace your current 3A–3C selections with the last MSE?')) return;
+      Object.entries(L).forEach(([k,v])=>{ d[k]=Array.isArray(v)?v.slice():v; });
+      touch(); renderSection(); toast('Copied. Review each finding; SI, HI, and self-harm were left blank.');
+    };
     const dr=$('#draft'); if(dr) dr.onclick=()=>{
-      const t=draftMSE(D()); if(!t){ toast('Nothing to draft yet. Fill in sections 11A–11F first.'); return; }
+      const t=draftMSE(D()); if(!t){ toast('Nothing to draft yet. Fill in the MSE sections first.'); return; }
       const ta=$('[data-f="mseNarr"]'); if(str(ta.value) && !confirm('Replace the current paragraph with a new draft?')) return;
       ta.value=t; setVal('mseNarr',null,t); grow(ta);
     };
     const cp=$('#copy'); if(cp) cp.onclick=()=>{
       const t=str(D().mseNarr); if(!t){ toast('The paragraph is empty.'); return; }
-      (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast('Paragraph copied. Paste it into the EHR.')).catch(()=>{ const ta=$('[data-f="mseNarr"]'); ta.focus(); ta.select(); toast('Select-all done. Tap Copy.'); });
+      (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast('Paragraph copied. Paste it into the EHR.')).catch(()=>{ const ta=$('[data-f="mseNarr"]'); ta.focus(); ta.select(); toast('Text selected. Tap Copy.'); });
     };
     document.querySelectorAll('#main textarea').forEach(grow);
   }
 
   function grow(ta){ ta.style.height='auto'; ta.style.height=(ta.scrollHeight+2)+'px'; }
-  function touch(){ C().updated=Date.now(); updateRailDots(); queueSave(); }
+  function touch(){ R().updated=Date.now(); updateRailDots(); queueSave(); }
   function setVal(id, k, val){
     const d=D();
     if(k==null) d[id]=val; else { d[id]=d[id]||{}; d[id][k]=val; }
-    if(id==='patient'){ const t=$('#title'); if(t) t.textContent=str(val)||'Untitled case'; }
-    if(id==='interviewer'||id==='attending') store.last[id]=val;
+    if(id==='patient'){ const t=$('#title'); if(t) t.firstChild.textContent=str(val)||recTitle({kind:R().kind,data:{}}); }
+    if(id==='interviewer'||id==='author') store.last.interviewer=val;
+    if(id==='attending') store.last.attending=val;
     touch();
   }
 
-  /* ----- one delegated listener for every field ----- */
   document.addEventListener('input', e=>{
     const el=e.target; if(!cur || !el.dataset || !el.dataset.f) return;
     if(el.tagName==='TEXTAREA') grow(el);
     const id=el.dataset.f;
-    if(el.dataset.r!=null){ const d=D(); d[id][+el.dataset.r][+el.dataset.c]=el.value; touch(); return; }
+    if(el.dataset.r!=null){ D()[id][+el.dataset.r][+el.dataset.c]=el.value; touch(); return; }
     setVal(id, el.dataset.k??null, el.value);
   });
   document.addEventListener('click', e=>{
     const b=e.target.closest('button'); if(!b || !cur) return;
-    const d=D();
+    const d=D(), F=FIELDS[R().kind];
     if(b.dataset.chk){ const id=b.dataset.chk, o=b.dataset.o; const a=d[id]=d[id]||[];
       const i=a.indexOf(o); if(i>=0) a.splice(i,1); else a.push(o);
-      const f=FIELDS[id]; d[id]=f.o.filter(x=>a.includes(x)); // keep template order
+      const f=F[id]; d[id]=f.o.filter(x=>a.includes(x));
       b.setAttribute('aria-pressed', i<0); const sc=$('#sc-'+id); if(sc) sc.textContent=`${d[id].length}/${f.o.length} positive`; touch(); }
     else if(b.dataset.rad){ const id=b.dataset.rad, o=b.dataset.o; d[id] = d[id]===o ? null : o;
       b.parentNode.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed', x.dataset.o===d[id])); touch(); }
     else if(b.dataset.rads){ const id=b.dataset.rads, k=b.dataset.k, o=b.dataset.o; d[id]=d[id]||{};
       if(d[id][k]===o) delete d[id][k]; else d[id][k]=o;
       b.parentNode.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed', d[id][k]===x.dataset.o)); touch(); }
-    else if(b.dataset.addrow){ const f=FIELDS[b.dataset.addrow]; d[f.id].push(f.c.map(()=>'')); touch(); renderSection(); }
-    else if(b.dataset.delrow){ const f=FIELDS[b.dataset.delrow]; const last=d[f.id][d[f.id].length-1];
+    else if(b.dataset.addrow){ const f=F[b.dataset.addrow]; d[f.id].push(f.c.map(()=>'')); touch(); renderSection(); }
+    else if(b.dataset.delrow){ const f=F[b.dataset.delrow]; const last=d[f.id][d[f.id].length-1];
       if(last.some(c=>str(c)) && !confirm('The last row has text in it. Remove it?')) return; d[f.id].pop(); touch(); renderSection(); }
   });
 
-  /* ----- export ----- */
   async function exportDocx(){
     persist();
-    const d=D();
-    const bytes = DocxGen.build(d);
-    const base = (str(d.patient)||'Case').replace(/[^\w\- ]+/g,' ').trim().replace(/\s+/g,'_').slice(0,50) || 'Case';
-    const name = `${base}_${new Date().toISOString().slice(0,10)}.docx`;
-    const type = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-    const file = new File([bytes], name, {type});
+    const rec=R(), d=D();
+    const bytes = DocxGen.build(d, rec.kind);
+    const base = (str(d.patient)||'Patient').replace(/[^\w\- ]+/g,' ').trim().replace(/\s+/g,'_').slice(0,50) || 'Patient';
+    const hd = rec.kind==='pn' && /^\d+$/.test(str(d.hday)) ? '_HD'+str(d.hday) : '';
+    const name = `${base}_${SCHEMAS[rec.kind].file}${hd}_${new Date().toISOString().slice(0,10)}.docx`;
+    const file = new File([bytes], name, {type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
     if(navigator.canShare && navigator.canShare({files:[file]})){
       try{ await navigator.share({files:[file], title:name}); return; }
       catch(err){ if(err && err.name==='AbortError') return; }
@@ -849,11 +1028,8 @@ const DocxImport = (() => {
   }
 
   function showReminders(){
-    const s=document.createElement('div'); s.className='scrim';
-    s.innerHTML=`<div class="sheet" role="dialog" aria-modal="true" aria-labelledby="rh"><h3 id="rh">Interview &amp; MSE reminders</h3><ul>${REMINDERS.map(r=>`<li>${h(r)}</li>`).join('')}</ul><button class="btn primary" id="rclose">Close</button></div>`;
-    document.body.appendChild(s);
-    const close=()=>s.remove(); $('#rclose').onclick=close; s.onclick=e=>{ if(e.target===s) close(); };
-    $('#rclose').focus();
+    sheet(`<h3>Interview &amp; MSE reminders</h3><ul>${REMINDERS.map(r=>`<li>${h(r)}</li>`).join('')}</ul><button class="btn primary" data-close>Close</button>`,
+      (s,close)=>{ s.querySelector('[data-close]').onclick=close; });
   }
 
   window.addEventListener('pagehide', ()=>{ if(cur) persist(); });
