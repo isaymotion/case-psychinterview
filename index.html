@@ -1,0 +1,714 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Case &amp; MSE</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Case & MSE">
+<meta name="theme-color" content="#365F91">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+:root{
+  --ink:#1B2A3A; --ink-2:#4A5A6B; --ink-3:#7A8898;
+  --blue:#365F91; --blue-deep:#243F60; --wash:#EAF2F8; --wash-2:#D9EAF7;
+  --line:#CFDAE5; --paper:#FFFFFF; --page:#F3F6F9;
+  --risk:#9E3A38; --risk-wash:#F8ECEB;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --rail:292px; --bar:60px;
+  color-scheme:light dark;
+}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+  --ink:#E6EDF4; --ink-2:#B3C0CD; --ink-3:#8494A5;
+  --blue:#8DB4E2; --blue-deep:#B9D3F0; --wash:#1D2B3A; --wash-2:#243649;
+  --line:#33465A; --paper:#141D27; --page:#0E151D;
+  --risk:#E39A97; --risk-wash:#3A2224;
+}}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{background:var(--page);color:var(--ink);font:17px/1.45 var(--sans);-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+input,textarea{font:inherit;font-size:17px;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:10px 12px;width:100%;-webkit-appearance:none;appearance:none}
+input:focus,textarea:focus{border-color:var(--blue);outline:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--blue) 22%,transparent)}
+textarea{resize:none;min-height:88px;overflow:hidden;line-height:1.45}
+textarea.big{min-height:180px}
+
+/* ----- top bar ----- */
+.bar{position:sticky;top:0;z-index:20;height:var(--bar);display:flex;align-items:center;gap:10px;padding:0 16px;background:var(--paper);border-bottom:1px solid var(--line)}
+.bar h1{font:600 19px/1.2 var(--serif);margin:0;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar .status{font-size:13px;color:var(--ink-3);white-space:nowrap}
+.btn{border:1px solid var(--line);background:var(--paper);border-radius:10px;padding:9px 14px;min-height:44px;font-size:16px;font-weight:500;white-space:nowrap}
+.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .btn.primary{color:#0E151D} }
+.btn.quiet{border-color:transparent;background:transparent;color:var(--blue)}
+.btn.danger{color:var(--risk)}
+.only-narrow{display:none}
+
+/* ----- case list ----- */
+.home{max-width:760px;margin:0 auto;padding:28px 20px 60px}
+.home h2{font:600 30px/1.2 var(--serif);margin:8px 0 6px}
+.home .lede{color:var(--ink-2);margin:0 0 22px;max-width:60ch}
+.cases{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
+.cases li{border-bottom:1px solid var(--line)}
+.cases button.open{display:flex;width:100%;text-align:left;gap:16px;align-items:center;padding:16px 4px;background:none;border:0}
+.cases .who{flex:1;min-width:0}
+.cases .who strong{display:block;font-size:18px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cases .who span{font-size:14px;color:var(--ink-3)}
+.meter{width:120px;flex:none;font-size:13px;color:var(--ink-3);text-align:right}
+.meter i{display:block;height:6px;border-radius:3px;background:var(--wash-2);margin-top:5px;overflow:hidden}
+.meter i b{display:block;height:100%;background:var(--blue)}
+.empty{padding:36px 4px;color:var(--ink-2)}
+.privacy{margin-top:34px;padding:16px 18px;border-left:3px solid var(--blue);background:var(--wash);border-radius:0 8px 8px 0;font-size:15px;color:var(--ink-2)}
+.privacy strong{color:var(--ink)}
+.home .foot{margin-top:18px;display:flex;justify-content:flex-end}
+
+/* ----- case layout ----- */
+.layout{display:grid;grid-template-columns:var(--rail) 1fr;min-height:calc(100% - var(--bar))}
+.rail{position:sticky;top:var(--bar);height:calc(100vh - var(--bar) - env(safe-area-inset-top,0px));overflow-y:auto;border-right:1px solid var(--line);background:var(--page);padding:10px 0 40px;-webkit-overflow-scrolling:touch}
+.rail .grp{font:600 13px/1.3 var(--sans);color:var(--ink-3);padding:14px 18px 4px 18px}
+.rail button{display:grid;grid-template-columns:40px 1fr 14px;align-items:center;gap:4px;width:100%;text-align:left;background:none;border:0;border-left:3px solid transparent;padding:9px 14px 9px 15px;font-size:15px;line-height:1.3;color:var(--ink-2)}
+.rail button .n{font-variant-numeric:tabular-nums;color:var(--ink-3);font-size:14px}
+.rail button.sub{padding-left:27px}
+.rail button.cur{background:var(--paper);border-left-color:var(--blue);color:var(--ink);font-weight:600}
+.rail button.risk.cur{border-left-color:var(--risk)}
+.dot{width:9px;height:9px;border-radius:50%;border:1.5px solid var(--line)}
+.dot.on{background:var(--blue);border-color:var(--blue)}
+.risk .dot.on{background:var(--risk);border-color:var(--risk)}
+.main{padding:26px 34px 80px;max-width:900px;width:100%}
+.sec-head{margin-bottom:22px;padding-bottom:14px;border-bottom:2px solid var(--blue)}
+.sec-head.risk{border-bottom-color:var(--risk)}
+.sec-head .kicker{font-size:14px;color:var(--ink-3);margin:0 0 2px}
+.sec-head h2{font:600 28px/1.2 var(--serif);margin:0;color:var(--blue-deep)}
+.sec-head.risk h2{color:var(--risk)}
+.sec-head p.note{margin:8px 0 0;color:var(--ink-2);font-style:italic}
+
+.field{margin:0 0 24px}
+.field > .lab{display:block;font-weight:600;font-size:16px;margin:0 0 3px}
+.field > .hint{display:block;font-size:14px;color:var(--ink-3);margin:0 0 8px}
+.field > .lab + input,.field > .lab + textarea,.field > .lab + .chips,.field > .lab + .seg,.field > .lab + .grid{margin-top:6px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:9px 15px;min-height:44px;font-size:15.5px;line-height:1.2;color:var(--ink)}
+.chip[aria-pressed="true"]{background:var(--blue);border-color:var(--blue);color:#fff}
+.risky .chip[aria-pressed="true"]{background:var(--risk);border-color:var(--risk)}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .chip[aria-pressed="true"]{color:#0E151D} }
+.score{font-size:14px;color:var(--ink-2);margin-top:8px}
+.seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--paper)}
+.seg button{border:0;border-right:1px solid var(--line);background:none;padding:10px 18px;min-height:44px;font-size:15.5px}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--blue);color:#fff}
+.risky .seg button[aria-pressed="true"]{background:var(--risk)}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .seg button[aria-pressed="true"]{color:#0E151D} }
+.detail{margin-top:10px}
+.radios{display:grid;gap:10px}
+.radios .row{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.radios .row > span{width:120px;font-size:15px;color:var(--ink-2)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px 14px}
+.grid.inline{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}
+.grid.long{grid-template-columns:1fr}
+.grid label{display:block;font-size:14px;color:var(--ink-2)}
+.grid label input,.grid label textarea{margin-top:4px}
+.grid textarea{min-height:64px}
+.tbl{border:1px solid var(--line);border-radius:10px;overflow-x:auto;background:var(--paper)}
+.tbl table{border-collapse:collapse;width:100%;min-width:640px;table-layout:fixed}
+.tbl th{background:var(--wash-2);font-size:13.5px;font-weight:600;text-align:left;padding:8px 10px;color:var(--ink-2);vertical-align:bottom}
+.tbl td{border-top:1px solid var(--line);padding:0;vertical-align:top}
+.tbl td + td,.tbl th + th{border-left:1px solid var(--line)}
+.tbl textarea{border:0;border-radius:0;min-height:48px;padding:10px;font-size:16px;background:transparent}
+.tbl textarea:focus{box-shadow:inset 0 0 0 2px var(--blue)}
+.tbl-actions{display:flex;gap:6px;margin-top:6px}
+.tools{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.pager{display:flex;justify-content:space-between;gap:12px;margin-top:36px;padding-top:18px;border-top:1px solid var(--line)}
+.pager .btn{max-width:48%;overflow:hidden;text-overflow:ellipsis}
+
+/* ----- sheet + toast ----- */
+.scrim{position:fixed;inset:0;background:rgba(10,20,30,.38);z-index:40;display:flex;align-items:center;justify-content:center;padding:20px}
+.sheet{background:var(--paper);border-radius:14px;max-width:560px;width:100%;max-height:80vh;overflow:auto;padding:22px 24px}
+.sheet h3{font:600 22px/1.2 var(--serif);margin:0 0 12px}
+.sheet ul{margin:0 0 16px;padding-left:20px}
+.sheet li{margin:6px 0}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:12px 18px;border-radius:10px;z-index:50;font-size:15px;max-width:90vw}
+
+/* ----- narrower iPads / portrait ----- */
+@media (max-width:980px){
+  .layout{grid-template-columns:1fr}
+  .rail{position:fixed;top:calc(var(--bar) + env(safe-area-inset-top,0px));left:0;bottom:0;height:auto;width:min(330px,86vw);z-index:30;transform:translateX(-105%);visibility:hidden;transition:transform .2s ease,visibility 0s linear .2s}
+  .rail.open{transform:none;visibility:visible;transition:transform .2s ease;box-shadow:0 0 30px rgba(0,0,0,.18)}
+  .only-narrow{display:inline-block}
+  .main{padding:22px 20px 80px}
+  .bar .status{display:none}
+}
+@media (max-width:600px){ .bar .hide-sm{display:none} .meter{width:80px} }
+@media (prefers-reduced-motion:reduce){ .rail{transition:none} }
+
+</style>
+</head>
+<body>
+<noscript>This app needs JavaScript turned on in Safari.</noscript>
+<script>
+/* ---------- Template structure (mirrors the Integrated Psychiatry Resident Case + MSE Template) ---------- */
+const SECTIONS = [
+  { id:'enc', num:'A', title:'Patient & encounter information', fields:[
+    {t:'text', id:'patient', label:'Patient / MRN'},
+    {t:'text', id:'datetime', label:'Date / time'},
+    {t:'text', id:'agesex', label:'Age / sex'},
+    {t:'text', id:'location', label:'Location / unit'},
+    {t:'text', id:'interviewer', label:'Interviewer'},
+    {t:'text', id:'attending', label:'Attending'}
+  ]},
+  { id:'idd', num:'1', title:'Identifying data & source of information', fields:[
+    {t:'text', id:'marital', label:'Marital status'},
+    {t:'text', id:'occupation', label:'Occupation'},
+    {t:'text', id:'referred', label:'Referred by'},
+    {t:'text', id:'livingwith', label:'Living with'},
+    {t:'text', id:'informant', label:'Informant'},
+    {t:'radio', id:'reliability', label:'Reliability', o:['Poor','Fair','Good'], detail:'Details'},
+    {t:'area', id:'idsummary', label:'Identifying summary', hint:'Age, sex, marital status, occupation, how patient came to be seen, source and reliability.'}
+  ]},
+  { id:'cc', num:'2', title:'Chief complaint', fields:[
+    {t:'area', id:'cc', label:'Chief complaint', hint:"Patient's own words whenever possible.", quote:true}
+  ]},
+  { id:'hpi', num:'3', title:'History of present illness', fields:[
+    {t:'area', id:'hpi', label:'HPI narrative', hint:'Chronological: onset, course, severity, precipitants/stressors, associated symptoms, functional change, why seeking help now.', big:true},
+    {t:'parts', id:'assoc', label:'Associated changes', p:['Sleep','Mood','Interests','Relationships','Functioning']},
+    {t:'area', id:'timeline', label:'Timeline / key events'}
+  ]},
+  { id:'ros', num:'4', title:'Psychiatric review of systems', fields:[
+    {t:'checks', id:'rosChecks', label:'Endorsed symptoms', o:['Sleep change','↓ Interest','Guilt','↓ Energy','↓ Concentration','Appetite change','Psychomotor change','Suicidality','↓ Need for sleep','Grandiosity','Impulsivity','Generalized worry','Panic attacks','Obsessions / compulsions','Trauma / PTSD symptoms','Social anxiety','Specific phobias','Hallucinations','Delusions / paranoia','Ideas of reference','Inattention / hyperactivity','Disordered eating']},
+    {t:'area', id:'rosDetails', label:'ROS details', hint:'Positive symptoms, duration/severity, and pertinent negatives.'}
+  ]},
+  { id:'pph', num:'5', title:'Past psychiatric history', fields:[
+    {t:'area', id:'priorDx', label:'Prior diagnoses', hint:'Diagnosis / who made it / approximate date.'},
+    {t:'table', id:'episodes', label:'Past episodes', c:['Episode / diagnosis','Onset / duration / severity','Treatment / dose / duration','Response / adherence / outcome'], rows:3},
+    {t:'area', id:'hosp', label:'Hospitalizations / ECT'},
+    {t:'area', id:'psychotherapy', label:'Psychotherapy'},
+    {t:'area', id:'pastMeds', label:'Past medication trials', hint:'Medication, dose, duration, response, adverse effects, adherence.'}
+  ]},
+  { id:'safety', num:'6', title:'Safety & lethality history', risk:true, note:'Ask directly and specifically.', fields:[
+    {t:'checks', id:'safetyChecks', label:'Endorsed', o:['Current SI','Current intent','Current plan','Access to means','Past attempt(s)','NSSI','Current HI','History of violence','Command hallucinations']},
+    {t:'area', id:'pastAttempts', label:'Past attempts', hint:'Method, lethality, rescue potential, preparatory acts, circumstances.'},
+    {t:'area', id:'protective', label:'Protective factors', hint:'What has stopped the patient from acting / reasons for living / supports.'},
+    {t:'area', id:'otherSafety', label:'Other safety concerns'}
+  ]},
+  { id:'sub', num:'7', title:'Substance use, abuse & addiction', fields:[
+    {t:'checks', id:'subChecks', label:'Substances / behaviors', o:['Alcohol','Tobacco / nicotine','Cannabis','Stimulants','Opioids','Sedatives','Hallucinogens','Other substances','Caffeine','Gambling']},
+    {t:'table', id:'subTable', label:'Use details', c:['Substance','Amount / route / frequency','Last use','Tolerance / withdrawal / consequences'], rows:4},
+    {t:'checks', id:'cage', label:'CAGE', score:true, o:['Cut down','Annoyed by criticism','Guilty','Eye-opener']},
+    {t:'checks', id:'raps4', label:'RAPS4', score:true, o:['Remorse','Amnesia','Perform (failed to)','Starter (morning drink)']}
+  ]},
+  { id:'med', num:'8', title:'Past medical history & medications', fields:[
+    {t:'area', id:'medhx', label:'Medical / surgical history', hint:'Major illnesses, surgeries, neurologic history, and conditions that may mimic or complicate psychiatric illness.'},
+    {t:'table', id:'meds', label:'Current medications', c:['Medication','Dose / frequency','Prescriber','Adherence / side effects'], rows:4},
+    {t:'text', id:'allergies', label:'Allergies'},
+    {t:'text', id:'otc', label:'OTC / herbal / supplements'}
+  ]},
+  { id:'fam', num:'9', title:'Family history', fields:[
+    {t:'checks', id:'famChecks', label:'Noted', o:['Psychiatric diagnoses','Psychiatric hospitalizations','Substance use','Suicide','Medication response / adverse effects','Available family supports']},
+    {t:'area', id:'famhx', label:'Family psychiatric history'}
+  ]},
+  { id:'soc', num:'10', title:'Developmental & social history', fields:[
+    {t:'area', id:'childhood', label:'Childhood / development'},
+    {t:'area', id:'eduwork', label:'Education / work'},
+    {t:'area', id:'relationships', label:'Relationships / family'},
+    {t:'area', id:'trauma', label:'Trauma / abuse'},
+    {t:'area', id:'legal', label:'Military / legal'},
+    {t:'area', id:'living', label:'Current living situation'},
+    {t:'area', id:'sexual', label:'Sexual history (as indicated)'}
+  ]},
+  { id:'app', num:'11A', group:'Mental status examination', groupNote:'Objective composite snapshot during the interview; interpretation belongs in the formulation.', title:'Appearance & behavior', note:'Describe what the reader would actually see.', fields:[
+    {t:'checks', id:'appChecks', label:'Observed', o:['Well-groomed','Disheveled / poor hygiene','Appropriate clothing','Unusual clothing','Appears stated age','Older / younger than stated age','Eye contact appropriate','Limited / avoidant eye contact','Intense eye contact','Cooperative','Guarded','Hostile','Seductive / flirtatious','Withdrawn','Agitated / restless','Pacing','Subdued','Tremulous','Rigid','Peculiar mannerisms','Observed response to internal stimuli']},
+    {t:'area', id:'appNarr', label:'Appearance / behavior narrative', hint:'Specific clothing, grooming, notable features, motor behavior, attitude, and pertinent negatives.'}
+  ]},
+  { id:'speech', num:'11B', group:'Mental status examination', title:'Speech & thought process', note:'Name the specific phenomenon and severity; avoid the nonspecific label "thought disorder."', fields:[
+    {t:'checks', id:'speechChecks', label:'Observed', o:['Rate normal','Slow','Rapid','Volume normal','Soft','Loud','Pressured','Long response latency','Normal fluency','Linear / goal-directed','Circumstantial','Tangential','Derailment / loosening','Flight of ideas','Thought blocking','Perseveration','Illogical','Disorganized','Word salad','Clang associations']},
+    {t:'area', id:'speechNarr', label:'Speech narrative', hint:'Rate, volume, pressure, latency, fluency, spontaneity, articulation.'},
+    {t:'area', id:'thoughtNarr', label:'Thought-process narrative', hint:'Organization + phenomenon + severity + brief example if useful.'},
+    {t:'area', id:'tpNeg', label:'Pertinent negatives', hint:'No pressure / no blocking / no illogic / no derailment, etc., as actually assessed.'}
+  ]},
+  { id:'tc', num:'11C', group:'Mental status examination', risk:true, title:'Thought content', note:'Document beliefs and dangerousness specifically; refer to HPI rather than duplicating lengthy history.', fields:[
+    {t:'checks', id:'tcChecks', label:'Present', o:['Ruminations','Obsessions','Compulsions','Delusions','Persecutory / paranoid','Grandiose','Somatic','Ideas of reference','Guilt / worthlessness','Hopelessness','Suicidal ideation','Homicidal / violent ideation','NSSI','No abnormal thought content elicited']},
+    {t:'area', id:'delusions', label:'Delusions / other content', hint:'Content, conviction, preoccupation, behavioral consequences; "see HPI" when appropriate.'},
+    {t:'radios', id:'si', label:'Suicide — current', p:[['SI',['Denied','Passive','Active']],['Plan',['None','Present']],['Intent',['None','Present']],['Actions taken',['None','Present']]]},
+    {t:'radios', id:'hi', label:'Homicide / violence — current', p:[['HI',['Denied','Present']],['Plan',['None','Present']],['Intent',['None','Present']],['Actions / access',['None','Present']]]},
+    {t:'radio', id:'nssi', label:'Self-harm (NSSI thoughts / behavior)', o:['Denied','Present'], detail:'Details'}
+  ]},
+  { id:'perc', num:'11D', group:'Mental status examination', title:'Perception', note:'Specify what was asked and what was endorsed or denied.', fields:[
+    {t:'checks', id:'percChecks', label:'Reported / observed', o:['Auditory hallucinations','Visual hallucinations','Tactile hallucinations','Olfactory hallucinations','Gustatory hallucinations','Illusions','Depersonalization','Derealization','No abnormal perceptions reported','Observed behavior suggestive of hallucinations']},
+    {t:'area', id:'percNarr', label:'Perception narrative', hint:'Modality, content/frequency if relevant, patient response, and observed behavior.'}
+  ]},
+  { id:'mood', num:'11E', group:'Mental status examination', title:'Mood & affect', note:'Mood = patient-reported feeling. Affect = clinician-observed emotional expression.', fields:[
+    {t:'area', id:'mood', label:"Mood — patient's words", hint:'Quote the patient when possible.', quote:true},
+    {t:'checks', id:'affectChecks', label:'Affect', o:['Broad / full range','Restricted','Blunted','Flat','Labile','Euthymic / neutral','Dysphoric','Anxious','Irritable','Expansive','Angry','Suspicious','Frightened','Sad / tearful','Other']},
+    {t:'area', id:'affectNarr', label:'Affect narrative', hint:'Range + quality + reactivity/stability + observable expression.'},
+    {t:'radio', id:'congruence', label:'Congruence', o:['Congruent','Incongruent','Notable discrepancy'], detail:'Details'}
+  ]},
+  { id:'cog', num:'11F', group:'Mental status examination', title:'Sensorium, cognition & insight', note:'Always state level of consciousness and exactly what was tested.', fields:[
+    {t:'checks', id:'cogChecks', label:'Sensorium', o:['Alert','Drowsy','Fluctuating','Hyper-alert / hypervigilant','Stable level of consciousness','Oriented person','Oriented place','Oriented date/time','Oriented situation','Distractible','Attention intact on interview']},
+    {t:'parts', id:'orient', label:'Orientation', p:['Person','Place','Date/time','Situation']},
+    {t:'parts', id:'attention', label:'Attention', p:['Digit span forward','Digit span backward','Vigilance','Other']},
+    {t:'parts', id:'memory', label:'Memory', p:['Immediate / registration','Delayed recall (/3)','Recent','Remote']},
+    {t:'parts', id:'exec', label:'Intellectual / executive function', p:['Fund of knowledge','Abstraction','Calculations','Clock / cube / language']},
+    {t:'checks', id:'tests', label:'Formal testing used', o:['No formal cognitive testing','MMSE','MoCA','CAM','Digit span','Vigilance test','Clock drawing','Cube drawing','Other']},
+    {t:'area', id:'testResults', label:'Formal cognitive testing results', hint:'Exact test, score/findings, errors, limitations.'},
+    {t:'radio', id:'insight', label:'Insight', o:['None','Partial','Full'], detail:"Patient's understanding of illness and need for treatment"},
+    {t:'radio', id:'judgment', label:'Judgment', o:['Good','Fair','Poor'], detail:'Basis / example'},
+    {t:'area', id:'motivation', label:'Treatment motivation / engagement', hint:'Willingness to accept evaluation, treatment, admission, safety measures, follow-up.'}
+  ]},
+  { id:'mse', num:'11G', group:'Mental status examination', title:'One-paragraph MSE (EHR-ready)', note:'Tap "Draft from 11A–11F" to assemble a starting paragraph from what you entered, then edit it.', fields:[
+    {t:'area', id:'mseNarr', label:'MSE narrative', big:true, mseTools:true}
+  ]},
+  { id:'pe', num:'12', title:'Physical & neurological examination', fields:[
+    {t:'parts', id:'vitals', label:'Vitals', p:['BP','HR','RR','Temp','SpO₂'], inline:true},
+    {t:'area', id:'neuro', label:'General / neurologic', hint:'General observation, gait, skin, pupils, focused neurologic findings, AIMS if indicated.'},
+    {t:'text', id:'deferred', label:'If not performed: reason deferred'}
+  ]},
+  { id:'labs', num:'13', title:'Labs, imaging & collateral information', fields:[
+    {t:'parts', id:'labs', label:'Labs', p:['CBC','Electrolytes','LFTs','TSH','B12 / folate','Utox','Other']},
+    {t:'area', id:'imaging', label:'Imaging / other tests'},
+    {t:'area', id:'collateral', label:'Collateral', hint:'Contact/source, date, key information, records reviewed.'}
+  ]},
+  { id:'form', num:'14', title:'Formulation', note:'Integrate biological, psychological, and social factors; interpretation belongs here rather than in the MSE.', fields:[
+    {t:'area', id:'bio', label:'Biological'},
+    {t:'area', id:'psych', label:'Psychological'},
+    {t:'area', id:'social', label:'Social'},
+    {t:'area', id:'integrated', label:'Integrated formulation', big:true}
+  ]},
+  { id:'dx', num:'15', title:'Diagnostic impression (DSM-5)', fields:[
+    {t:'area', id:'primaryDx', label:'Primary diagnosis'},
+    {t:'area', id:'differential', label:'Differential / rule-outs'},
+    {t:'area', id:'otherDx', label:'Other relevant diagnoses'}
+  ]},
+  { id:'risk', num:'16', title:'Overall risk summary', risk:true, note:"Synthesize; don't just list findings.", fields:[
+    {t:'radio', id:'suicideRisk', label:'Suicide risk', o:['Low','Moderate','High']},
+    {t:'radio', id:'violenceRisk', label:'Violence risk', o:['Low','Moderate','High']},
+    {t:'parts', id:'riskForm', label:'Risk formulation', p:['Acute risk factors','Chronic risk factors','Protective factors','Overall rationale'], long:true},
+    {t:'radio', id:'loc', label:'Recommended level of care', o:['Outpatient','Partial / higher level of care','Inpatient voluntary','Inpatient involuntary']}
+  ]},
+  { id:'plan', num:'17', title:'Comprehensive treatment plan', fields:[
+    {t:'table', id:'planTable', label:'Plan by domain', c:['Domain','Plan / intervention','Dose / frequency / timing','Monitoring / follow-up'], rows:5},
+    {t:'area', id:'safetyPlan', label:'Safety plan / emergency instructions'},
+    {t:'area', id:'followup', label:'Follow-up', hint:'Timing, service, responsible clinician, emergency contact.'}
+  ]}
+];
+
+const REMINDERS = ['Open-ended first, closed-ended second','Ask SI directly','Ask HI / violence directly','Ask about command hallucinations','Document source + reliability',"Use patient's own words for CC and mood",'Describe observations, not diagnoses','Name thought-process phenomena specifically','Include severity','Document pertinent negatives','State exactly what cognition was tested','Keep interpretation in formulation'];
+
+/* ---------- Helpers shared by the app and the Word export ---------- */
+const str = v => (typeof v === 'string' ? v.trim() : '');
+function isFilled(f, d){
+  const v = d[f.id];
+  switch(f.t){
+    case 'text': case 'area': return !!str(v);
+    case 'checks': return Array.isArray(v) && v.length>0;
+    case 'radio': return !!v || !!str(d[f.id+'__d']);
+    case 'radios': case 'parts': return !!v && Object.values(v).some(x=>str(x));
+    case 'table': return Array.isArray(v) && v.some(r=>r.some(c=>str(c)));
+  }
+  return false;
+}
+const sectionStarted = (s,d) => s.fields.some(f=>isFilled(f,d));
+function lc(s){ return /^[A-Z][a-z]/.test(s) ? s[0].toLowerCase()+s.slice(1) : s; }
+function quoted(s){ s=str(s); if(!s) return s; return /^["“]/.test(s) ? s : '“'+s+'”'; }
+function endDot(s){ s=str(s); return s && !/[.!?”"]$/.test(s) ? s+'.' : s; }
+
+/* Builds the one-paragraph MSE from sections 11A–11F */
+function draftMSE(d){
+  const j = a => (a||[]).map(lc).join(', ');
+  const key = k => /^[A-Z]{2}/.test(k) ? k : lc(k.replace(/\s*\(\/3\)/,''));
+  const parts = (id) => { const o=d[id]||{}; return Object.entries(o).filter(([k,v])=>str(v)).map(([k,v])=>key(k)+' '+str(v)).join(', '); };
+  const segs = [];
+  const add = (label, bits) => { const t = bits.filter(Boolean).map(str).filter(Boolean).map(lc).join('; '); if(t) segs.push(label+': '+t.replace(/\.$/,'')+'.'); };
+  add('Appearance/behavior', [j(d.appChecks), d.appNarr]);
+  add('Speech/thought process', [j(d.speechChecks), d.speechNarr, d.thoughtNarr, d.tpNeg]);
+  const si = d.si||{}, hi = d.hi||{};
+  const siT = Object.keys(si).length ? Object.entries(si).map(([k,v])=>key(k)+' '+lc(v)).join(', ') : '';
+  const hiT = Object.keys(hi).length ? Object.entries(hi).map(([k,v])=>key(k)+' '+lc(v)).join(', ') : '';
+  const nssiT = d.nssi ? 'NSSI '+lc(d.nssi)+(str(d.nssi__d)?' ('+str(d.nssi__d)+')':'') : '';
+  add('Thought content', [j(d.tcChecks), d.delusions, siT, hiT, nssiT]);
+  add('Perception', [j(d.percChecks), d.percNarr]);
+  const moodT = str(d.mood) ? 'mood '+quoted(d.mood) : '';
+  const affT = (d.affectChecks||[]).length ? 'affect '+j(d.affectChecks) : '';
+  const cong = d.congruence ? lc(d.congruence)+(str(d.congruence__d)?' ('+str(d.congruence__d)+')':'') : '';
+  add('Mood/affect', [moodT, affT, d.affectNarr, cong]);
+  const ins = d.insight ? 'insight '+lc(d.insight)+(str(d.insight__d)?' ('+str(d.insight__d)+')':'') : '';
+  const jud = d.judgment ? 'judgment '+lc(d.judgment)+(str(d.judgment__d)?' ('+str(d.judgment__d)+')':'') : '';
+  const orient = parts('orient'), mem = parts('memory'), att = parts('attention'), ex = parts('exec');
+  add('Sensorium/cognition/insight/judgment', [j(d.cogChecks), orient&&'orientation: '+orient, att&&'attention: '+att, mem&&'memory: '+mem, ex&&ex, d.testResults, ins, jud]);
+  return segs.join(' ');
+}
+if (typeof module !== 'undefined') module.exports = { SECTIONS, REMINDERS, isFilled, sectionStarted, draftMSE, str, lc, quoted, endDot };
+
+/* ---------- Minimal, dependency-free .docx writer ---------- */
+const DocxGen = (() => {
+  const W = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"';
+  const PAGE_W = 12240, MAR = 792, TEXT_W = PAGE_W - 2*MAR; // 10656
+  const LABEL_W = 3000, VALUE_W = TEXT_W - LABEL_W;
+  const C = { head:'365F91', label:'EAF2F8', thead:'D9EAF7', line:'B7C9DB', grey:'6B7785', risk:'9E3A38' };
+
+  const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,'');
+  // run: {text, b, i, color, sz}
+  function run(r){
+    const pr = (r.b?'<w:b/>':'')+(r.i?'<w:i/>':'')+(r.color?`<w:color w:val="${r.color}"/>`:'')+(r.sz?`<w:sz w:val="${r.sz}"/><w:szCs w:val="${r.sz}"/>`:'');
+    const lines = String(r.text).split(/\r?\n/);
+    return lines.map((ln,k)=>`<w:r>${pr?`<w:rPr>${pr}</w:rPr>`:''}${k?'<w:br/>':''}<w:t xml:space="preserve">${esc(ln)}</w:t></w:r>`).join('');
+  }
+  // para: {runs:[], style, align, after, before, keepNext}
+  function para(p){
+    const pp = (p.style?`<w:pStyle w:val="${p.style}"/>`:'')+(p.keepNext?'<w:keepNext/>':'')+
+      ((p.after!=null||p.before!=null)?`<w:spacing w:before="${p.before||0}" w:after="${p.after||0}"/>`:'')+(p.align?`<w:jc w:val="${p.align}"/>`:'');
+    return `<w:p>${pp?`<w:pPr>${pp}</w:pPr>`:''}${(p.runs||[]).map(run).join('')}</w:p>`;
+  }
+  const borders = `<w:tblBorders>${['top','left','bottom','right','insideH','insideV'].map(b=>`<w:${b} w:val="single" w:sz="4" w:space="0" w:color="${C.line}"/>`).join('')}</w:tblBorders>`;
+  function cell(width, paras, fill){
+    return `<w:tc><w:tcPr><w:tcW w:w="${width}" w:type="dxa"/>${fill?`<w:shd w:val="clear" w:color="auto" w:fill="${fill}"/>`:''}</w:tcPr>${paras.map(p=>para({after:0,...p})).join('')}</w:tc>`;
+  }
+  function table(widths, rows){ // rows: [{cells:[{paras,fill}], header}]
+    const total = widths.reduce((a,b)=>a+b,0);
+    return `<w:tbl><w:tblPr><w:tblW w:w="${total}" w:type="dxa"/>${borders}<w:tblLayout w:type="fixed"/><w:tblCellMar><w:top w:w="70" w:type="dxa"/><w:left w:w="110" w:type="dxa"/><w:bottom w:w="70" w:type="dxa"/><w:right w:w="110" w:type="dxa"/></w:tblCellMar></w:tblPr>`+
+      `<w:tblGrid>${widths.map(w=>`<w:gridCol w:w="${w}"/>`).join('')}</w:tblGrid>`+
+      rows.map(r=>`<w:tr>${r.header?'<w:trPr><w:tblHeader/></w:trPr>':''}${r.cells.map((c,i)=>cell(widths[i], c.paras, c.fill)).join('')}</w:tr>`).join('')+`</w:tbl>`;
+  }
+  const spacer = () => para({after:60, runs:[]});
+
+  /* Turn one field's value into cell paragraphs (or null when empty) */
+  function valueParas(f, d){
+    if(!isFilled(f,d)) return null;
+    const v = d[f.id];
+    switch(f.t){
+      case 'text': case 'area': return [{runs:[{text: f.quote ? quoted(v) : str(v)}]}];
+      case 'checks': {
+        if(f.score) return [{runs:[{text:`${v.length}/${f.o.length} positive`, b:true},{text:': '+v.join(', ')}]}];
+        return [{runs:[{text:v.join(', ')}]}];
+      }
+      case 'radio': {
+        const runs=[]; if(v) runs.push({text:v, b:true});
+        const det = str(d[f.id+'__d']); if(det) runs.push({text:(v?'. ':'')+(f.detail?f.detail+': ':'')+det});
+        return [{runs}];
+      }
+      case 'radios': {
+        const runs=[]; f.p.forEach(([k])=>{ if(v[k]) { if(runs.length) runs.push({text:';  '}); runs.push({text:k+': '}); runs.push({text:v[k], b:true}); } });
+        return [{runs}];
+      }
+      case 'parts': {
+        const items = f.p.filter(k=>str(v[k]));
+        if(f.long) return items.map(k=>({runs:[{text:k+': ', b:true},{text:str(v[k])}], after:40}));
+        const runs=[]; items.forEach((k,i)=>{ if(i) runs.push({text:';  '}); runs.push({text:k+': ', b:true}); runs.push({text:str(v[k])}); });
+        return [{runs}];
+      }
+    }
+    return null;
+  }
+
+  function buildDocument(d){
+    const body=[];
+    body.push(para({style:'Title', runs:[{text:'Psychiatric Case Presentation + Mental Status Examination'}]}));
+    const sub = [str(d.patient), str(d.datetime)].filter(Boolean).join('  |  ');
+    if(sub) body.push(para({align:'center', after:200, runs:[{text:sub, color:C.grey, sz:20}]}));
+    let lastGroup = null;
+    SECTIONS.forEach(s=>{
+      if(s.group && s.group!==lastGroup){
+        body.push(para({style:'Heading1', runs:[{text:'11. '+s.group}]}));
+        if(s.groupNote) body.push(para({after:60, runs:[{text:s.groupNote, i:true, color:C.grey, sz:18}]}));
+      }
+      lastGroup = s.group || null;
+      const num = s.group ? s.num+'.' : (s.num==='A' ? 'A.' : s.num+'.');
+      body.push(para({style: s.group ? 'Heading2' : 'Heading1', runs:[{text:num+' '+s.title, color: s.risk ? C.risk : undefined}]}));
+      let kv=[]; let any=false;
+      const flush = () => { if(kv.length){ body.push(table([LABEL_W,VALUE_W], kv)); body.push(spacer()); kv=[]; } };
+      s.fields.forEach(f=>{
+        if(f.t==='table'){
+          const rows = (d[f.id]||[]).filter(r=>r.some(c=>str(c)));
+          if(!rows.length) return;
+          flush(); any=true;
+          body.push(para({keepNext:true, after:60, runs:[{text:f.label, b:true, sz:20}]}));
+          const n=f.c.length, w=Math.floor(TEXT_W/n), widths=f.c.map((_,i)=> i<n-1 ? w : TEXT_W - w*(n-1));
+          const trs=[{header:true, cells:f.c.map(h=>({fill:C.thead, paras:[{runs:[{text:h,b:true,sz:18}]}]}))}];
+          rows.forEach(r=>trs.push({cells:f.c.map((_,i)=>({paras:[{runs:[{text:str(r[i]||'')}]}]}))}));
+          body.push(table(widths, trs)); body.push(spacer());
+          return;
+        }
+        const vp = valueParas(f,d);
+        if(!vp) return;
+        any=true;
+        kv.push({cells:[{fill:C.label, paras:[{runs:[{text:f.label, b:true}]}]},{paras:vp}]});
+      });
+      flush();
+      if(!any) body.push(para({after:120, runs:[{text:'Not documented.', i:true, color:C.grey}]}));
+    });
+    const sect = `<w:sectPr><w:footerReference w:type="default" r:id="rId2"/><w:pgSz w:w="${PAGE_W}" w:h="15840"/><w:pgMar w:top="864" w:right="${MAR}" w:bottom="864" w:left="${MAR}" w:header="432" w:footer="432" w:gutter="0"/></w:sectPr>`;
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document ${W}><w:body>${body.join('')}${sect}</w:body></w:document>`;
+  }
+
+  const STYLES = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles ${W}>
+<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:eastAsia="Calibri" w:cs="Calibri"/><w:sz w:val="20"/><w:szCs w:val="20"/><w:lang w:val="en-US"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="0" w:line="252" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults>
+<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style>
+<w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:basedOn w:val="Normal"/><w:qFormat/><w:pPr><w:spacing w:after="60"/><w:jc w:val="center"/></w:pPr><w:rPr><w:b/><w:color w:val="1B2A3A"/><w:sz w:val="30"/><w:szCs w:val="30"/></w:rPr></w:style>
+<w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/><w:pPr><w:keepNext/><w:keepLines/><w:spacing w:before="280" w:after="80"/><w:outlineLvl w:val="0"/></w:pPr><w:rPr><w:b/><w:color w:val="${C.head}"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr></w:style>
+<w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="heading 2"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/><w:pPr><w:keepNext/><w:keepLines/><w:spacing w:before="180" w:after="60"/><w:outlineLvl w:val="1"/></w:pPr><w:rPr><w:b/><w:color w:val="${C.head}"/><w:sz w:val="21"/><w:szCs w:val="21"/></w:rPr></w:style>
+</w:styles>`;
+  const FOOTER = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:ftr ${W}><w:p><w:pPr><w:jc w:val="center"/></w:pPr>`+
+    `<w:r><w:rPr><w:color w:val="808080"/><w:sz w:val="16"/></w:rPr><w:t xml:space="preserve">Confidential patient information  |  Page </w:t></w:r>`+
+    `<w:fldSimple w:instr=" PAGE "><w:r><w:rPr><w:color w:val="808080"/><w:sz w:val="16"/></w:rPr><w:t>1</w:t></w:r></w:fldSimple>`+
+    `<w:r><w:rPr><w:color w:val="808080"/><w:sz w:val="16"/></w:rPr><w:t xml:space="preserve"> of </w:t></w:r>`+
+    `<w:fldSimple w:instr=" NUMPAGES "><w:r><w:rPr><w:color w:val="808080"/><w:sz w:val="16"/></w:rPr><w:t>1</w:t></w:r></w:fldSimple></w:p></w:ftr>`;
+  const CT = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/><Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/></Types>`;
+  const RELS = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`;
+  const DOCRELS = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/></Relationships>`;
+
+  /* ---- ZIP (stored, no compression) ---- */
+  const CRC_T = (()=>{ const t=new Uint32Array(256); for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c = c&1 ? 0xEDB88320^(c>>>1) : c>>>1; t[n]=c>>>0; } return t; })();
+  const crc32 = b => { let c=0xFFFFFFFF; for(let i=0;i<b.length;i++) c = CRC_T[(c^b[i])&0xFF]^(c>>>8); return (c^0xFFFFFFFF)>>>0; };
+  function zip(files){
+    const enc = new TextEncoder(), now=new Date();
+    const dtime = (now.getHours()<<11)|(now.getMinutes()<<5)|(now.getSeconds()>>1);
+    const ddate = ((now.getFullYear()-1980)<<9)|((now.getMonth()+1)<<5)|now.getDate();
+    const chunks=[], central=[]; let off=0;
+    for(const [name, text] of files){
+      const nb=enc.encode(name), db=enc.encode(text), crc=crc32(db);
+      const h=new DataView(new ArrayBuffer(30));
+      h.setUint32(0,0x04034b50,true); h.setUint16(4,20,true); h.setUint16(6,0x0800,true); h.setUint16(8,0,true);
+      h.setUint16(10,dtime,true); h.setUint16(12,ddate,true); h.setUint32(14,crc,true); h.setUint32(18,db.length,true); h.setUint32(22,db.length,true);
+      h.setUint16(26,nb.length,true); h.setUint16(28,0,true);
+      chunks.push(new Uint8Array(h.buffer), nb, db);
+      const c=new DataView(new ArrayBuffer(46));
+      c.setUint32(0,0x02014b50,true); c.setUint16(4,20,true); c.setUint16(6,20,true); c.setUint16(8,0x0800,true); c.setUint16(10,0,true);
+      c.setUint16(12,dtime,true); c.setUint16(14,ddate,true); c.setUint32(16,crc,true); c.setUint32(20,db.length,true); c.setUint32(24,db.length,true);
+      c.setUint16(28,nb.length,true); c.setUint32(42,off,true);
+      central.push(new Uint8Array(c.buffer), nb);
+      off += 30+nb.length+db.length;
+    }
+    const csize = central.reduce((a,b)=>a+b.length,0);
+    const e=new DataView(new ArrayBuffer(22));
+    e.setUint32(0,0x06054b50,true); e.setUint16(8,files.length,true); e.setUint16(10,files.length,true); e.setUint32(12,csize,true); e.setUint32(16,off,true);
+    const all=[...chunks,...central,new Uint8Array(e.buffer)], out=new Uint8Array(all.reduce((a,b)=>a+b.length,0));
+    let p=0; for(const a of all){ out.set(a,p); p+=a.length; }
+    return out;
+  }
+  function build(d){
+    return zip([['[Content_Types].xml',CT],['_rels/.rels',RELS],['word/_rels/document.xml.rels',DOCRELS],['word/document.xml',buildDocument(d)],['word/styles.xml',STYLES],['word/footer1.xml',FOOTER]]);
+  }
+  return { build };
+})();
+if (typeof module !== 'undefined') module.exports = DocxGen;
+
+/* ---------- App ---------- */
+(function(){
+  const KEY='psyCaseApp.v1';
+  const $ = (s,el=document)=>el.querySelector(s);
+  const h = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const FIELDS = {}; SECTIONS.forEach(s=>s.fields.forEach(f=>FIELDS[f.id]=f));
+
+  let store = load();
+  let cur = null;          // current case id
+  let secIdx = 0;          // current section index
+  let saveTimer = null;
+
+  function load(){
+    try{ const s = JSON.parse(localStorage.getItem(KEY)); if(s && s.cases) return s; }catch(e){}
+    return {cases:{}, last:{}};
+  }
+  function persist(){
+    try{ localStorage.setItem(KEY, JSON.stringify(store)); setStatus('Saved on this iPad'); }
+    catch(e){ setStatus('Not saved: storage is full or blocked'); toast('This case could not be saved. Export it now, then delete old cases.'); }
+  }
+  function queueSave(){ setStatus('Saving…'); clearTimeout(saveTimer); saveTimer=setTimeout(persist, 400); }
+  function setStatus(t){ const el=$('#status'); if(el) el.textContent=t; }
+  function toast(t){ const el=document.createElement('div'); el.className='toast'; el.setAttribute('role','status'); el.textContent=t; document.body.appendChild(el); setTimeout(()=>el.remove(), 3200); }
+  const C = () => store.cases[cur];
+  const D = () => C().data;
+  const nowLabel = () => new Date().toLocaleString('en-US',{dateStyle:'medium',timeStyle:'short'});
+  const progress = d => SECTIONS.filter(s=>sectionStarted(s,d)).length;
+
+  /* ----- case list ----- */
+  function renderHome(){
+    cur=null; document.title='Case & MSE';
+    const list = Object.values(store.cases).sort((a,b)=>b.updated-a.updated);
+    document.body.innerHTML = `
+      <header class="bar"><h1>Case &amp; MSE</h1><button class="btn primary" id="new">New case</button></header>
+      <main class="home">
+        <h2>Patient cases</h2>
+        <p class="lede">Each case follows the Integrated Psychiatric Case Presentation + MSE template. When the interview is done, export it as a Word file.</p>
+        ${list.length ? `<ul class="cases">${list.map(c=>{
+          const p=progress(c.data), pct=Math.round(p/SECTIONS.length*100);
+          return `<li><button class="open" data-open="${c.id}">
+            <span class="who"><strong>${h(str(c.data.patient)||'Untitled case')}</strong>
+            <span>${h(str(c.data.datetime)||'')}${str(c.data.datetime)?'. ':''}Edited ${h(new Date(c.updated).toLocaleString('en-US',{dateStyle:'medium',timeStyle:'short'}))}</span></span>
+            <span class="meter">${p} of ${SECTIONS.length} sections<i><b style="width:${pct}%"></b></i></span></button></li>`;}).join('')}</ul>`
+          : `<p class="empty">No cases yet. Tap <strong>New case</strong> to start an interview.</p>`}
+        <div class="privacy"><strong>Where your data lives.</strong> Cases are saved only in this app on this iPad; nothing is uploaded anywhere. Export the Word file to your hospital's approved storage, then delete the case here.</div>
+        ${list.length?`<div class="foot"><button class="btn quiet danger" id="wipe">Delete all cases</button></div>`:''}
+      </main>`;
+    $('#new').onclick = newCase;
+    document.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>openCase(b.dataset.open));
+    const w=$('#wipe'); if(w) w.onclick=()=>{ if(confirm('Delete ALL cases from this iPad? This cannot be undone.')){ store.cases={}; persist(); renderHome(); } };
+    window.scrollTo(0,0);
+  }
+  function newCase(){
+    const id = Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+    store.cases[id] = {id, created:Date.now(), updated:Date.now(), data:{ datetime:nowLabel(), interviewer:store.last.interviewer||'', attending:store.last.attending||'' }};
+    persist(); openCase(id);
+  }
+  function openCase(id){ cur=id; secIdx=0; renderCase(); }
+
+  /* ----- case editor ----- */
+  function renderCase(){
+    const c=C(); document.title=(str(c.data.patient)||'Untitled case')+' | Case & MSE';
+    document.body.innerHTML = `
+      <header class="bar">
+        <button class="btn quiet" id="back" aria-label="All cases">‹ Cases</button>
+        <button class="btn only-narrow" id="menu" aria-expanded="false" aria-controls="rail">Sections</button>
+        <h1 id="title">${h(str(c.data.patient)||'Untitled case')}</h1>
+        <span class="status" id="status">Saved on this iPad</span>
+        <button class="btn hide-sm" id="rem">Reminders</button>
+        <button class="btn quiet danger hide-sm" id="del">Delete</button>
+        <button class="btn primary" id="export">Export Word file</button>
+      </header>
+      <div class="layout"><nav class="rail" id="rail" aria-label="Sections"></nav><main class="main" id="main"></main></div>`;
+    $('#back').onclick = ()=>{ persist(); renderHome(); };
+    $('#menu').onclick = ()=>{ const r=$('#rail'); const o=r.classList.toggle('open'); $('#menu').setAttribute('aria-expanded',o); };
+    $('#rem').onclick = showReminders;
+    $('#del').onclick = ()=>{ if(confirm('Delete this case from this iPad? Export it first if you need a copy.')){ delete store.cases[cur]; persist(); renderHome(); } };
+    $('#export').onclick = exportDocx;
+    renderRail(); renderSection();
+  }
+  function renderRail(){
+    const d=D(); let g=null, html='';
+    SECTIONS.forEach((s,i)=>{
+      if(s.group && s.group!==g) html+=`<div class="grp">11 &nbsp;${h(s.group)}</div>`;
+      g=s.group||null;
+      html+=`<button class="${s.group?'sub ':''}${s.risk?'risk ':''}${i===secIdx?'cur':''}" data-sec="${i}" ${i===secIdx?'aria-current="step"':''}><span class="n">${h(s.num)}</span><span>${h(s.title)}</span><span class="dot ${sectionStarted(s,d)?'on':''}" aria-label="${sectionStarted(s,d)?'started':'not started'}"></span></button>`;
+    });
+    const r=$('#rail'); r.innerHTML=html;
+    r.querySelectorAll('[data-sec]').forEach(b=>b.onclick=()=>{ secIdx=+b.dataset.sec; r.classList.remove('open'); $('#menu').setAttribute('aria-expanded','false'); renderRail(); renderSection(); window.scrollTo(0,0); });
+  }
+  function updateRailDots(){
+    const d=D();
+    document.querySelectorAll('#rail [data-sec]').forEach(b=>{ const s=SECTIONS[+b.dataset.sec], on=sectionStarted(s,d); const dot=b.querySelector('.dot'); dot.classList.toggle('on',on); dot.setAttribute('aria-label',on?'started':'not started'); });
+  }
+
+  function fieldHTML(f, d){
+    const lab = `<span class="lab" id="l-${f.id}">${h(f.label)}</span>${f.hint?`<span class="hint">${h(f.hint)}</span>`:''}`;
+    const v = d[f.id];
+    switch(f.t){
+      case 'text': return `<div class="field">${lab}<input type="text" data-f="${f.id}" aria-labelledby="l-${f.id}" value="${h(v)}" autocomplete="off"></div>`;
+      case 'area': return `<div class="field">${lab}<textarea class="${f.big?'big':''}" data-f="${f.id}" aria-labelledby="l-${f.id}">${h(v)}</textarea>${f.mseTools?`<div class="tools"><button class="btn" id="draft">Draft from 11A–11F</button><button class="btn" id="copy">Copy paragraph</button></div>`:''}</div>`;
+      case 'checks': { const sel=v||[]; return `<div class="field" role="group" aria-labelledby="l-${f.id}">${lab}<div class="chips">${f.o.map(o=>`<button class="chip" data-chk="${f.id}" data-o="${h(o)}" aria-pressed="${sel.includes(o)}">${h(o)}</button>`).join('')}</div>${f.score?`<div class="score" id="sc-${f.id}">${sel.length}/${f.o.length} positive</div>`:''}</div>`; }
+      case 'radio': return `<div class="field" role="group" aria-labelledby="l-${f.id}">${lab}<div class="seg">${f.o.map(o=>`<button data-rad="${f.id}" data-o="${h(o)}" aria-pressed="${v===o}">${h(o)}</button>`).join('')}</div>${f.detail?`<div class="detail"><input type="text" data-f="${f.id}__d" placeholder="${h(f.detail)}" aria-label="${h(f.label+': '+f.detail)}" value="${h(d[f.id+'__d'])}"></div>`:''}</div>`;
+      case 'radios': { const o=v||{}; return `<div class="field">${lab}<div class="radios">${f.p.map(([k,opts])=>`<div class="row" role="group" aria-label="${h(k)}"><span>${h(k)}</span><div class="seg">${opts.map(x=>`<button data-rads="${f.id}" data-k="${h(k)}" data-o="${h(x)}" aria-pressed="${o[k]===x}">${h(x)}</button>`).join('')}</div></div>`).join('')}</div></div>`; }
+      case 'parts': { const o=v||{}; return `<div class="field">${lab}<div class="grid ${f.long?'long':''} ${f.inline?'inline':''}">${f.p.map(k=>`<label>${h(k)}${f.long?`<textarea data-f="${f.id}" data-k="${h(k)}">${h(o[k])}</textarea>`:`<input type="text" data-f="${f.id}" data-k="${h(k)}" value="${h(o[k])}" autocomplete="off">`}</label>`).join('')}</div></div>`; }
+      case 'table': {
+        const rows = (v && v.length) ? v : Array.from({length:f.rows},()=>f.c.map(()=>''));
+        if(!v) d[f.id]=rows;
+        return `<div class="field">${lab}<div class="tbl"><table><thead><tr>${f.c.map(c=>`<th scope="col">${h(c)}</th>`).join('')}</tr></thead><tbody>${rows.map((r,ri)=>`<tr>${f.c.map((c,ci)=>`<td><textarea data-f="${f.id}" data-r="${ri}" data-c="${ci}" aria-label="${h(c+', row '+(ri+1))}">${h(r[ci])}</textarea></td>`).join('')}</tr>`).join('')}</tbody></table></div><div class="tbl-actions"><button class="btn quiet" data-addrow="${f.id}">Add row</button>${rows.length>1?`<button class="btn quiet" data-delrow="${f.id}">Remove last row</button>`:''}</div></div>`;
+      }
+    }
+    return '';
+  }
+
+  function renderSection(){
+    const s=SECTIONS[secIdx], d=D();
+    const prev=SECTIONS[secIdx-1], next=SECTIONS[secIdx+1];
+    $('#main').innerHTML = `
+      <div class="sec-head ${s.risk?'risk':''}">
+        ${s.group?`<p class="kicker">11. ${h(s.group)}</p>`:''}
+        <h2>${h(s.num)}. ${h(s.title)}</h2>
+        ${s.groupNote?`<p class="note">${h(s.groupNote)}</p>`:''}
+        ${s.note?`<p class="note">${h(s.note)}</p>`:''}
+      </div>
+      <div class="${s.risk?'risky':''}">${s.fields.map(f=>fieldHTML(f,d)).join('')}</div>
+      <div class="pager">
+        ${prev?`<button class="btn" id="prev">‹ ${h(prev.num)} ${h(prev.title)}</button>`:'<span></span>'}
+        ${next?`<button class="btn primary" id="next">${h(next.num)} ${h(next.title)} ›</button>`:`<button class="btn primary" id="done">Export Word file</button>`}
+      </div>`;
+    const go = i => { secIdx=i; renderRail(); renderSection(); window.scrollTo(0,0); };
+    if(prev) $('#prev').onclick=()=>go(secIdx-1);
+    if(next) $('#next').onclick=()=>go(secIdx+1); else $('#done').onclick=exportDocx;
+    const dr=$('#draft'); if(dr) dr.onclick=()=>{
+      const t=draftMSE(D()); if(!t){ toast('Nothing to draft yet. Fill in sections 11A–11F first.'); return; }
+      const ta=$('[data-f="mseNarr"]'); if(str(ta.value) && !confirm('Replace the current paragraph with a new draft?')) return;
+      ta.value=t; setVal('mseNarr',null,t); grow(ta);
+    };
+    const cp=$('#copy'); if(cp) cp.onclick=()=>{
+      const t=str(D().mseNarr); if(!t){ toast('The paragraph is empty.'); return; }
+      (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast('Paragraph copied. Paste it into the EHR.')).catch(()=>{ const ta=$('[data-f="mseNarr"]'); ta.focus(); ta.select(); toast('Select-all done. Tap Copy.'); });
+    };
+    document.querySelectorAll('#main textarea').forEach(grow);
+  }
+
+  function grow(ta){ ta.style.height='auto'; ta.style.height=(ta.scrollHeight+2)+'px'; }
+  function touch(){ C().updated=Date.now(); updateRailDots(); queueSave(); }
+  function setVal(id, k, val){
+    const d=D();
+    if(k==null) d[id]=val; else { d[id]=d[id]||{}; d[id][k]=val; }
+    if(id==='patient'){ const t=$('#title'); if(t) t.textContent=str(val)||'Untitled case'; }
+    if(id==='interviewer'||id==='attending') store.last[id]=val;
+    touch();
+  }
+
+  /* ----- one delegated listener for every field ----- */
+  document.addEventListener('input', e=>{
+    const el=e.target; if(!cur || !el.dataset || !el.dataset.f) return;
+    if(el.tagName==='TEXTAREA') grow(el);
+    const id=el.dataset.f;
+    if(el.dataset.r!=null){ const d=D(); d[id][+el.dataset.r][+el.dataset.c]=el.value; touch(); return; }
+    setVal(id, el.dataset.k??null, el.value);
+  });
+  document.addEventListener('click', e=>{
+    const b=e.target.closest('button'); if(!b || !cur) return;
+    const d=D();
+    if(b.dataset.chk){ const id=b.dataset.chk, o=b.dataset.o; const a=d[id]=d[id]||[];
+      const i=a.indexOf(o); if(i>=0) a.splice(i,1); else a.push(o);
+      const f=FIELDS[id]; d[id]=f.o.filter(x=>a.includes(x)); // keep template order
+      b.setAttribute('aria-pressed', i<0); const sc=$('#sc-'+id); if(sc) sc.textContent=`${d[id].length}/${f.o.length} positive`; touch(); }
+    else if(b.dataset.rad){ const id=b.dataset.rad, o=b.dataset.o; d[id] = d[id]===o ? null : o;
+      b.parentNode.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed', x.dataset.o===d[id])); touch(); }
+    else if(b.dataset.rads){ const id=b.dataset.rads, k=b.dataset.k, o=b.dataset.o; d[id]=d[id]||{};
+      if(d[id][k]===o) delete d[id][k]; else d[id][k]=o;
+      b.parentNode.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed', d[id][k]===x.dataset.o)); touch(); }
+    else if(b.dataset.addrow){ const f=FIELDS[b.dataset.addrow]; d[f.id].push(f.c.map(()=>'')); touch(); renderSection(); }
+    else if(b.dataset.delrow){ const f=FIELDS[b.dataset.delrow]; const last=d[f.id][d[f.id].length-1];
+      if(last.some(c=>str(c)) && !confirm('The last row has text in it. Remove it?')) return; d[f.id].pop(); touch(); renderSection(); }
+  });
+
+  /* ----- export ----- */
+  async function exportDocx(){
+    persist();
+    const d=D();
+    const bytes = DocxGen.build(d);
+    const base = (str(d.patient)||'Case').replace(/[^\w\- ]+/g,' ').trim().replace(/\s+/g,'_').slice(0,50) || 'Case';
+    const name = `${base}_${new Date().toISOString().slice(0,10)}.docx`;
+    const type = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    const file = new File([bytes], name, {type});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      try{ await navigator.share({files:[file], title:name}); return; }
+      catch(err){ if(err && err.name==='AbortError') return; }
+    }
+    const url=URL.createObjectURL(file), a=document.createElement('a');
+    a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 5000);
+    toast('Word file created: '+name);
+  }
+
+  function showReminders(){
+    const s=document.createElement('div'); s.className='scrim';
+    s.innerHTML=`<div class="sheet" role="dialog" aria-modal="true" aria-labelledby="rh"><h3 id="rh">Interview &amp; MSE reminders</h3><ul>${REMINDERS.map(r=>`<li>${h(r)}</li>`).join('')}</ul><button class="btn primary" id="rclose">Close</button></div>`;
+    document.body.appendChild(s);
+    const close=()=>s.remove(); $('#rclose').onclick=close; s.onclick=e=>{ if(e.target===s) close(); };
+    $('#rclose').focus();
+  }
+
+  window.addEventListener('pagehide', ()=>{ if(cur) persist(); });
+  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='hidden' && cur) persist(); });
+  if('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(()=>{});
+  renderHome();
+})();
+
+</script>
+</body>
+</html>
