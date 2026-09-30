@@ -68,6 +68,11 @@ textarea.big{min-height:180px}
 .privacy{margin-top:34px;padding:16px 18px;border-left:3px solid var(--blue);background:var(--wash);border-radius:0 8px 8px 0;font-size:15px;color:var(--ink-2)}
 .privacy strong{color:var(--ink)}
 .home .foot{margin-top:18px;display:flex;justify-content:flex-end}
+.credit{margin-top:48px;padding-top:16px;border-top:1px solid var(--line);font-size:14px;color:var(--ink-3);line-height:1.5}
+.credit p{margin:0}
+.credit a{color:var(--blue)}
+.sheet p{margin:0 0 12px;color:var(--ink-2)}
+.sheet p strong{color:var(--ink)}
 
 /* ----- case layout ----- */
 .layout{display:grid;grid-template-columns:var(--rail) 1fr;min-height:calc(100% - var(--bar))}
@@ -144,7 +149,7 @@ textarea.big{min-height:180px}
   .main{padding:22px 20px 80px}
   .bar .status{display:none}
 }
-@media (max-width:600px){ .bar .hide-sm{display:none} .meter{width:80px} }
+@media (max-width:600px){ .bar .hide-sm{display:none} .meter{width:80px} .bar h1{font-size:17px} }
 @media (prefers-reduced-motion:reduce){ .rail{transition:none} }
 
 </style>
@@ -497,9 +502,134 @@ const DocxGen = (() => {
 })();
 if (typeof module !== 'undefined') module.exports = DocxGen;
 
+/* ---------- Read a Word file exported by this app back into case data ---------- */
+const DocxImport = (() => {
+  const NS = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+  const norm = s => String(s||'').toLowerCase().replace(/[’‘]/g,"'").replace(/\s+/g,' ').trim();
+
+  /* Unzip just the one part we need (handles files re-saved by Word/Pages, which compress) */
+  async function readPart(buf, want){
+    const u8 = new Uint8Array(buf), dv = new DataView(buf);
+    let e = -1; for(let i=u8.length-22; i>=Math.max(0,u8.length-66000); i--){ if(dv.getUint32(i,true)===0x06054b50){ e=i; break; } }
+    if(e<0) throw new Error('not-zip');
+    const count = dv.getUint16(e+10,true); let p = dv.getUint32(e+16,true);
+    const dec = new TextDecoder();
+    for(let k=0;k<count;k++){
+      if(dv.getUint32(p,true)!==0x02014b50) break;
+      const method=dv.getUint16(p+10,true), csize=dv.getUint32(p+20,true), nlen=dv.getUint16(p+28,true), xlen=dv.getUint16(p+30,true), clen=dv.getUint16(p+32,true), off=dv.getUint32(p+42,true);
+      const name = dec.decode(u8.subarray(p+46, p+46+nlen));
+      if(name===want){
+        const lstart = off+30+dv.getUint16(off+26,true)+dv.getUint16(off+28,true);
+        const raw = u8.subarray(lstart, lstart+csize);
+        if(method===0) return dec.decode(raw);
+        if(method===8){
+          if(typeof DecompressionStream==='undefined') throw new Error('old-ios');
+          const stream = new Blob([raw]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+          return dec.decode(await new Response(stream).arrayBuffer());
+        }
+        throw new Error('unsupported');
+      }
+      p += 46+nlen+xlen+clen;
+    }
+    throw new Error('not-docx');
+  }
+
+  const kids = (el, tag) => Array.from(el.childNodes).filter(n=>n.nodeType===1 && n.namespaceURI===NS && n.localName===tag);
+  function paraText(p){
+    let t=''; const walk=n=>{ for(const c of n.childNodes){ if(c.nodeType!==1) continue;
+      if(c.namespaceURI===NS){ if(c.localName==='t') t+=c.textContent; else if(c.localName==='br'||c.localName==='cr') t+='\n'; else if(c.localName==='tab') t+='\t'; else if(c.localName==='delText') continue; else walk(c); } } };
+    walk(p); return t;
+  }
+  function cellText(tc){ const ps=[]; const walk=n=>{ for(const c of n.childNodes){ if(c.nodeType!==1||c.namespaceURI!==NS) continue; if(c.localName==='p') ps.push(paraText(c)); else if(c.localName!=='tcPr') walk(c); } }; walk(tc); return ps.join('\n').trim(); }
+  const rowsOf = tbl => { const out=[]; const walk=n=>{ for(const c of n.childNodes){ if(c.nodeType!==1||c.namespaceURI!==NS) continue; if(c.localName==='tr') out.push(c); else if(c.localName==='sdt'||c.localName==='sdtContent') walk(c); } }; walk(tbl); return out; };
+  const cellsOf = tr => { const out=[]; const walk=n=>{ for(const c of n.childNodes){ if(c.nodeType!==1||c.namespaceURI!==NS) continue; if(c.localName==='tc') out.push(cellText(c)); else if(c.localName==='sdt'||c.localName==='sdtContent') walk(c); } }; walk(tr); return out; };
+
+  /* Split "Key: value; Key2: value" using the known keys only */
+  function splitKeys(text, keys){
+    const hits=[];
+    keys.forEach(k=>{ const re=new RegExp('(^|\\n|;\\s*)'+k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\s*:\\s*','gi'); let m;
+      while((m=re.exec(text))){ hits.push({k, at:m.index, start:m.index+m[0].length}); } });
+    hits.sort((a,b)=>a.at-b.at);
+    const out={}; hits.forEach((h,i)=>{ const end = i+1<hits.length ? hits[i+1].at : text.length; const v=text.slice(h.start,end).replace(/[;\s]+$/,'').trim(); if(v && !(h.k in out)) out[h.k]=v; });
+    return out;
+  }
+  const pick = (opts, s) => opts.find(o=>norm(o)===norm(s));
+
+  function parseValue(f, text, d, miss){
+    const label=f.label;
+    switch(f.t){
+      case 'text': case 'area': {
+        let v=text; if(f.quote) v=v.replace(/^[“"]\s*/,'').replace(/\s*[”"]$/,'');
+        d[f.id]=v; return; }
+      case 'checks': {
+        const body=text.replace(/^\s*\d+\s*\/\s*\d+\s*positive\s*:?\s*/i,'');
+        const got=[]; body.split(/\s*[,;\n]\s*/).filter(Boolean).forEach(x=>{ const o=pick(f.o,x); if(o){ if(!got.includes(o)) got.push(o); } else miss.push(label+': '+x); });
+        d[f.id]=f.o.filter(o=>got.includes(o)); return; }
+      case 'radio': {
+        let rest=text.trim(), v=null;
+        for(const o of [...f.o].sort((a,b)=>b.length-a.length)){ if(norm(rest).startsWith(norm(o))){ const after=rest.slice(o.length); if(!after.trim() || /^\s*[.;,]/.test(after)){ v=o; rest=after.replace(/^\s*[.;,]\s*/,''); break; } } }
+        if(f.detail){ const re=new RegExp('^'+f.detail.replace(/[.*+?^${}()|[\]\\]/g,'\\$&').replace(/'/g,"['’]")+'\\s*:\\s*','i'); rest=rest.replace(re,''); }
+        if(v) d[f.id]=v;
+        if(rest.trim()){ if(f.detail) d[f.id+'__d']=rest.trim(); else miss.push(label+': '+rest.trim()); }
+        return; }
+      case 'radios': {
+        const m=splitKeys(text, f.p.map(x=>x[0])), o={};
+        f.p.forEach(([k,opts])=>{ if(m[k]){ const v=pick(opts,m[k]); if(v) o[k]=v; else miss.push(label+', '+k+': '+m[k]); } });
+        d[f.id]=o; return; }
+      case 'parts': {
+        const m=splitKeys(text, f.p), o={}; f.p.forEach(k=>{ if(m[k]) o[k]=m[k]; });
+        if(!Object.keys(o).length && text.trim()) miss.push(label+': '+text.trim());
+        d[f.id]=o; return; }
+    }
+  }
+
+  async function fileToData(file){
+    const xml = await readPart(await file.arrayBuffer(), 'word/document.xml');
+    const doc = new DOMParser().parseFromString(xml, 'application/xml');
+    const body = doc.getElementsByTagNameNS(NS,'body')[0]; if(!body) throw new Error('not-docx');
+    const d={}, miss=[]; let sec=null, filled=0;
+    const tableFields=[]; SECTIONS.forEach(s=>s.fields.forEach(f=>{ if(f.t==='table') tableFields.push(f); }));
+    const findField = label => {
+      const L=norm(label); if(!L) return null;
+      if(sec){ const f=sec.fields.find(f=>f.t!=='table' && norm(f.label)===L); if(f) return f; }
+      for(const s of SECTIONS){ const f=s.fields.find(f=>f.t!=='table' && norm(f.label)===L); if(f) return f; }
+      return null;
+    };
+    const handleP = p => {
+      const t=paraText(p).trim(); const m=t.match(/^(A|\d{1,2}[A-G]?)\.\s+(.+)$/); if(!m) return;
+      const s=SECTIONS.find(s=>s.num===m[1]);
+      const ps=p.getElementsByTagNameNS(NS,'pStyle')[0]; const style=ps ? (ps.getAttributeNS(NS,'val')||ps.getAttribute('w:val')||'') : '';
+      if(s && (/heading/i.test(style) || norm(m[2]).startsWith(norm(s.title).slice(0,8)))) sec=s;
+      else if(!s && /^\d+$/.test(m[1]) && t.length<60) sec=null;
+    };
+    const handleTbl = tbl => {
+      const rows=rowsOf(tbl).map(cellsOf); if(!rows.length) return;
+      const tf=tableFields.find(f=>norm(rows[0][0])===norm(f.c[0]) && rows[0].length===f.c.length);
+      if(tf){
+        const data=rows.slice(1).map(r=>tf.c.map((_,i)=>r[i]||'')).filter(r=>r.some(c=>c.trim()));
+        if(data.length){ while(data.length<tf.rows) data.push(tf.c.map(()=>'')); d[tf.id]=data; filled++; }
+        return;
+      }
+      rows.forEach(r=>{
+        if(r.length<2) return;
+        const f=findField(r[0]); const val=r.slice(1).join('\n').trim();
+        if(!f){ if(val) miss.push((r[0]||'(no label)')+': '+val); return; }
+        if(!val) return;
+        parseValue(f, val, d, miss); filled++;
+      });
+    };
+    const walk = n => { for(const c of n.childNodes){ if(c.nodeType!==1||c.namespaceURI!==NS) continue;
+      if(c.localName==='p') handleP(c); else if(c.localName==='tbl') handleTbl(c); else if(c.localName==='sdt'||c.localName==='sdtContent') walk(c); } };
+    walk(body);
+    return { data:d, filled, missed:miss };
+  }
+  return { fileToData };
+})();
+
 /* ---------- App ---------- */
 (function(){
   const KEY='psyCaseApp.v1';
+  const VERSION='September 30, 2026';
   const $ = (s,el=document)=>el.querySelector(s);
   const h = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   const FIELDS = {}; SECTIONS.forEach(s=>s.fields.forEach(f=>FIELDS[f.id]=f));
@@ -530,10 +660,10 @@ if (typeof module !== 'undefined') module.exports = DocxGen;
     cur=null; document.title='Case & MSE';
     const list = Object.values(store.cases).sort((a,b)=>b.updated-a.updated);
     document.body.innerHTML = `
-      <header class="bar"><h1>Case &amp; MSE</h1><button class="btn primary" id="new">New case</button></header>
+      <header class="bar"><h1>Case &amp; MSE</h1><button class="btn" id="imp">Open Word file</button><button class="btn primary" id="new">New case</button><input type="file" id="impFile" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden></header>
       <main class="home">
         <h2>Patient cases</h2>
-        <p class="lede">Each case follows the Integrated Psychiatric Case Presentation + MSE template. When the interview is done, export it as a Word file.</p>
+        <p class="lede">Each case follows the Integrated Psychiatric Case Presentation + MSE template. When the interview is done, export it as a Word file. To keep working on an earlier case, tap <strong>Open Word file</strong> and choose a file this app exported.</p>
         ${list.length ? `<ul class="cases">${list.map(c=>{
           const p=progress(c.data), pct=Math.round(p/SECTIONS.length*100);
           return `<li><button class="open" data-open="${c.id}">
@@ -543,11 +673,34 @@ if (typeof module !== 'undefined') module.exports = DocxGen;
           : `<p class="empty">No cases yet. Tap <strong>New case</strong> to start an interview.</p>`}
         <div class="privacy"><strong>Where your data lives.</strong> Cases are saved only in this app on this iPad; nothing is uploaded anywhere. Export the Word file to your hospital's approved storage, then delete the case here.</div>
         ${list.length?`<div class="foot"><button class="btn quiet danger" id="wipe">Delete all cases</button></div>`:''}
+        <footer class="credit"><p>Web app developed in 2026 by Isabella Navarro, MD.</p><p>Latest version ${VERSION}.</p><p><a href="mailto:isaymotion@gmail.com">isaymotion@gmail.com</a></p></footer>
       </main>`;
     $('#new').onclick = newCase;
+    $('#imp').onclick = ()=>$('#impFile').click();
+    $('#impFile').onchange = e=>{ const f=e.target.files[0]; e.target.value=''; if(f) importFile(f); };
     document.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>openCase(b.dataset.open));
     const w=$('#wipe'); if(w) w.onclick=()=>{ if(confirm('Delete ALL cases from this iPad? This cannot be undone.')){ store.cases={}; persist(); renderHome(); } };
     window.scrollTo(0,0);
+  }
+  async function importFile(file){
+    let res;
+    try{ res = await DocxImport.fileToData(file); }
+    catch(err){
+      const m = err && err.message==='old-ios' ? 'This file was re-saved in Word or Pages, and this iPad needs iPadOS 16.4 or later to read it. Update the iPad, or open the file on a newer device.'
+        : 'This file could not be read. Choose a .docx file that was exported from this app.';
+      toast(m); return;
+    }
+    if(!res.filled){ toast('No case information was found in that file. Choose a Word file exported from this app.'); return; }
+    const id = Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+    store.cases[id] = {id, created:Date.now(), updated:Date.now(), importedFrom:file.name, data:res.data};
+    persist(); openCase(id);
+    const secs = progress(res.data);
+    const s=document.createElement('div'); s.className='scrim';
+    s.innerHTML=`<div class="sheet" role="dialog" aria-modal="true" aria-labelledby="ih"><h3 id="ih">Case opened from Word file</h3>
+      <p>${h(file.name)} filled ${secs} of ${SECTIONS.length} sections. It was added as a new case, so the original file is unchanged. Review each section before exporting again.</p>
+      ${res.missed.length?`<p><strong>This text could not be placed in a field.</strong> Re-enter it where it belongs:</p><ul>${res.missed.slice(0,40).map(m=>`<li>${h(m)}</li>`).join('')}</ul>`:''}
+      <button class="btn primary" id="iclose">Review case</button></div>`;
+    document.body.appendChild(s); const close=()=>s.remove(); $('#iclose').onclick=close; s.onclick=e=>{ if(e.target===s) close(); }; $('#iclose').focus();
   }
   function newCase(){
     const id = Date.now().toString(36)+Math.random().toString(36).slice(2,6);
