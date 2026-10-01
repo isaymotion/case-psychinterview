@@ -30,7 +30,8 @@
   --risk:#E39A97; --risk-wash:#3A2224;
 }}
 *{box-sizing:border-box}
-html,body{height:100%;margin:0}
+html{height:100%}
+body{min-height:100%;margin:0}
 :root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 body{background:var(--page);color:var(--ink);font:17px/1.45 var(--sans);-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
 button{font:inherit;color:inherit;cursor:pointer}
@@ -74,6 +75,34 @@ textarea.big{min-height:180px}
 .cases .who .kind.dc{color:#7A4E7E}
 .cases .who .kind.mc{color:#8A5A12}
 .cases .who .kind.ca{color:#4E5A96}
+.cases .who .kind.ho{color:#9E3A38}
+.fit{font-size:14.5px;font-weight:600;color:#2F7A6B;margin:0 0 14px}
+.fit.over{color:var(--risk)}
+.ptcards{display:grid;gap:16px}
+.ptcard{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.ptcard-head{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.ptcard-head strong{font-size:17.5px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ptcard-head span{font-size:14px;color:var(--ink-3)}
+.ptgrid{display:grid;grid-template-columns:2fr 1fr 1fr 0.8fr 1.4fr;gap:8px 10px;margin-bottom:10px}
+.ptgrid label,.ptareas label{font-size:13.5px;color:var(--ink-2);display:block}
+.ptgrid input{margin-top:3px;padding:8px 10px}
+.ptareas{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px}
+.ptareas small{display:block;font-size:12.5px;color:var(--ink-3)}
+.ptareas textarea{margin-top:3px;min-height:56px;padding:8px 10px}
+.ptareas label.on textarea{background:var(--wash)}
+.pick.checks label{display:flex;gap:12px;align-items:flex-start;padding:12px 4px;cursor:pointer}
+.pick.checks input{width:22px;height:22px;margin-top:2px;flex:none;accent-color:var(--blue);-webkit-appearance:auto;appearance:auto}
+.pick.checks label > span strong{display:block;font-size:16.5px}
+.pick.checks label > span span{font-size:14px;color:var(--ink-3)}
+.pick.morning{max-height:none}
+.hoprev-wrap{overflow-x:auto;margin-bottom:24px}
+.hoprev{background:#fff;color:#1B2A3A;border:1px solid var(--line);border-radius:6px;padding:22px 24px;min-width:860px;font:11.5px/1.3 Calibri,Carlito,var(--sans);box-shadow:0 2px 14px rgba(20,40,60,.08)}
+.hoprev h3{font-size:16px;color:#365F91;margin:0 0 2px}
+.hoprev .who{color:#6B7785;margin:0 0 8px}
+.hoprev table{border-collapse:collapse;width:100%;table-layout:fixed}
+.hoprev th{background:#D9EAF7;text-align:left;padding:4px 5px;border:1px solid #B7C9DB;vertical-align:bottom}
+.hoprev td{border:1px solid #B7C9DB;padding:4px 5px;vertical-align:top;height:58px;word-wrap:break-word}
+.hoprev td.pt{background:#EAF2F8}
 .starts-label{font-size:13px;font-weight:600;letter-spacing:.02em;color:var(--ink-3);margin:18px 0 -6px}
 .starts + .starts-label{margin-top:0}
 .warn-box{background:var(--risk-wash);border-left:3px solid var(--risk);padding:10px 12px;border-radius:0 8px 8px 0;color:var(--ink)!important}
@@ -190,6 +219,8 @@ textarea.big{min-height:180px}
 
 /* ----- narrower iPads / portrait ----- */
 @media (max-width:980px){
+  .ptgrid{grid-template-columns:1fr 1fr}
+  .ptareas{grid-template-columns:1fr}
   .starts{grid-template-columns:1fr 1fr}
   .cert{padding:28px 24px}
   .carry{flex-direction:column;align-items:flex-start}
@@ -366,6 +397,7 @@ function isFilled(f, d){
     case 'radio': return !!v || !!str(d[f.id+'__d']);
     case 'radios': case 'parts': return !!v && Object.values(v).some(x=>str(x));
     case 'table': return Array.isArray(v) && v.some(r=>r.some(c=>str(c)));
+    case 'patients': return Array.isArray(v) && v.length>0;
   }
   return false;
 }
@@ -875,6 +907,76 @@ function abstractParts(d){
 }
 if (typeof module !== 'undefined') module.exports = { CA_SECTIONS, abstractFromSources, abstractParts };
 
+/* ---------- On-call handover sheet ---------- */
+const HO_COLS = [
+  {k:'patient', label:'Patient', w:2200},
+  {k:'dx', label:'Diagnosis', w:1900},
+  {k:'risk', label:'Risk', w:1700},
+  {k:'meds', label:'Current meds', w:2400},
+  {k:'pending', label:'Pending labs / results', w:1800},
+  {k:'watch', label:'Watch overnight / to do', w:2300},
+  {k:'overnight', label:'Overnight events', w:2100}
+];
+const HO_SECTIONS = [
+  { id:'hoInfo', num:'A', title:'Handover details', fields:[
+    {t:'text', id:'hoDate', label:'Date'},
+    {t:'text', id:'unit', label:'Unit / ward'},
+    {t:'text', id:'fromRes', label:'Handing over'},
+    {t:'text', id:'toRes', label:'Receiving (on call)'},
+    {t:'text', id:'attOnCall', label:'Attending on call'}
+  ]},
+  { id:'hoPts', num:'1', title:'Patients', note:'Keep each entry to a line or two so the sheet fits on one printed page.', fields:[
+    {t:'patients', id:'rows', label:'Patients'}
+  ]},
+  { id:'hoPreview', num:'2', title:'Print preview', preview:true, note:'One landscape page. The Overnight events column is left blank for the on-call resident.', fields:[] },
+  { id:'hoNext', num:'3', title:'Next morning: progress notes', morning:true, note:'Create a progress note for each patient. Overnight events, pending labs, and items flagged at handover are added to each note.', fields:[] }
+];
+SCHEMAS.ho = { sections:HO_SECTIONS, title:'On-call Handover', name:'Handover sheet', file:'Handover' };
+
+const medsCompact = t => (t||[]).filter(r=>str(r[0])).map(r=>[str(r[0]), str(r[1])].filter(Boolean).join(' ')).join('; ');
+function medsFromCompact(s){ return str(s).split(/\s*[;\n]\s*/).filter(Boolean).map(x=>{ const m=x.match(/^(\S+(?:\s+[A-Za-z][\w-]*)*?)\s+(\d.*)$/); return m ? [m[1], m[2], '', ''] : [x, '', '', '']; }); }
+function hdOn(admitDate, day){ const a=parseLooseDate(admitDate); if(!a) return ''; const t=new Date(day.getFullYear(),day.getMonth(),day.getDate()); const n=Math.round((t-a)/86400000)+1; return n>=1 && n<1000 ? String(n) : ''; }
+
+/* One handover row from a patient's latest record */
+function handoverRow(src, kind, recId, now){
+  const admit = kind==='pn' ? str(src.admitDate) : str(src.datetime).replace(/,?\s*\d{1,2}:\d{2}.*$/,'');
+  const risk = [src.suicideRisk&&'Suicide: '+src.suicideRisk, src.violenceRisk&&'Violence: '+src.violenceRisk, str(src.obs)&&'Obs: '+str(src.obs)].filter(Boolean).join('. ');
+  return { key:recId||'', patient:str(src.patient), agesex:str(src.agesex), ward:str(src.location), admitDate:admit, hday:hdOn(admit, now) || str(src.hday),
+    dx:str(src.primaryDx), risk, meds:medsCompact(src.meds), pending:'', watch:'', overnight:'' };
+}
+
+/* Rough page estimate for the printed sheet (landscape, 8 pt) */
+function handoverPages(d){
+  const rows = d.rows||[]; if(!rows.length) return 0;
+  const lineTw=190, padTw=150, minRow=900, firstPage=8300, otherPage=9500;
+  const cellText = (r,c) => c.k==='patient' ? [r.patient, [r.agesex,r.ward].filter(str).join(' | '), [r.hday&&'HD '+r.hday, r.admitDate&&'Adm. '+r.admitDate].filter(Boolean).join(' | ')].filter(str).join('\n') : str(r[c.k]);
+  const h = rows.map(r=>{ let lines=1; HO_COLS.forEach(c=>{ const per=Math.max(8, Math.floor((c.w-220)/80)); const n=cellText(r,c).split('\n').reduce((a,l)=>a+Math.max(1,Math.ceil(l.length/per)),0); lines=Math.max(lines,n); }); return Math.max(minRow, lines*lineTw+padTw); });
+  let pages=1, used=0, cap=firstPage; h.forEach(x=>{ if(used+x>cap){ pages++; used=x; cap=otherPage; } else used+=x; });
+  return pages;
+}
+const hoPatientCell = r => [str(r.patient), [str(r.agesex), str(r.ward)].filter(Boolean).join(' | '), [str(r.hday)&&'HD '+str(r.hday), str(r.admitDate)&&'Adm. '+str(r.admitDate)].filter(Boolean).join(' | ')];
+
+/* A morning progress note from a handover row (and the patient's latest record, if this iPad has it) */
+function progressFromHandover(row, ho, src, srcKind, now, author){
+  let built;
+  if(src) built = progressFromSource(src, srcKind, now, author);
+  else {
+    const d = { datetime: now.toLocaleString('en-US',{dateStyle:'medium',timeStyle:'short'}), author: author||'', patient:row.patient, agesex:row.agesex, location:row.ward, admitDate:row.admitDate, primaryDx:row.dx, meds:medsFromCompact(row.meds) };
+    d.hday = hdOn(row.admitDate, now);
+    if(!d.hday && /^\d+$/.test(str(row.hday))){ const hd=parseLooseDate(ho.hoDate); d.hday = String(+row.hday + (hd ? Math.max(0,Math.round((new Date(now.getFullYear(),now.getMonth(),now.getDate())-hd)/86400000)) : 1)); }
+    const m1=str(row.risk).match(/suicide[^:]*:\s*(low|moderate|high)/i), m2=str(row.risk).match(/violence[^:]*:\s*(low|moderate|high)/i);
+    const cap = s => s ? s[0].toUpperCase()+s.slice(1).toLowerCase() : '';
+    built = { data:d, prev:{suicideRisk:cap(m1&&m1[1]), violenceRisk:cap(m2&&m2[1]), level:''}, lastMSE:{} };
+  }
+  const d = built.data, when = str(ho.hoDate) ? ' ('+str(ho.hoDate)+')' : '';
+  const ev = [str(row.overnight) && 'Per on-call handover'+when+': '+str(row.overnight), str(row.watch) && 'Flagged at handover: '+str(row.watch)].filter(Boolean);
+  if(ev.length) d.events = ev.join('\n');
+  if(str(row.pending)) d.labs = 'Pending at handover: '+str(row.pending);
+  if(!str(d.location) && str(row.ward)) d.location = row.ward;
+  return built;
+}
+if (typeof module !== 'undefined') module.exports = { HO_SECTIONS, HO_COLS, handoverRow, handoverPages, progressFromHandover, medsFromCompact, hoPatientCell };
+
 /* ---------- Minimal, dependency-free .docx writer ---------- */
 const DocxGen = (() => {
   const W = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"';
@@ -1095,6 +1197,28 @@ const DocxGen = (() => {
     B.push(signaturesXML(P.signers));
     return wrapDoc(B.join('')+letterSect(true));
   }
+  /* ---- On-call handover: one landscape page ---- */
+  function buildHandover(d){
+    const LW=15840, LH=12240, M=720, SZ=16, B=[];
+    const title = ['On-call handover', str(d.unit), str(d.hoDate)].filter(Boolean).join('  |  ');
+    B.push(lpara([{text:title, b:true, sz:26, color:C.head}], {after:40}));
+    const who = [str(d.fromRes)&&'Handing over: '+str(d.fromRes), str(d.toRes)&&'Receiving: '+str(d.toRes), str(d.attOnCall)&&'Attending on call: '+str(d.attOnCall), (d.rows||[]).length+' patient'+((d.rows||[]).length===1?'':'s')].filter(Boolean).join('     ');
+    B.push(lpara([{text:who, sz:17, color:C.grey}], {after:100}));
+    const cell = (w, paras, fill) => `<w:tc><w:tcPr><w:tcW w:w="${w}" w:type="dxa"/>${fill?`<w:shd w:val="clear" w:color="auto" w:fill="${fill}"/>`:''}</w:tcPr>${paras}</w:tc>`;
+    const p = (runs) => `<w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="228" w:lineRule="auto"/><w:rPr><w:sz w:val="${SZ}"/><w:szCs w:val="${SZ}"/></w:rPr></w:pPr>${runs.map(run).join('')}</w:p>`;
+    const lines = (t, o={}) => { const ls=String(t||'').split(/\r?\n/); return ls.map(l=>p([{text:l, sz:SZ, ...o}])).join(''); };
+    let rows = `<w:tr><w:trPr><w:cantSplit/><w:tblHeader/></w:trPr>${HO_COLS.map(c=>cell(c.w, p([{text:c.label, b:true, sz:SZ}]), C.thead)).join('')}</w:tr>`;
+    (d.rows||[]).forEach(r=>{
+      const pc = hoPatientCell(r);
+      const patient = p([{text:pc[0]||'(no name)', b:true, sz:SZ}]) + (pc[1]?p([{text:pc[1], sz:SZ}]):'') + (pc[2]?p([{text:pc[2], sz:SZ}]):'');
+      rows += `<w:tr><w:trPr><w:cantSplit/><w:trHeight w:val="900" w:hRule="atLeast"/></w:trPr>${HO_COLS.map(c=>cell(c.w, c.k==='patient'?patient:lines(r[c.k]), c.k==='patient'?C.label:null)).join('')}</w:tr>`;
+    });
+    B.push(`<w:tbl><w:tblPr><w:tblW w:w="${LW-2*M}" w:type="dxa"/>${borders}<w:tblLayout w:type="fixed"/><w:tblCellMar><w:top w:w="50" w:type="dxa"/><w:left w:w="80" w:type="dxa"/><w:bottom w:w="50" w:type="dxa"/><w:right w:w="80" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid>${HO_COLS.map(c=>`<w:gridCol w:w="${c.w}"/>`).join('')}</w:tblGrid>${rows}</w:tbl>`);
+    if(!(d.rows||[]).length) B.push(lpara([{text:'No patients listed.', i:true, color:C.grey}], {before:120}));
+    const sect = `<w:sectPr><w:footerReference w:type="default" r:id="rId2"/><w:pgSz w:w="${LW}" w:h="${LH}" w:orient="landscape"/><w:pgMar w:top="${M}" w:right="${M}" w:bottom="${M}" w:left="${M}" w:header="360" w:footer="360" w:gutter="0"/></w:sectPr>`;
+    return wrapDoc(B.join('')+sect);
+  }
+
   /* Hidden copy of the entered data (document properties), so the app can reopen a certificate */
   function textPrint(xml){
     let t=''; xml.replace(/<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/g,(m,x)=>{ t+=x; return m; });
@@ -1108,8 +1232,8 @@ const DocxGen = (() => {
       prop(2,'CaseAppKind',kind)+prop(3,'CaseAppPrint',textPrint(docXml))+chunks.map((c,i)=>prop(4+i,'CaseAppData'+String(i).padStart(3,'0'),c)).join('')+`</Properties>`;
   }
   function build(d, kind){
-    if(kind==='mc' || kind==='ca'){
-      const doc = kind==='mc' ? buildCertificate(d) : buildAbstract(d);
+    if(kind==='mc' || kind==='ca' || kind==='ho'){
+      const doc = kind==='mc' ? buildCertificate(d) : kind==='ca' ? buildAbstract(d) : buildHandover(d);
       const ct = CT.replace('</Types>','<Override PartName="/docProps/custom.xml" ContentType="application/vnd.openxmlformats-officedocument.custom-properties+xml"/></Types>');
       const rels = RELS.replace('</Relationships>','<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/custom-properties" Target="docProps/custom.xml"/></Relationships>');
       return zip([['[Content_Types].xml',ct],['_rels/.rels',rels],['word/_rels/document.xml.rels',DOCRELS],['word/document.xml',doc],['word/styles.xml',STYLES],['word/footer1.xml',FOOTER],['docProps/custom.xml',customProps(kind,d,doc)]]);
@@ -1213,13 +1337,50 @@ const DocxImport = (() => {
     try{ const docXml = await readPart(buf, 'word/document.xml'); edited = !!props.CaseAppPrint && DocxGen.textPrint(docXml)!==props.CaseAppPrint; }catch(e){}
     return { kind:props.CaseAppKind, data, filled:Object.keys(data).length, missed:[], edited };
   }
+  /* Handover: read the printed table (it may have been typed into in Word); the hidden copy supplies what the table doesn't show */
+  async function handoverFrom(buf, emb){
+    let xml; try{ xml = await readPart(buf, 'word/document.xml'); }catch(e){ return emb; }
+    const doc = new DOMParser().parseFromString(xml, 'application/xml');
+    const tbl = Array.from(doc.getElementsByTagNameNS(NS,'tbl')).map(t=>rowsOf(t).map(cellsOf)).find(rs=>rs.length && norm(rs[0][0])==='patient' && rs[0].length===HO_COLS.length);
+    const base = emb ? emb.data : {};
+    if(!tbl) return emb ? {...emb, edited:false} : null;
+    const old = base.rows || [], used = new Set();
+    const rows = tbl.slice(1).filter(r=>r.some(c=>c.trim())).map((cells, i)=>{
+      const lines = cells[0].split('\n').map(x=>x.trim()).filter(Boolean);
+      const name = lines[0]||'';
+      let prev = old.findIndex((o,j)=>!used.has(j) && norm(o.patient)===norm(name)); if(prev<0 && old[i] && !used.has(i)) prev=i;
+      const r = prev>=0 ? {...old[prev]} : {key:'', agesex:'', ward:'', hday:'', admitDate:''};
+      if(prev>=0) used.add(prev);
+      r.patient = name;
+      if(prev<0){
+        const l2=(lines[1]||'').split(/\s*\|\s*/), l3=lines[2]||'';
+        l2.forEach(x=>{ if(/^\d+\s*\/\s*[a-z]/i.test(x)) r.agesex=x; else if(x) r.ward=x; });
+        const hd=l3.match(/HD\s*(\d+)/i); if(hd) r.hday=hd[1];
+        const ad=l3.match(/Adm\.?\s*([^|]+)/i); if(ad) r.admitDate=ad[1].trim();
+      }
+      HO_COLS.slice(1).forEach((c,k)=>{ r[c.k] = cells[k+1]||''; });
+      return r;
+    });
+    const data = {...base, rows};
+    if(!emb){
+      const ps = Array.from(doc.getElementsByTagNameNS(NS,'p')).slice(0,3).map(paraText);
+      const head = ps[0]||'', who = ps[1]||'';
+      const hp = head.split(/\s*\|\s*/); if(hp[1]) data.unit=hp[1]; if(hp[2]) data.hoDate=hp[2];
+      const grab = re => { const m=who.match(re); return m?m[1].trim():''; };
+      data.fromRes = grab(/Handing over:\s*(.*?)(?=\s{2,}|$)/); data.toRes = grab(/Receiving:\s*(.*?)(?=\s{2,}|$)/); data.attOnCall = grab(/Attending on call:\s*(.*?)(?=\s{2,}|$)/);
+    }
+    return { kind:'ho', data, filled:rows.length, missed:[], edited:false };
+  }
   async function fileToData(file){
     const buf = await file.arrayBuffer();
-    const emb = await embedded(buf); if(emb) return emb;
+    const emb = await embedded(buf);
+    if(emb && emb.kind==='ho') return await handoverFrom(buf, emb);
+    if(emb) return emb;
     const xml = await readPart(buf, 'word/document.xml');
     const doc = new DOMParser().parseFromString(xml, 'application/xml');
     const body = doc.getElementsByTagNameNS(NS,'body')[0]; if(!body) throw new Error('not-docx');
     const firstText = Array.from(doc.getElementsByTagNameNS(NS,'p')).slice(0,8).map(paraText).join(' ');
+    if(/^\s*on-call handover/i.test(firstText)){ const r=await handoverFrom(buf, null); if(r) return r; }
     if(/medical certificate|clinical abstract/i.test(firstText)) throw new Error('letter-stripped');
     const kind = /discharge summary/i.test(firstText) ? 'dc' : /progress note/i.test(firstText) ? 'pn' : 'case';
     const SECS = SCHEMAS[kind].sections;
@@ -1291,8 +1452,8 @@ const DocxImport = (() => {
   const newId = () => Date.now().toString(36)+Math.random().toString(36).slice(2,6);
   const when = t => new Date(t).toLocaleString('en-US',{dateStyle:'medium',timeStyle:'short'});
   const progress = rec => SECS(rec).filter(s=>sectionStarted(s,rec.data)).length;
-  const recTitle = rec => str(rec.data.patient) || str(rec.data.patientName) || ('Untitled '+SCHEMAS[rec.kind].name.toLowerCase());
-  const recKind = rec => rec.kind==='pn' ? ('Progress note'+(str(rec.data.hday)?', hospital day '+str(rec.data.hday):'')) : rec.kind==='dc' ? ('Discharge summary'+(str(rec.data.dischargeDate)?', '+str(rec.data.dischargeDate):'')) : rec.kind==='mc' ? ('Medical certificate'+(str(rec.data.certDate)?', '+str(rec.data.certDate):'')) : rec.kind==='ca' ? ('Clinical abstract'+(str(rec.data.dateIssued)?', '+str(rec.data.dateIssued):'')) : 'Case';
+  const recTitle = rec => rec.kind==='ho' ? ((str(rec.data.unit)||'On-call handover')+', '+(rec.data.rows||[]).length+' patient'+((rec.data.rows||[]).length===1?'':'s')) : str(rec.data.patient) || str(rec.data.patientName) || ('Untitled '+SCHEMAS[rec.kind].name.toLowerCase());
+  const recKind = rec => rec.kind==='pn' ? ('Progress note'+(str(rec.data.hday)?', hospital day '+str(rec.data.hday):'')) : rec.kind==='dc' ? ('Discharge summary'+(str(rec.data.dischargeDate)?', '+str(rec.data.dischargeDate):'')) : rec.kind==='mc' ? ('Medical certificate'+(str(rec.data.certDate)?', '+str(rec.data.certDate):'')) : rec.kind==='ca' ? ('Clinical abstract'+(str(rec.data.dateIssued)?', '+str(rec.data.dateIssued):'')) : rec.kind==='ho' ? ('Handover sheet'+(str(rec.data.hoDate)?', '+str(rec.data.hoDate):'')) : 'Case';
   const samePt = (a,b) => !!str(a) && str(a).toLowerCase().replace(/\s+/g,' ')===str(b).toLowerCase().replace(/\s+/g,' ');
 
   function sheet(html, onReady){
@@ -1320,6 +1481,10 @@ const DocxImport = (() => {
           <button id="newpn"><strong>New progress note</strong><span>Follow-up visit, built from the case or last note</span></button>
           <button id="newdc"><strong>New discharge summary</strong><span>End of admission, built from the case and notes</span></button>
         </div>
+        <p class="starts-label">On call</p>
+        <div class="starts">
+          <button id="newho"><strong>New handover sheet</strong><span>One printable page of active inpatients</span></button>
+        </div>
         <p class="starts-label">Documents for the patient</p>
         <div class="starts">
           <button id="newmc"><strong>New medical certificate</strong><span>Diagnosis, dates of care, and signatures</span></button>
@@ -1341,6 +1506,7 @@ const DocxImport = (() => {
     $('#newdc').onclick = chooseDischargeSource;
     $('#newmc').onclick = chooseCertSource;
     $('#newca').onclick = chooseAbstractSource;
+    $('#newho').onclick = newHandover;
     $('#imp').onclick = ()=>{ pickFile(importFile); };
     document.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>openRec(b.dataset.open));
     const w=$('#wipe'); if(w) w.onclick=()=>{ if(confirm('Delete ALL records from this iPad? This cannot be undone.')){ store.cases={}; persist(); renderHome(); } };
@@ -1359,12 +1525,12 @@ const DocxImport = (() => {
     const id=newId();
     store.cases[id] = {id, kind:res.kind, created:Date.now(), updated:Date.now(), importedFrom:file.name, data:res.data};
     persist(); openRec(id);
-    const rec=store.cases[id], what = res.kind==='pn' ? 'progress note' : 'case';
-    sheet(`<h3>${res.kind==='pn'?'Progress note':'Case'} opened from Word file</h3>
+    const rec=store.cases[id], what = lc(SCHEMAS[res.kind].name);
+    sheet(`<h3>${h(SCHEMAS[res.kind].name)} opened from Word file</h3>
       ${res.edited?`<p class="warn-box"><strong>This file was changed after it was exported.</strong> The app restored the details as they were at export. Changes made in Word are not included, so re-enter them here if they are still needed.</p>`:''}
       <p>${h(file.name)} filled ${progress(rec)} of ${SECS(rec).length} sections. It was added as a new ${what}, so the original file is unchanged. Review each section before exporting again.</p>
       ${res.missed.length?`<p><strong>This text could not be placed in a field.</strong> Re-enter it where it belongs:</p><ul>${res.missed.slice(0,40).map(m=>`<li>${h(m)}</li>`).join('')}</ul>`:''}
-      <button class="btn primary" data-close>Review ${what}</button>`, (s,close)=>{ s.querySelector('[data-close]').onclick=close; });
+      ${res.kind==='ho'?`<p>Overnight events typed into the sheet were read in. To write this morning's notes, go to <strong>3. Next morning</strong>.</p><div class="tools"><button class="btn primary" data-morning>Go to Next morning</button><button class="btn" data-close>Review handover</button></div>`:`<button class="btn primary" data-close>Review ${what}</button>`}`, (s,close)=>{ s.querySelector('[data-close]').onclick=close; const m=s.querySelector('[data-morning]'); if(m) m.onclick=()=>{ close(); secIdx=SECS().findIndex(x=>x.morning); renderRail(); renderSection(); }; });
   }
   function newCase(){
     const id=newId();
@@ -1509,6 +1675,96 @@ const DocxImport = (() => {
       ${P.signers.length?'':'<p class="warn">No signing physician entered.</p>'}
     </article>`;
   }
+  /* ----- handover ----- */
+  function patientGroups(){
+    const groups = [];
+    Object.values(store.cases).filter(c=>['case','pn','dc'].includes(c.kind) && str(c.data.patient)).forEach(c=>{
+      let g = groups.find(g=>samePt(g.patient, c.data.patient)); if(!g){ g={patient:c.data.patient, recs:[]}; groups.push(g); } g.recs.push(c); });
+    return groups.map(g=>{
+      const latest = newest(g.recs,'pn') || newest(g.recs,'case');
+      const discharged = g.recs.some(c=>c.kind==='dc');
+      const outpatient = !g.recs.some(c=>c.kind==='pn') && latest && latest.kind==='case' && latest.data.loc==='Outpatient';
+      return {patient:g.patient, latest, active: !!latest && !discharged && !outpatient};
+    });
+  }
+  const byWard = (a,b) => str(a.ward).localeCompare(str(b.ward), undefined, {numeric:true}) || str(a.patient).localeCompare(str(b.patient));
+  function newHandover(){
+    const now = new Date();
+    const rows = patientGroups().filter(g=>g.active).map(g=>handoverRow(g.latest.data, g.latest.kind, g.latest.id, now)).sort(byWard);
+    const id=newId();
+    store.cases[id] = {id, kind:'ho', created:Date.now(), updated:Date.now(), data:{ hoDate:when(Date.now()), fromRes:store.last.interviewer||'', unit:store.last.unit||'', rows }};
+    persist(); openRec(id); secIdx=1; renderRail(); renderSection();
+    toast(rows.length ? 'Added '+rows.length+' active inpatient'+(rows.length===1?'':'s')+'. Add pending labs and what to watch.' : 'No active inpatients on this iPad. Add patients below.');
+  }
+  function addPatientSheet(){
+    const d=D(), have=d.rows||[];
+    const opts = patientGroups().filter(g=>g.latest && !have.some(r=>samePt(r.patient,g.patient)));
+    sheet(`<h3>Add patients</h3>
+      ${opts.length?`<p>Patients on this iPad not yet on the sheet. Discharged patients are marked.</p><ul class="pick checks">${opts.map((g,i)=>`<li><label><input type="checkbox" data-gi="${i}" ${g.active?'checked':''}><span><strong>${h(g.patient)}</strong><span>${h(recKind(g.latest))}${g.active?'':'. Discharged or outpatient'}</span></span></label></li>`).join('')}</ul>`:'<p>Every patient on this iPad is already on the sheet.</p>'}
+      <div class="tools">${opts.length?'<button class="btn primary" data-add>Add selected</button>':''}<button class="btn" data-blankrow>Add a patient not on this iPad</button><button class="btn quiet" data-close>Cancel</button></div>`,
+    (s,close)=>{
+      const add=s.querySelector('[data-add]'); if(add) add.onclick=()=>{ const now=new Date(); s.querySelectorAll('[data-gi]:checked').forEach(cb=>{ const g=opts[+cb.dataset.gi]; d.rows.push(handoverRow(g.latest.data, g.latest.kind, g.latest.id, now)); }); close(); touch(); renderSection(); };
+      s.querySelector('[data-blankrow]').onclick=()=>{ d.rows.push({key:'',patient:'',agesex:'',ward:'',hday:'',admitDate:'',dx:'',risk:'',meds:'',pending:'',watch:'',overnight:''}); close(); touch(); renderSection(); setTimeout(()=>{ const els=document.querySelectorAll('[data-rk="patient"]'); if(els.length) els[els.length-1].focus(); },50); };
+      s.querySelector('[data-close]').onclick=close;
+    });
+  }
+  function pagesBadge(d){
+    const n=handoverPages(d); if(!n) return '';
+    return `<p class="fit ${n>1?'over':''}" id="fit">${n===1?'Fits on one printed page.':'About '+n+' printed pages. Shorten entries or split the list to fit one page.'}</p>`;
+  }
+  const HO_FIELDS = [['patient','Patient / MRN','text'],['agesex','Age / sex','text'],['ward','Ward / bed','text'],['hday','Hospital day','text'],['admitDate','Admission date','text'],
+    ['dx','Diagnosis','area'],['risk','Risk','area','Suicide / violence risk, observation level'],['meds','Current meds','area','Name and dose; separate with semicolons'],
+    ['pending','Pending labs / results','area'],['watch','Watch overnight / to do','area','What could go wrong, and what to do'],['overnight','Overnight events','area','Filled in by the on-call resident']];
+  function patientsHTML(d){
+    const rows=d.rows||[];
+    return `${pagesBadge(d)}<div class="ptcards">${rows.map((r,i)=>`<section class="ptcard" aria-label="${h(r.patient||'Patient '+(i+1))}">
+        <div class="ptcard-head"><strong>${h(r.patient||'New patient')}</strong>${r.hday?`<span>HD ${h(r.hday)}</span>`:''}<button class="btn quiet danger" data-rowdel="${i}">Remove</button></div>
+        <div class="ptgrid">${HO_FIELDS.slice(0,5).map(([k,l])=>`<label>${h(l)}<input type="text" data-row="${i}" data-rk="${k}" value="${h(r[k])}" autocomplete="off"></label>`).join('')}</div>
+        <div class="ptareas">${HO_FIELDS.slice(5).map(([k,l,,hint])=>`<label${k==='overnight'?' class="on"':''}>${h(l)}${hint?`<small>${h(hint)}</small>`:''}<textarea data-row="${i}" data-rk="${k}">${h(r[k])}</textarea></label>`).join('')}</div>
+      </section>`).join('')}</div>
+      <div class="tools"><button class="btn primary" id="addpt">Add patients</button></div>`;
+  }
+  function handoverPreviewHTML(d){
+    const rows=d.rows||[], e=t=>h(t).replace(/\n/g,'<br>');
+    const head=['On-call handover', str(d.unit), str(d.hoDate)].filter(Boolean).join('  |  ');
+    const who=[str(d.fromRes)&&'Handing over: '+str(d.fromRes), str(d.toRes)&&'Receiving: '+str(d.toRes), str(d.attOnCall)&&'Attending on call: '+str(d.attOnCall), rows.length+' patient'+(rows.length===1?'':'s')].filter(Boolean).join('     ');
+    return `${pagesBadge(d)}<div class="hoprev-wrap"><article class="hoprev" aria-label="Handover print preview"><h3>${h(head)}</h3><p class="who">${h(who)}</p>
+      <table><thead><tr>${HO_COLS.map(c=>`<th style="width:${(c.w/144).toFixed(1)}%">${h(c.label)}</th>`).join('')}</tr></thead><tbody>
+      ${rows.map(r=>{ const pc=hoPatientCell(r); return `<tr><td class="pt"><strong>${h(pc[0]||'(no name)')}</strong>${pc[1]?'<br>'+h(pc[1]):''}${pc[2]?'<br>'+h(pc[2]):''}</td>${HO_COLS.slice(1).map(c=>`<td>${e(r[c.k])}</td>`).join('')}</tr>`; }).join('')}
+      </tbody></table>${rows.length?'':'<p class="warn">No patients listed.</p>'}</article></div>`;
+  }
+  function morningHTML(rec){
+    const rows=rec.data.rows||[];
+    if(!rows.length) return '<p class="empty">There are no patients on this handover sheet.</p>';
+    return `<ul class="pick checks morning">${rows.map((r,i)=>{ const made=r.noteId && store.cases[r.noteId];
+      const bits=[str(r.overnight)&&'overnight events', str(r.pending)&&'pending labs', str(r.watch)&&'watch items'].filter(Boolean);
+      return `<li><label><input type="checkbox" data-mi="${i}" ${made?'':'checked'}><span><strong>${h(r.patient||'Patient '+(i+1))}</strong><span>${made?'Note already created this morning. ':''}${bits.length?'Will add '+bits.join(', ')+'.':'Nothing recorded overnight.'}</span></span></label></li>`; }).join('')}</ul>
+      <div class="tools"><button class="btn primary" id="mknotes">Create progress notes</button></div>`;
+  }
+  function createMorningNotes(){
+    const rec=R(), ho=rec.data, now=new Date(), made=[];
+    const picks = Array.from(document.querySelectorAll('[data-mi]:checked')).map(cb=>+cb.dataset.mi);
+    if(!picks.length){ toast('Tick at least one patient.'); return; }
+    const redo = picks.filter(i=>ho.rows[i].noteId && store.cases[ho.rows[i].noteId]);
+    if(redo.length && !confirm(redo.length+' of these already have a note from this handover. Create another?')) return;
+    picks.forEach(i=>{
+      const row=ho.rows[i];
+      let src = row.key && store.cases[row.key];
+      const g = patientGroups().find(g=>samePt(g.patient,row.patient)); if(g && g.latest) src = g.latest;
+      const built = progressFromHandover(row, ho, src?src.data:null, src?src.kind:null, now, store.last.interviewer);
+      built.data.author = built.data.author || store.last.interviewer || '';
+      const id=newId();
+      store.cases[id] = {id, kind:'pn', created:Date.now()+made.length, updated:Date.now(), source:'on-call handover'+(str(ho.hoDate)?' ('+str(ho.hoDate)+')':'')+(src?' and '+lc(recKind(src)):''), prev:built.prev, lastMSE:built.lastMSE, data:built.data};
+      row.noteId=id; made.push(store.cases[id]);
+    });
+    touch(); persist(); renderSection();
+    sheet(`<h3>${made.length} progress note${made.length===1?'':'s'} created</h3>
+      <p>Each note has the identifiers, diagnosis, medications, and plan carried forward, plus the handover items. Open one to finish it.</p>
+      <ul class="pick">${made.map(r=>`<li><button data-go="${r.id}"><strong>${h(recTitle(r))}</strong><span>${h(recKind(r))}</span></button></li>`).join('')}</ul>
+      <div class="tools"><button class="btn" data-close>Stay on handover</button></div>`,
+      (s,close)=>{ s.querySelector('[data-close]').onclick=close; s.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{ close(); openRec(b.dataset.go); }); });
+  }
+
   function previewHTML(d){
     const P=certParts(d), e=t=>h(t).replace(/\n/g,'<br>');
     const sig = s => s ? `<div class="sig"><div class="line"></div><strong>${h(s.name)}</strong><span>${h(s.title)}</span><span>PRC Lic. No. ${s.lic?h(s.lic):'<em>missing</em>'}</span></div>` : '<div class="sig empty"></div>';
@@ -1537,7 +1793,7 @@ const DocxImport = (() => {
         <button class="btn only-narrow" id="menu" aria-expanded="false" aria-controls="rail">Sections</button>
         <h1 id="title">${h(recTitle(rec))}<small>${h(recKind(rec))}</small></h1>
         <span class="status" id="status">Saved on this iPad</span>
-        ${rec.kind==='mc'||rec.kind==='ca'?'':'<button class="btn hide-sm" id="rem">Reminders</button>'}
+        ${['mc','ca','ho'].includes(rec.kind)?'':'<button class="btn hide-sm" id="rem">Reminders</button>'}
         <button class="btn quiet danger hide-sm" id="del">Delete</button>
         <button class="btn primary" id="export">Export Word file</button>
       </header>
@@ -1555,7 +1811,7 @@ const DocxImport = (() => {
       if(s.group && s.group!==g) html+=`<div class="grp">${h(s.num.replace(/[A-Z]$/,''))} &nbsp;${h(s.group)}</div>`;
       g=s.group||null;
       const on=sectionStarted(s,d);
-      html+=`<button class="${s.group?'sub ':''}${s.risk?'risk ':''}${i===secIdx?'cur':''}" data-sec="${i}" ${i===secIdx?'aria-current="step"':''}><span class="n">${h(s.num)}</span><span>${h(s.title)}</span>${s.preview?'<span></span>':`<span class="dot ${on?'on':''}" aria-label="${on?'started':'not started'}"></span>`}</button>`;
+      html+=`<button class="${s.group?'sub ':''}${s.risk?'risk ':''}${i===secIdx?'cur':''}" data-sec="${i}" ${i===secIdx?'aria-current="step"':''}><span class="n">${h(s.num)}</span><span>${h(s.title)}</span>${s.preview||s.morning?'<span></span>':`<span class="dot ${on?'on':''}" aria-label="${on?'started':'not started'}"></span>`}</button>`;
     });
     const r=$('#rail'); r.innerHTML=html;
     r.querySelectorAll('[data-sec]').forEach(b=>b.onclick=()=>{ secIdx=+b.dataset.sec; r.classList.remove('open'); $('#menu').setAttribute('aria-expanded','false'); renderRail(); renderSection(); window.scrollTo(0,0); });
@@ -1576,6 +1832,7 @@ const DocxImport = (() => {
       case 'radio': return `<div class="field" role="group" aria-labelledby="l-${f.id}">${lab}<div class="seg">${f.o.map(o=>`<button data-rad="${f.id}" data-o="${h(o)}" aria-pressed="${v===o}">${h(o)}</button>`).join('')}</div>${f.detail?`<div class="detail"><input type="text" data-f="${f.id}__d" placeholder="${h(f.detail)}" aria-label="${h(f.label+': '+f.detail)}" value="${h(d[f.id+'__d'])}"></div>`:''}</div>`;
       case 'radios': { const o=v||{}; return `<div class="field">${lab}<div class="radios">${f.p.map(([k,opts])=>`<div class="row" role="group" aria-label="${h(k)}"><span>${h(k)}</span><div class="seg">${opts.map(x=>`<button data-rads="${f.id}" data-k="${h(k)}" data-o="${h(x)}" aria-pressed="${o[k]===x}">${h(x)}</button>`).join('')}</div></div>`).join('')}</div></div>`; }
       case 'parts': { const o=v||{}; return `<div class="field">${lab}<div class="grid ${f.long?'long':''} ${f.inline?'inline':''}">${f.p.map(k=>`<label>${h(k)}${f.long?`<textarea data-f="${f.id}" data-k="${h(k)}">${h(o[k])}</textarea>`:`<input type="text" data-f="${f.id}" data-k="${h(k)}" value="${h(o[k])}" autocomplete="off">`}</label>`).join('')}</div></div>`; }
+      case 'patients': return patientsHTML(d);
       case 'table': {
         let rows = (v && v.length) ? v : [];
         while(rows.length<f.rows) rows.push(f.c.map(()=>''));
@@ -1600,7 +1857,8 @@ const DocxImport = (() => {
       ${hasLast?`<div class="carry"><div><strong>Start from the last MSE?</strong> Copies the previous selections for 3A–3C so you only change what's different. SI, HI, and self-harm stay blank to be asked today.</div><button class="btn" id="copymse">Start from last MSE</button></div>`:''}
       ${(s.id==='pnInfo'||s.id==='dcInfo') && rec.source?`<p class="source">Started from ${h(rec.source)}.</p>`:''}
       ${(s.id==='mcInst'||s.id==='caInst') && rec.source?`<p class="source">Started from ${h(rec.source)}.</p>`:''}
-      ${s.preview?(rec.kind==='ca'?abstractPreviewHTML(d):previewHTML(d)):''}
+      ${s.preview?(rec.kind==='ca'?abstractPreviewHTML(d):rec.kind==='ho'?handoverPreviewHTML(d):previewHTML(d)):''}
+      ${s.morning?morningHTML(rec):''}
       <div class="${s.risk?'risky':''}">${s.fields.map(f=>fieldHTML(f,d,rec)).join('')}</div>
       <div class="pager">
         ${prev?`<button class="btn" id="prev">‹ ${h(prev.num)} ${h(prev.title)}</button>`:'<span></span>'}
@@ -1615,6 +1873,8 @@ const DocxImport = (() => {
       Object.entries(L).forEach(([k,v])=>{ d[k]=Array.isArray(v)?v.slice():v; });
       touch(); renderSection(); toast('Copied. Review each finding; SI, HI, and self-harm were left blank.');
     };
+    const ap=$('#addpt'); if(ap) ap.onclick=addPatientSheet;
+    const mk=$('#mknotes'); if(mk) mk.onclick=createMorningNotes;
     const dc=$('#draftCourse'); if(dc) dc.onclick=()=>{
       const t=draftCourse(rec.courseNotes); if(!t){ toast('Those progress notes have no assessment or plan changes to draft from.'); return; }
       const ta=$('[data-f="course"]'); if(str(ta.value) && !confirm('Replace the current hospital course with a new draft?')) return;
@@ -1644,6 +1904,8 @@ const DocxImport = (() => {
     if(id==='patient'){ const t=$('#title'); if(t) t.firstChild.textContent=str(val)||recTitle({kind:R().kind,data:{}}); }
     if(id==='interviewer'||id==='author') store.last.interviewer=val;
     if(id==='attending') store.last.attending=val;
+    if(id==='unit') store.last.unit=val;
+    if(id==='fromRes') store.last.interviewer=val;
     if(R().kind==='mc' || R().kind==='ca'){
       if(['instName','instDept','instAddress','resTitle','attTitle'].includes(id)) store.last[id]=val;
       store.last.lic = store.last.lic || {};
@@ -1657,7 +1919,15 @@ const DocxImport = (() => {
   }
 
   document.addEventListener('input', e=>{
-    const el=e.target; if(!cur || !el.dataset || !el.dataset.f) return;
+    const el=e.target;
+    if(cur && el.dataset && el.dataset.row!=null && el.dataset.rk){
+      if(el.tagName==='TEXTAREA') grow(el);
+      const r=D().rows[+el.dataset.row]; r[el.dataset.rk]=el.value;
+      if(el.dataset.rk==='patient'){ const hd=el.closest('.ptcard').querySelector('.ptcard-head strong'); if(hd) hd.textContent=str(el.value)||'New patient'; }
+      const fit=$('#fit'); if(fit){ const n=handoverPages(D()); fit.className='fit'+(n>1?' over':''); fit.textContent=n===1?'Fits on one printed page.':'About '+n+' printed pages. Shorten entries or split the list to fit one page.'; }
+      touch(); return;
+    }
+    if(!cur || !el.dataset || !el.dataset.f) return;
     if(el.tagName==='TEXTAREA') grow(el);
     const id=el.dataset.f;
     if(el.dataset.r!=null){ D()[id][+el.dataset.r][+el.dataset.c]=el.value; touch(); return; }
@@ -1675,6 +1945,7 @@ const DocxImport = (() => {
     else if(b.dataset.rads){ const id=b.dataset.rads, k=b.dataset.k, o=b.dataset.o; d[id]=d[id]||{};
       if(d[id][k]===o) delete d[id][k]; else d[id][k]=o;
       b.parentNode.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed', d[id][k]===x.dataset.o)); touch(); }
+    else if(b.dataset.rowdel!=null){ const i=+b.dataset.rowdel, r=d.rows[i]; if(!confirm('Remove '+(str(r.patient)||'this patient')+' from the handover sheet?')) return; d.rows.splice(i,1); touch(); renderSection(); }
     else if(b.dataset.addrow){ const f=F[b.dataset.addrow]; d[f.id].push(f.c.map(()=>'')); touch(); renderSection(); }
     else if(b.dataset.delrow){ const f=F[b.dataset.delrow]; const last=d[f.id][d[f.id].length-1];
       if(last.some(c=>str(c)) && !confirm('The last row has text in it. Remove it?')) return; d[f.id].pop(); touch(); renderSection(); }
@@ -1684,7 +1955,7 @@ const DocxImport = (() => {
     persist();
     const rec=R(), d=D();
     const bytes = DocxGen.build(d, rec.kind);
-    const base = (str(d.patient)||str(d.patientName)||'Patient').replace(/[^\w\- ]+/g,' ').trim().replace(/\s+/g,'_').slice(0,50) || 'Patient';
+    const base = (str(d.patient)||str(d.patientName)||(R().kind==='ho'?(str(d.unit)||'Unit'):'')||'Patient').replace(/[^\w\- ]+/g,' ').trim().replace(/\s+/g,'_').slice(0,50) || 'Patient';
     const hd = rec.kind==='pn' && /^\d+$/.test(str(d.hday)) ? '_HD'+str(d.hday) : '';
     const name = `${base}_${SCHEMAS[rec.kind].file}${hd}_${new Date().toISOString().slice(0,10)}.docx`;
     const file = new File([bytes], name, {type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
