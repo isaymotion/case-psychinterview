@@ -76,6 +76,28 @@ textarea.big{min-height:180px}
 .cases .who .kind.mc{color:#8A5A12}
 .cases .who .kind.ca{color:#4E5A96}
 .cases .who .kind.ho{color:#9E3A38}
+.cases .who .kind.sp{color:#2F7A6B}
+.refs{background:var(--wash);border:1px dashed var(--line);border-radius:10px;padding:12px 16px;margin:0 0 22px;font-size:15px;color:var(--ink-2)}
+.refs p{margin:4px 0}
+.refs .refs-h{font-size:13px;font-weight:600;color:var(--ink-3);margin-top:0}
+.lines{display:grid;gap:8px}
+.ln{display:flex;align-items:center;gap:10px}
+.ln span{width:22px;text-align:right;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.cert.splan{font-size:15.5px}
+.splan .sp-inst{text-align:center;color:#6B7785;font-size:13px;margin:0 0 4px}
+.splan h3{color:#365F91;font-size:28px;margin:6px 0 8px;letter-spacing:0}
+.splan .sp-who{text-align:center;margin:0 0 4px}
+.splan .sp-review{text-align:center;color:#6B7785;font-size:14px;margin:0}
+.splan h4.bar{background:#D9EAF7;color:#1B2A3A;padding:6px 10px;margin:22px 0 4px;font-size:16.5px}
+.splan h4.bar span{color:#365F91;margin-right:8px}
+.splan .sub{font-style:italic;color:#6B7785;font-size:14px;margin:0 0 4px}
+.splan ol.ruled{margin:0;padding-left:26px}
+.splan ol.ruled li{border-bottom:1px solid #B7C9DB;padding:8px 0 3px;color:#1B2A3A}
+.splan ol.ruled li::marker{color:#365F91;font-weight:700}
+.splan ol.ruled.plain{list-style:none;padding-left:0}
+.splan .urgent{border-top:2px solid #9E3A38;border-bottom:2px solid #9E3A38;color:#9E3A38;font-weight:700;text-align:center;padding:10px 6px;margin:26px 0 10px}
+.splan .sig .lbl2{color:#6B7785;font-size:13px}
+.splan .sp-foot{color:#8A96A3;font-size:12px;text-align:center;margin:24px 0 0}
 .fit{font-size:14.5px;font-weight:600;color:#2F7A6B;margin:0 0 14px}
 .fit.over{color:var(--risk)}
 .ptcards{display:grid;gap:16px}
@@ -398,6 +420,7 @@ function isFilled(f, d){
     case 'radios': case 'parts': return !!v && Object.values(v).some(x=>str(x));
     case 'table': return Array.isArray(v) && v.some(r=>r.some(c=>str(c)));
     case 'patients': return Array.isArray(v) && v.length>0;
+    case 'lines': return Array.isArray(v) && v.some(x=>str(x));
   }
   return false;
 }
@@ -977,6 +1000,153 @@ function progressFromHandover(row, ho, src, srcKind, now, author){
 }
 if (typeof module !== 'undefined') module.exports = { HO_SECTIONS, HO_COLS, handoverRow, handoverPages, progressFromHandover, medsFromCompact, hoPatientCell };
 
+/* ---------- Safety plan (six-step structure of the Safety Planning Intervention, Stanley & Brown) ---------- */
+const DEFAULT_HOTLINES = [
+  ['NCMH Crisis Hotline', '1553 (landline, toll-free)\n0919-057-1553', '24/7'],
+  ['Hopeline PH', '(02) 8804-4673\n0917-558-4673  or  0918-873-4673\n2919 (Globe/TM, toll-free)', '24/7'],
+  ['Emergency', '911', '24/7']
+];
+const SP_SECTIONS = [
+  { id:'spInfo', num:'A', title:'Patient & clinician', fields:[
+    {t:'radio', id:'lang', label:'Printout language', o:['English','Filipino'], hint:'The app stays in English; only the printout changes. Remembered on this iPad.'},
+    {t:'text', id:'patientName', label:'Patient name'},
+    {t:'text', id:'spDate', label:'Date prepared'},
+    {t:'text', id:'resName', label:'Prepared with (clinician)'},
+    {t:'text', id:'resTitle', label:'Clinician title'},
+    {t:'text', id:'reviewDate', label:'Review this plan on', hint:'For example, the first follow-up visit.'},
+    {t:'text', id:'instName', label:'Hospital / institution', hint:'Remembered on this iPad.'},
+    {t:'text', id:'instDept', label:'Department'}
+  ]},
+  { id:'spWarn', num:'1', title:'Warning signs', refs:['existingPlan'], note:"Thoughts, feelings, situations, or behaviors that signal a crisis may be starting. Use the patient's own words.", fields:[
+    {t:'lines', id:'warn', label:'Warning signs', n:3}
+  ]},
+  { id:'spCope', num:'2', title:'Things I can do on my own', note:'Activities the patient can do alone to feel calmer or take their mind off things.', fields:[
+    {t:'lines', id:'cope', label:'Coping strategies', n:3}
+  ]},
+  { id:'spDistract', num:'3', title:'People and places that help take my mind off things', fields:[
+    {t:'table', id:'distract', label:'People and places', c:['Person or place','Phone (for a person)'], rows:4}
+  ]},
+  { id:'spHelp', num:'4', title:'People I can ask for help', refs:['livingWith','informant'], note:'People the patient trusts and can tell when they are not okay.', fields:[
+    {t:'table', id:'helpers', label:'People I can ask for help', c:['Name','Relationship','Phone'], rows:3}
+  ]},
+  { id:'spPro', num:'5', title:'Professionals and crisis lines', note:'Crisis lines are remembered on this iPad. Check the numbers are current before printing.', fields:[
+    {t:'table', id:'clinicians', label:'My doctor and services', c:['Doctor / service','Phone','When to call / address'], rows:2},
+    {t:'table', id:'hotlines', label:'Crisis lines', c:['Crisis line','Number(s)','Hours'], rows:2}
+  ]},
+  { id:'spEnv', num:'6', title:'Making my surroundings safer', risk:true, refs:['means','pastAttempts'], note:'Agree on specific steps, and on who will help with each one.', fields:[
+    {t:'checks', id:'envChecks', label:'Steps agreed', o:['Medicines kept by a family member or locked away','Only a small supply of medicines at home','Knives and sharp objects stored away','Pesticides and chemicals removed','Ropes and cords removed','Firearms removed from the home','Alcohol and drugs removed']},
+    {t:'lines', id:'env', label:'Other steps / who will help', n:2}
+  ]},
+  { id:'spReason', num:'7', title:'What matters most to me', refs:['protective'], note:"Reasons for living, in the patient's own words.", fields:[
+    {t:'area', id:'reasons', label:'What matters most to me and is worth living for'}
+  ]},
+  { id:'spPreview', num:'8', title:'Preview', preview:true, note:'This is the printout the patient takes home. Blank lines are left so they can add more later.', fields:[] }
+];
+SCHEMAS.sp = { sections:SP_SECTIONS, title:'My Safety Plan', name:'Safety plan', file:'SafetyPlan' };
+const SP_REF_LABELS = { existingPlan:'Safety plan in the chart', livingWith:'Living with (from the case)', informant:'Informant (from the case)', means:'Access to means (from the case)', pastAttempts:'Past attempts (from the case)', protective:'Protective factors (from the case)' };
+
+function safetyFromSources(recs, now, last){
+  last = last || {};
+  const by = k => recs.find(r=>r.kind===k);
+  const cs = by('case'), pn = by('pn'), dc = by('dc');
+  const any = (dc||pn||cs||{}).data || {};
+  const c = cs ? cs.data : {};
+  const res = str(dc&&dc.data.author) || str(pn&&pn.data.author) || str(c.interviewer);
+  const att = str(any.attending);
+  const d = { spDate: shortDate(now), patientName: splitPatient(any.patient).name, resName: res, resTitle: last.resTitle||'Resident Physician',
+    instName: last.instName||'', instDept: last.instDept||'Department of Psychiatry', warn:[], cope:[], env:[] };
+  d.lang = last.spLang==='Filipino' ? 'Filipino' : 'English';
+  d.clinicians = [
+    [att ? att+' (my doctor)' : 'My doctor', '', str(d.instDept)+(d.instName?', '+d.instName:'')],
+    [d.instName ? d.instName+' Emergency Room' : 'Nearest emergency room', '', str(last.instAddress)||'Open 24 hours']
+  ];
+  d.hotlines = (last.hotlines && last.hotlines.length ? last.hotlines : DEFAULT_HOTLINES).map(r=>r.slice());
+  if(d.lang==='Filipino') spSwapDefaults(d, 'Filipino');
+  const refs = {};
+  const plan = str(dc&&dc.data.safetyPlan) || str(c.safetyPlan); if(plan) refs.existingPlan = plan;
+  if(str(c.livingwith)) refs.livingWith = c.livingwith;
+  if(str(c.informant)) refs.informant = c.informant;
+  const means = [(c.safetyChecks||[]).includes('Access to means') ? 'Access to means was marked on admission.' : '', str(c.otherSafety)].filter(Boolean).join(' ');
+  if(means) refs.means = means;
+  if(str(c.pastAttempts)) refs.pastAttempts = c.pastAttempts;
+  if(str(c.protective)) refs.protective = c.protective;
+  return { data:d, refs };
+}
+
+/* Printout text: original wording following the six-step structure, in English and Filipino */
+const SP_TEXT = {
+  English: {
+    title:'My Safety Plan', name:'Name', date:'Date', review:'Review this plan with my doctor on', step:'Step', page:'Page', of:'of',
+    s1t:'Warning signs that a crisis may be starting', s1s:'Thoughts, feelings, situations, or behaviors that tell me things are getting worse.',
+    s2t:'Things I can do on my own to feel calmer', s2s:'Activities that take my mind off my problems without contacting anyone.',
+    s3t:'People and places that help take my mind off things', s3s:'',
+    s4t:'People I can ask for help', s4s:'People I trust and can tell that I am not okay.',
+    s5t:'Professionals and crisis lines I can call', s5s:'',
+    s6t:'Making my surroundings safer', s6s:'Steps to keep things I could use to hurt myself out of reach.',
+    c3:['Person or place','Phone'], c4:['Name','Relationship','Phone'], c5a:['Doctor / service','Phone','When to call / address'], c5b:['Crisis line','Number(s)','Hours'],
+    reasonsT:'What matters most to me and is worth living for',
+    urgent:'If I am in danger right now or might act on thoughts of suicide, I will call a crisis line above, call 911, or go to the nearest emergency room.',
+    patient:'Patient', clinician:'Clinician',
+    footer:'Based on the six steps of the Safety Planning Intervention (Stanley & Brown). Keep this plan where you can find it easily.',
+    env:{}
+  },
+  Filipino: {
+    title:'Ang Aking Plano para sa Kaligtasan', name:'Pangalan', date:'Petsa', review:'Babalikan ko ang planong ito kasama ang aking doktor sa', step:'Hakbang', page:'Pahina', of:'ng',
+    s1t:'Mga senyales na maaaring may paparating na krisis', s1s:'Mga iniisip, nararamdaman, sitwasyon, o kilos na nagsasabing lumalala ang kalagayan ko.',
+    s2t:'Mga kaya kong gawin nang mag-isa para kumalma', s2s:'Mga gawaing nakatutulong na malihis ang isip ko sa mga problema, nang hindi na kailangang tumawag o kumausap ng iba.',
+    s3t:'Mga tao at lugar na nakatutulong para malibang ako', s3s:'',
+    s4t:'Mga taong puwede kong hingan ng tulong', s4s:'Mga taong pinagkakatiwalaan ko at masasabihan kong hindi ako okay.',
+    s5t:'Mga propesyonal at crisis hotline na puwede kong tawagan', s5s:'',
+    s6t:'Pagpapanatiling ligtas ng aking paligid', s6s:'Mga hakbang para mailayo sa akin ang mga bagay na maaari kong gamitin para saktan ang sarili ko.',
+    c3:['Tao o lugar','Telepono'], c4:['Pangalan','Relasyon sa akin','Telepono'], c5a:['Doktor / serbisyo','Telepono','Kailan tatawag / address'], c5b:['Crisis hotline','Numero','Oras'],
+    reasonsT:'Ang pinakamahalaga sa akin at dahilan para patuloy akong mabuhay',
+    urgent:'Kung nasa panganib ako ngayon o baka gawin ko ang naiisip kong pagpapakamatay, tatawag ako sa isa sa mga crisis hotline sa itaas, tatawag sa 911, o pupunta sa pinakamalapit na emergency room.',
+    patient:'Pasyente', clinician:'Doktor',
+    footer:'Batay sa anim na hakbang ng Safety Planning Intervention (Stanley & Brown). Itago ang planong ito sa lugar na madali mong makikita.',
+    env:{
+      'Medicines kept by a family member or locked away':'Itinatabi ng kapamilya o nakakandado ang mga gamot',
+      'Only a small supply of medicines at home':'Kaunting gamot lang ang nasa bahay',
+      'Knives and sharp objects stored away':'Nakatago ang mga kutsilyo at matutulis na bagay',
+      'Pesticides and chemicals removed':'Inalis ang pesticide at iba pang kemikal',
+      'Ropes and cords removed':'Inalis ang mga lubid at kurdon',
+      'Firearms removed from the home':'Inalis ang baril sa bahay',
+      'Alcohol and drugs removed':'Inalis ang alak at droga'
+    }
+  }
+};
+/* Default table entries the app fills in, in each language (swapped when the printout language changes, unless edited) */
+const SP_DEFAULT_SWAPS = [
+  ['(my doctor)','(aking doktor)'], ['Nearest emergency room','Pinakamalapit na emergency room'], ['Open 24 hours','Bukas 24 oras'],
+  ['(landline, toll-free)','(landline, libre ang tawag)'], ['(Globe/TM, toll-free)','(Globe/TM, libre ang tawag)'], ['  or  ','  o  ']
+];
+function spSwapDefaults(d, toLang){
+  const fwd = toLang==='Filipino';
+  ['clinicians','hotlines'].forEach(k=>{ (d[k]||[]).forEach(r=>{ r.forEach((c,i)=>{ let v=String(c||''); SP_DEFAULT_SWAPS.forEach(([en,fil])=>{ v = fwd ? v.split(en).join(fil) : v.split(fil).join(en); }); r[i]=v; }); }); });
+}
+
+/* Shared by preview and Word file */
+function safetyParts(d){
+  const W = SP_TEXT[d.lang==='Filipino' ? 'Filipino' : 'English'];
+  const L = a => (a||[]).map(str).filter(Boolean);
+  const T = t => (t||[]).filter(r=>r.some(x=>str(x)));
+  return {
+    W, title:W.title, reasonsT:W.reasonsT, footer:W.footer,
+    header:[str(d.instName), str(d.instDept)], name:str(d.patientName), date:str(d.spDate), review:str(d.reviewDate),
+    steps:[
+      {n:1, title:W.s1t, sub:W.s1s, lines:L(d.warn), min:3},
+      {n:2, title:W.s2t, sub:W.s2s, lines:L(d.cope), min:3},
+      {n:3, title:W.s3t, sub:W.s3s, table:{cols:W.c3, rows:T(d.distract), min:3}},
+      {n:4, title:W.s4t, sub:W.s4s, table:{cols:W.c4, rows:T(d.helpers), min:3, w:[0.4,0.25,0.35]}},
+      {n:5, title:W.s5t, sub:W.s5s, table:{cols:W.c5a, rows:T(d.clinicians), min:2, w:[0.36,0.28,0.36]}, table2:{cols:W.c5b, rows:T(d.hotlines), min:1, w:[0.3,0.56,0.14]}},
+      {n:6, title:W.s6t, sub:W.s6s, lines:[...(d.envChecks||[]).map(x=>W.env[x]||x), ...L(d.env)], min:2}
+    ],
+    reasons:str(d.reasons),
+    signers:[{label:W.patient, name:str(d.patientName)}, {label:W.clinician, name:[str(d.resName), str(d.resTitle)].filter(Boolean).join(', ')}],
+    urgent:W.urgent
+  };
+}
+if (typeof module !== 'undefined') module.exports = { SP_SECTIONS, safetyFromSources, safetyParts, DEFAULT_HOTLINES, SP_TEXT, spSwapDefaults };
+
 /* ---------- Minimal, dependency-free .docx writer ---------- */
 const DocxGen = (() => {
   const W = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"';
@@ -1219,6 +1389,51 @@ const DocxGen = (() => {
     return wrapDoc(B.join('')+sect);
   }
 
+  /* ---- Safety plan: patient take-home handout ---- */
+  const footerSP = (text, pg, of) => `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:ftr ${W}><w:p><w:pPr><w:jc w:val="center"/></w:pPr>`+
+    `<w:r><w:rPr><w:color w:val="808080"/><w:sz w:val="16"/></w:rPr><w:t xml:space="preserve">${esc((text ? text+'  |  ' : '')+(pg||'Page'))} </w:t></w:r>`+
+    `<w:fldSimple w:instr=" PAGE "><w:r><w:rPr><w:color w:val="808080"/><w:sz w:val="16"/></w:rPr><w:t>1</w:t></w:r></w:fldSimple>`+
+    `<w:r><w:rPr><w:color w:val="808080"/><w:sz w:val="16"/></w:rPr><w:t xml:space="preserve"> ${esc(of||'of')} </w:t></w:r>`+
+    `<w:fldSimple w:instr=" NUMPAGES "><w:r><w:rPr><w:color w:val="808080"/><w:sz w:val="16"/></w:rPr><w:t>1</w:t></w:r></w:fldSimple></w:p></w:ftr>`;
+  function buildSafetyPlan(d){
+    const P = safetyParts(d), M=1080, SW = PAGE_W-2*M, SZ=23, B=[];
+    /* Ruled writing lines: a borderless table with a rule under every row (paragraph borders would merge into one box) */
+    const ruled = (items, numbered) => {
+      const bd = `<w:tblBorders><w:top w:val="nil"/><w:left w:val="nil"/><w:bottom w:val="single" w:sz="4" w:space="0" w:color="B7C9DB"/><w:right w:val="nil"/><w:insideH w:val="single" w:sz="4" w:space="0" w:color="B7C9DB"/><w:insideV w:val="nil"/></w:tblBorders>`;
+      const rowsX = items.map((t,i)=>`<w:tr><w:trPr><w:cantSplit/><w:trHeight w:val="430" w:hRule="atLeast"/></w:trPr><w:tc><w:tcPr><w:tcW w:w="${SW}" w:type="dxa"/><w:vAlign w:val="bottom"/></w:tcPr><w:p><w:pPr><w:spacing w:before="0" w:after="0"/></w:pPr>${numbered?run({text:(i+1)+'.  ', b:true, sz:SZ, color:C.head}):''}${run({text:t||'', sz:SZ})}</w:p></w:tc></w:tr>`).join('');
+      return `<w:tbl><w:tblPr><w:tblW w:w="${SW}" w:type="dxa"/>${bd}<w:tblLayout w:type="fixed"/><w:tblCellMar><w:top w:w="60" w:type="dxa"/><w:left w:w="40" w:type="dxa"/><w:bottom w:w="40" w:type="dxa"/><w:right w:w="40" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid><w:gridCol w:w="${SW}"/></w:tblGrid>${rowsX}</w:tbl>`;
+    };
+    const bar = (n, title) => `<w:p><w:pPr><w:keepNext/><w:shd w:val="clear" w:color="auto" w:fill="${C.thead}"/><w:spacing w:before="280" w:after="40"/><w:ind w:left="60" w:right="60"/></w:pPr>${run({text:P.W.step+' '+n+'   ', b:true, sz:24, color:C.head})}${run({text:title, b:true, sz:24})}</w:p>`;
+    const hdr = P.header.filter(Boolean);
+    if(hdr.length) B.push(lpara([{text:hdr.join('  |  '), sz:18, color:C.grey}], {align:'center', after:80}));
+    B.push(lpara([{text:P.title, b:true, sz:40, color:C.head}], {align:'center', after:80}));
+    B.push(lpara([{text:P.W.name+': ', b:true, sz:SZ},{text:P.name||'______________________________', sz:SZ},{text:'      '+P.W.date+': ', b:true, sz:SZ},{text:P.date||'______________', sz:SZ}], {align:'center', after:40}));
+    if(P.review) B.push(lpara([{text:P.W.review+': ', sz:20, color:C.grey},{text:P.review, b:true, sz:20}], {align:'center', after:40}));
+    const tbl = (t) => {
+      const n=t.cols.length, w=Math.floor(SW/n); let widths=t.cols.map((_,i)=> i<n-1 ? w : SW-w*(n-1));
+      if(t.w){ widths=t.w.map(f=>Math.round(f*SW)); widths[n-1]=SW-widths.slice(0,n-1).reduce((a,b)=>a+b,0); }
+      const rows=t.rows.slice(); while(rows.length<t.min) rows.push(t.cols.map(()=>''));
+      return table(widths, [{header:true, cells:t.cols.map(h=>({fill:C.label, paras:[{runs:[{text:h,b:true,sz:20}]}]}))}]
+        .concat(rows.map(r=>({cells:t.cols.map((_,i)=>({paras:[{runs:[{text:str(r[i]||''), sz:SZ, b:i===1&&t.cols.length===3&&t===P.steps[4].table2}]}]}))}))));
+    };
+    P.steps.forEach(st=>{
+      B.push(bar(st.n, st.title));
+      if(st.sub) B.push(lpara([{text:st.sub, i:true, sz:19, color:C.grey}], {after:40, keepNext:true}));
+      if(st.lines){ const ls=st.lines.slice(); while(ls.length<st.min) ls.push(''); ls.push(''); B.push(ruled(ls, true)); B.push(lpara([], {after:60})); }
+      if(st.table){ B.push(lpara([], {after:40})); B.push(tbl(st.table)); }
+      if(st.table2){ B.push(lpara([], {after:80})); B.push(tbl(st.table2)); }
+    });
+    B.push(`<w:p><w:pPr><w:keepNext/><w:shd w:val="clear" w:color="auto" w:fill="${C.thead}"/><w:spacing w:before="280" w:after="40"/><w:ind w:left="60" w:right="60"/></w:pPr>${run({text:P.reasonsT, b:true, sz:24})}</w:p>`);
+    if(P.reasons) B.push(textParas(P.reasons, {sz:SZ}, {before:100, after:120, line:300}));
+    else { B.push(ruled(['',''], false)); }
+    if(P.urgent) B.push(`<w:p><w:pPr><w:pBdr><w:top w:val="single" w:sz="12" w:space="6" w:color="${C.risk}"/><w:bottom w:val="single" w:sz="12" w:space="6" w:color="${C.risk}"/></w:pBdr><w:spacing w:before="360" w:after="120"/><w:jc w:val="center"/></w:pPr>${run({text:P.urgent, b:true, sz:22, color:C.risk})}</w:p>`);
+    const half=SW/2, nob = `<w:tblBorders>${['top','left','bottom','right','insideH','insideV'].map(b=>`<w:${b} w:val="nil"/>`).join('')}</w:tblBorders>`;
+    const sc = s => lpara([], {before:560}) + lpara([{text:s.name||' ', sz:20}], {align:'center', border:'top'}) + lpara([{text:s.label, sz:18, color:C.grey}], {align:'center'});
+    B.push(`<w:tbl><w:tblPr><w:tblW w:w="${SW}" w:type="dxa"/>${nob}<w:tblLayout w:type="fixed"/><w:tblCellMar><w:left w:w="360" w:type="dxa"/><w:right w:w="360" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid><w:gridCol w:w="${half}"/><w:gridCol w:w="${half}"/></w:tblGrid><w:tr><w:trPr><w:cantSplit/></w:trPr>${P.signers.map(s=>`<w:tc><w:tcPr><w:tcW w:w="${half}" w:type="dxa"/></w:tcPr>${sc(s)}</w:tc>`).join('')}</w:tr></w:tbl>`);
+    const sect = `<w:sectPr><w:footerReference w:type="default" r:id="rId2"/><w:pgSz w:w="${PAGE_W}" w:h="15840"/><w:pgMar w:top="900" w:right="${M}" w:bottom="900" w:left="${M}" w:header="432" w:footer="432" w:gutter="0"/></w:sectPr>`;
+    return wrapDoc(B.join('')+sect);
+  }
+
   /* Hidden copy of the entered data (document properties), so the app can reopen a certificate */
   function textPrint(xml){
     let t=''; xml.replace(/<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/g,(m,x)=>{ t+=x; return m; });
@@ -1232,11 +1447,11 @@ const DocxGen = (() => {
       prop(2,'CaseAppKind',kind)+prop(3,'CaseAppPrint',textPrint(docXml))+chunks.map((c,i)=>prop(4+i,'CaseAppData'+String(i).padStart(3,'0'),c)).join('')+`</Properties>`;
   }
   function build(d, kind){
-    if(kind==='mc' || kind==='ca' || kind==='ho'){
-      const doc = kind==='mc' ? buildCertificate(d) : kind==='ca' ? buildAbstract(d) : buildHandover(d);
+    if(kind==='mc' || kind==='ca' || kind==='ho' || kind==='sp'){
+      const doc = kind==='mc' ? buildCertificate(d) : kind==='ca' ? buildAbstract(d) : kind==='ho' ? buildHandover(d) : buildSafetyPlan(d);
       const ct = CT.replace('</Types>','<Override PartName="/docProps/custom.xml" ContentType="application/vnd.openxmlformats-officedocument.custom-properties+xml"/></Types>');
       const rels = RELS.replace('</Relationships>','<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/custom-properties" Target="docProps/custom.xml"/></Relationships>');
-      return zip([['[Content_Types].xml',ct],['_rels/.rels',rels],['word/_rels/document.xml.rels',DOCRELS],['word/document.xml',doc],['word/styles.xml',STYLES],['word/footer1.xml',FOOTER],['docProps/custom.xml',customProps(kind,d,doc)]]);
+      return zip([['[Content_Types].xml',ct],['_rels/.rels',rels],['word/_rels/document.xml.rels',DOCRELS],['word/document.xml',doc],['word/styles.xml',STYLES],['word/footer1.xml',kind==='sp'?(P=>footerSP(P.footer,P.W.page,P.W.of))(safetyParts(d)):FOOTER],['docProps/custom.xml',customProps(kind,d,doc)]]);
     }
     return zip([['[Content_Types].xml',CT],['_rels/.rels',RELS],['word/_rels/document.xml.rels',DOCRELS],['word/document.xml',buildDocument(d, kind)],['word/styles.xml',STYLES],['word/footer1.xml',FOOTER]]);
   }
@@ -1381,7 +1596,7 @@ const DocxImport = (() => {
     const body = doc.getElementsByTagNameNS(NS,'body')[0]; if(!body) throw new Error('not-docx');
     const firstText = Array.from(doc.getElementsByTagNameNS(NS,'p')).slice(0,8).map(paraText).join(' ');
     if(/^\s*on-call handover/i.test(firstText)){ const r=await handoverFrom(buf, null); if(r) return r; }
-    if(/medical certificate|clinical abstract/i.test(firstText)) throw new Error('letter-stripped');
+    if(/medical certificate|clinical abstract|my safety plan/i.test(firstText)) throw new Error('letter-stripped');
     const kind = /discharge summary/i.test(firstText) ? 'dc' : /progress note/i.test(firstText) ? 'pn' : 'case';
     const SECS = SCHEMAS[kind].sections;
     const d={}, miss=[]; let sec=null, filled=0;
@@ -1453,7 +1668,7 @@ const DocxImport = (() => {
   const when = t => new Date(t).toLocaleString('en-US',{dateStyle:'medium',timeStyle:'short'});
   const progress = rec => SECS(rec).filter(s=>sectionStarted(s,rec.data)).length;
   const recTitle = rec => rec.kind==='ho' ? ((str(rec.data.unit)||'On-call handover')+', '+(rec.data.rows||[]).length+' patient'+((rec.data.rows||[]).length===1?'':'s')) : str(rec.data.patient) || str(rec.data.patientName) || ('Untitled '+SCHEMAS[rec.kind].name.toLowerCase());
-  const recKind = rec => rec.kind==='pn' ? ('Progress note'+(str(rec.data.hday)?', hospital day '+str(rec.data.hday):'')) : rec.kind==='dc' ? ('Discharge summary'+(str(rec.data.dischargeDate)?', '+str(rec.data.dischargeDate):'')) : rec.kind==='mc' ? ('Medical certificate'+(str(rec.data.certDate)?', '+str(rec.data.certDate):'')) : rec.kind==='ca' ? ('Clinical abstract'+(str(rec.data.dateIssued)?', '+str(rec.data.dateIssued):'')) : rec.kind==='ho' ? ('Handover sheet'+(str(rec.data.hoDate)?', '+str(rec.data.hoDate):'')) : 'Case';
+  const recKind = rec => rec.kind==='pn' ? ('Progress note'+(str(rec.data.hday)?', hospital day '+str(rec.data.hday):'')) : rec.kind==='dc' ? ('Discharge summary'+(str(rec.data.dischargeDate)?', '+str(rec.data.dischargeDate):'')) : rec.kind==='mc' ? ('Medical certificate'+(str(rec.data.certDate)?', '+str(rec.data.certDate):'')) : rec.kind==='ca' ? ('Clinical abstract'+(str(rec.data.dateIssued)?', '+str(rec.data.dateIssued):'')) : rec.kind==='ho' ? ('Handover sheet'+(str(rec.data.hoDate)?', '+str(rec.data.hoDate):'')) : rec.kind==='sp' ? ('Safety plan'+(str(rec.data.spDate)?', '+str(rec.data.spDate):'')) : 'Case';
   const samePt = (a,b) => !!str(a) && str(a).toLowerCase().replace(/\s+/g,' ')===str(b).toLowerCase().replace(/\s+/g,' ');
 
   function sheet(html, onReady){
@@ -1489,6 +1704,7 @@ const DocxImport = (() => {
         <div class="starts">
           <button id="newmc"><strong>New medical certificate</strong><span>Diagnosis, dates of care, and signatures</span></button>
           <button id="newca"><strong>New clinical abstract</strong><span>Summary of the admission for claims, referrals, and transfers</span></button>
+          <button id="newsp"><strong>New safety plan</strong><span>Six-step plan the patient takes home</span></button>
         </div>
         ${list.length ? `<ul class="cases">${list.map(c=>{
           const n=SECS(c).length, p=progress(c), pct=Math.round(p/n*100);
@@ -1507,6 +1723,7 @@ const DocxImport = (() => {
     $('#newmc').onclick = chooseCertSource;
     $('#newca').onclick = chooseAbstractSource;
     $('#newho').onclick = newHandover;
+    $('#newsp').onclick = chooseSafetySource;
     $('#imp').onclick = ()=>{ pickFile(importFile); };
     document.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>openRec(b.dataset.open));
     const w=$('#wipe'); if(w) w.onclick=()=>{ if(confirm('Delete ALL records from this iPad? This cannot be undone.')){ store.cases={}; persist(); renderHome(); } };
@@ -1613,7 +1830,7 @@ const DocxImport = (() => {
       <div class="tools"><button class="btn primary" data-file>Choose Word file</button><button class="btn" data-blank>Start blank</button><button class="btn quiet" data-close>Cancel</button></div>`,
     (s,close)=>{
       s.querySelectorAll('[data-src]').forEach(b=>b.onclick=()=>{ close(); const r=store.cases[b.dataset.src]; createCert(r.data, r.kind, recTitle(r)+' ('+lc(recKind(r))+')'); });
-      s.querySelector('[data-file]').onclick=()=>{ close(); pickFile(async f=>{ const res=await readWord(f); if(!res) return; if(res.kind==='mc'||res.kind==='ca'){ toast('Choose a case, progress note, or discharge summary.'); return; } createCert(res.data, res.kind, f.name); }); };
+      s.querySelector('[data-file]').onclick=()=>{ close(); pickFile(async f=>{ const res=await readWord(f); if(!res) return; if(!['case','pn','dc'].includes(res.kind)){ toast('Choose a case, progress note, or discharge summary.'); return; } createCert(res.data, res.kind, f.name); }); };
       s.querySelector('[data-blank]').onclick=()=>{ close(); createCert(null, null, null); };
       s.querySelector('[data-close]').onclick=close;
     });
@@ -1675,6 +1892,54 @@ const DocxImport = (() => {
       ${P.signers.length?'':'<p class="warn">No signing physician entered.</p>'}
     </article>`;
   }
+  /* ----- safety plan ----- */
+  function chooseSafetySource(){
+    const list = Object.values(store.cases).filter(c=>c.kind in ORDER).sort((a,b)=>ORDER[a.kind]-ORDER[b.kind] || b.updated-a.updated);
+    sheet(`<h3>New safety plan</h3>
+      <p>Choose any record for the patient. Their name, your name, and your hospital's numbers are filled in, and relevant notes from the chart are shown for reference while you work with the patient.</p>
+      ${list.length?`<ul class="pick">${list.map(c=>`<li><button data-src="${c.id}"><strong>${h(recTitle(c))}</strong><span>${h(recKind(c))}${c.kind!=='dc'&&str(c.data.datetime)?'. '+h(str(c.data.datetime)):''}</span></button></li>`).join('')}</ul>`:''}
+      <div class="tools"><button class="btn primary" data-blank>Start blank</button><button class="btn quiet" data-close>Cancel</button></div>`,
+    (s,close)=>{
+      s.querySelectorAll('[data-src]').forEach(b=>b.onclick=()=>{
+        close(); const pick=store.cases[b.dataset.src];
+        const same = Object.values(store.cases).filter(c=>c.kind in ORDER && (c.id===pick.id || samePt(c.data.patient, pick.data.patient)));
+        const recs = ['dc','pn','case'].map(k=> pick.kind===k ? pick : newest(same,k)).filter(Boolean);
+        createSafety(recs, recTitle(pick));
+      });
+      s.querySelector('[data-blank]').onclick=()=>{ close(); createSafety([], null); };
+      s.querySelector('[data-close]').onclick=close;
+    });
+  }
+  function createSafety(recs, label){
+    const built = safetyFromSources(recs, new Date(), store.last);
+    const id=newId();
+    store.cases[id] = {id, kind:'sp', created:Date.now(), updated:Date.now(), source:label, refs:built.refs, data:built.data};
+    persist(); openRec(id);
+    if(label) toast('Started for '+label+'. Fill it in together with the patient, in their words.');
+  }
+  function refsHTML(s, rec){
+    const keys=(s.refs||[]).filter(k=>rec.refs && str(rec.refs[k]));
+    if(!keys.length) return '';
+    return `<aside class="refs" aria-label="From the chart"><p class="refs-h">From the chart, for reference only. This text is not printed.</p>${keys.map(k=>`<p><strong>${h(SP_REF_LABELS[k])}:</strong> ${h(rec.refs[k])}</p>`).join('')}</aside>`;
+  }
+  function safetyPreviewHTML(d){
+    const P=safetyParts(d), e=t=>h(t).replace(/\n/g,'<br>');
+    const lines=(ls,min)=>{ const a=ls.slice(); while(a.length<min) a.push(''); a.push(''); return `<ol class="ruled">${a.map(l=>`<li>${l?h(l):'&nbsp;'}</li>`).join('')}</ol>`; };
+    const tbl=t=>{ const rows=t.rows.slice(); while(rows.length<t.min) rows.push(t.cols.map(()=>'')); return `<table class="info meds"><tr>${t.cols.map((c,i)=>`<th${t.w?` style="width:${Math.round(t.w[i]*100)}%"`:''}>${h(c)}</th>`).join('')}</tr>${rows.map(r=>`<tr>${t.cols.map((_,i)=>`<td>${r[i]?e(r[i]):'&nbsp;'}</td>`).join('')}</tr>`).join('')}</table>`; };
+    return `<article class="cert splan" aria-label="Safety plan preview">
+      ${P.header.filter(Boolean).length?`<p class="sp-inst">${h(P.header.filter(Boolean).join('  |  '))}</p>`:''}
+      <h3>${h(P.title)}</h3>
+      <p class="sp-who"><strong>${h(P.W.name)}:</strong> ${P.name?h(P.name):'<em>missing</em>'} &nbsp;&nbsp; <strong>${h(P.W.date)}:</strong> ${P.date?h(P.date):'<em>missing</em>'}</p>
+      ${P.review?`<p class="sp-review">${h(P.W.review)}: <strong>${h(P.review)}</strong></p>`:''}
+      ${P.steps.map(st=>`<h4 class="bar"><span>${h(P.W.step)} ${st.n}</span> ${h(st.title)}</h4>${st.sub?`<p class="sub">${h(st.sub)}</p>`:''}${st.lines?lines(st.lines,st.min):''}${st.table?tbl(st.table):''}${st.table2?tbl(st.table2):''}`).join('')}
+      <h4 class="bar">${h(P.reasonsT)}</h4>
+      ${P.reasons?`<p class="txt">${e(P.reasons)}</p>`:'<ol class="ruled plain"><li>&nbsp;</li><li>&nbsp;</li></ol>'}
+      <p class="urgent">${h(P.urgent)}</p>
+      <p class="sp-foot">${h(P.footer)}</p>
+      <div class="sigs">${P.signers.map(s=>`<div class="sig"><div class="line"></div><span>${h(s.name)}</span><span class="lbl2">${h(s.label)}</span></div>`).join('')}</div>
+    </article>`;
+  }
+
   /* ----- handover ----- */
   function patientGroups(){
     const groups = [];
@@ -1793,7 +2058,7 @@ const DocxImport = (() => {
         <button class="btn only-narrow" id="menu" aria-expanded="false" aria-controls="rail">Sections</button>
         <h1 id="title">${h(recTitle(rec))}<small>${h(recKind(rec))}</small></h1>
         <span class="status" id="status">Saved on this iPad</span>
-        ${['mc','ca','ho'].includes(rec.kind)?'':'<button class="btn hide-sm" id="rem">Reminders</button>'}
+        ${['mc','ca','ho','sp'].includes(rec.kind)?'':'<button class="btn hide-sm" id="rem">Reminders</button>'}
         <button class="btn quiet danger hide-sm" id="del">Delete</button>
         <button class="btn primary" id="export">Export Word file</button>
       </header>
@@ -1833,6 +2098,10 @@ const DocxImport = (() => {
       case 'radios': { const o=v||{}; return `<div class="field">${lab}<div class="radios">${f.p.map(([k,opts])=>`<div class="row" role="group" aria-label="${h(k)}"><span>${h(k)}</span><div class="seg">${opts.map(x=>`<button data-rads="${f.id}" data-k="${h(k)}" data-o="${h(x)}" aria-pressed="${o[k]===x}">${h(x)}</button>`).join('')}</div></div>`).join('')}</div></div>`; }
       case 'parts': { const o=v||{}; return `<div class="field">${lab}<div class="grid ${f.long?'long':''} ${f.inline?'inline':''}">${f.p.map(k=>`<label>${h(k)}${f.long?`<textarea data-f="${f.id}" data-k="${h(k)}">${h(o[k])}</textarea>`:`<input type="text" data-f="${f.id}" data-k="${h(k)}" value="${h(o[k])}" autocomplete="off">`}</label>`).join('')}</div></div>`; }
       case 'patients': return patientsHTML(d);
+      case 'lines': {
+        const arr = Array.isArray(v) ? v : []; while(arr.length<(f.n||3)) arr.push(''); d[f.id]=arr;
+        return `<div class="field">${lab}<div class="lines">${arr.map((x,i)=>`<div class="ln"><span>${i+1}.</span><input type="text" data-f="${f.id}" data-li="${i}" value="${h(x)}" aria-label="${h(f.label+', line '+(i+1))}" autocomplete="off"></div>`).join('')}</div><div class="tbl-actions"><button class="btn quiet" data-addline="${f.id}">Add line</button></div></div>`;
+      }
       case 'table': {
         let rows = (v && v.length) ? v : [];
         while(rows.length<f.rows) rows.push(f.c.map(()=>''));
@@ -1856,8 +2125,9 @@ const DocxImport = (() => {
       </div>
       ${hasLast?`<div class="carry"><div><strong>Start from the last MSE?</strong> Copies the previous selections for 3A–3C so you only change what's different. SI, HI, and self-harm stay blank to be asked today.</div><button class="btn" id="copymse">Start from last MSE</button></div>`:''}
       ${(s.id==='pnInfo'||s.id==='dcInfo') && rec.source?`<p class="source">Started from ${h(rec.source)}.</p>`:''}
-      ${(s.id==='mcInst'||s.id==='caInst') && rec.source?`<p class="source">Started from ${h(rec.source)}.</p>`:''}
-      ${s.preview?(rec.kind==='ca'?abstractPreviewHTML(d):rec.kind==='ho'?handoverPreviewHTML(d):previewHTML(d)):''}
+      ${(s.id==='mcInst'||s.id==='caInst'||s.id==='spInfo') && rec.source?`<p class="source">Started from ${h(rec.source)}.</p>`:''}
+      ${rec.kind==='sp'?refsHTML(s,rec):''}
+      ${s.preview?(rec.kind==='ca'?abstractPreviewHTML(d):rec.kind==='ho'?handoverPreviewHTML(d):rec.kind==='sp'?safetyPreviewHTML(d):previewHTML(d)):''}
       ${s.morning?morningHTML(rec):''}
       <div class="${s.risk?'risky':''}">${s.fields.map(f=>fieldHTML(f,d,rec)).join('')}</div>
       <div class="pager">
@@ -1906,7 +2176,7 @@ const DocxImport = (() => {
     if(id==='attending') store.last.attending=val;
     if(id==='unit') store.last.unit=val;
     if(id==='fromRes') store.last.interviewer=val;
-    if(R().kind==='mc' || R().kind==='ca'){
+    if(['mc','ca','sp'].includes(R().kind)){
       if(['instName','instDept','instAddress','resTitle','attTitle'].includes(id)) store.last[id]=val;
       store.last.lic = store.last.lic || {};
       if(id==='resLic' && str(d.resName)) store.last.lic[normName(d.resName)]=val;
@@ -1930,7 +2200,8 @@ const DocxImport = (() => {
     if(!cur || !el.dataset || !el.dataset.f) return;
     if(el.tagName==='TEXTAREA') grow(el);
     const id=el.dataset.f;
-    if(el.dataset.r!=null){ D()[id][+el.dataset.r][+el.dataset.c]=el.value; touch(); return; }
+    if(el.dataset.r!=null){ D()[id][+el.dataset.r][+el.dataset.c]=el.value; if(R().kind==='sp' && id==='hotlines'){ const tmp={hotlines:D().hotlines.filter(r=>r.some(x=>str(x))).map(r=>r.slice())}; if(D().lang==='Filipino') spSwapDefaults(tmp,'English'); store.last.hotlines=tmp.hotlines; } touch(); return; }
+    if(el.dataset.li!=null){ D()[id][+el.dataset.li]=el.value; touch(); return; }
     setVal(id, el.dataset.k??null, el.value);
   });
   document.addEventListener('click', e=>{
@@ -1940,11 +2211,13 @@ const DocxImport = (() => {
       const i=a.indexOf(o); if(i>=0) a.splice(i,1); else a.push(o);
       const f=F[id]; d[id]=f.o.filter(x=>a.includes(x));
       b.setAttribute('aria-pressed', i<0); const sc=$('#sc-'+id); if(sc) sc.textContent=`${d[id].length}/${f.o.length} positive`; touch(); }
-    else if(b.dataset.rad){ const id=b.dataset.rad, o=b.dataset.o; d[id] = d[id]===o ? null : o;
+    else if(b.dataset.rad){ const id=b.dataset.rad, o=b.dataset.o; const was=d[id]; d[id] = d[id]===o ? null : o;
+      if(R().kind==='sp' && id==='lang'){ if(!d.lang) d.lang='English'; if(d.lang!==(was||'English')){ spSwapDefaults(d, d.lang); store.last.spLang=d.lang; } b.parentNode.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed', x.dataset.o===d.lang)); touch(); return; }
       b.parentNode.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed', x.dataset.o===d[id])); touch(); }
     else if(b.dataset.rads){ const id=b.dataset.rads, k=b.dataset.k, o=b.dataset.o; d[id]=d[id]||{};
       if(d[id][k]===o) delete d[id][k]; else d[id][k]=o;
       b.parentNode.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed', d[id][k]===x.dataset.o)); touch(); }
+    else if(b.dataset.addline){ d[b.dataset.addline].push(''); touch(); renderSection(); const ins=document.querySelectorAll(`[data-f="${b.dataset.addline}"]`); if(ins.length) ins[ins.length-1].focus(); }
     else if(b.dataset.rowdel!=null){ const i=+b.dataset.rowdel, r=d.rows[i]; if(!confirm('Remove '+(str(r.patient)||'this patient')+' from the handover sheet?')) return; d.rows.splice(i,1); touch(); renderSection(); }
     else if(b.dataset.addrow){ const f=F[b.dataset.addrow]; d[f.id].push(f.c.map(()=>'')); touch(); renderSection(); }
     else if(b.dataset.delrow){ const f=F[b.dataset.delrow]; const last=d[f.id][d[f.id].length-1];
