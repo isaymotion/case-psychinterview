@@ -17,9 +17,9 @@ const TEMPLATES = [
   { id:'colorful', name:'Colorful', note:'Cream background, bold color lines and dots',
     file:'templates/colorful.pptx',
     bodyFont:'Calibri', headFont:'Cambria',   // fonts for the text the generator writes; titles keep the template's font
-    titleEm:0.62,                              // average letter width of the title font (Arial Black), used to size titles
+    titleFont:'Arial Black',                   // the template's title font, used to size titles so they fit
     area:{ x:0.8, y:1.95, w:11.73, h:4.72 },  // free space under the title bar, in inches
-    badge:'sldNum',                            // the colored circle beside the title shows the slide's first letter
+    badge:{ idx:13, color:'bg2', size:26 },    // the colored circle beside the title shows the slide's first letter
     footer:false,                              // this design has no footer strip
     // each part of the presentation uses its own layout, so the circle changes color: red, blue, orange, green
     partLayouts:['Title and Content','Title and Content - Chart','Title and Content - Table','2_Title and Content'],
@@ -180,7 +180,7 @@ async function loadTemplate(buf, cfg){
   const boxOf = (layout, p) => p.box || ((masterPh.find(m=>m.type===p.type) || masterPh.find(m=>m.idx!=null && m.idx===p.idx) || {}).box) || null;
   return { files, layouts, L, area, W, H, boxOf, notesMaster: notesRel ? resolve('ppt/presentation.xml', notesRel.target) : null,
     bodyFont: cfg.bodyFont || '+mn-lt', headFont: cfg.headFont || '+mj-lt', badge: cfg.badge, titleInfo: cfg.titleInfo || null,
-    titleEm: cfg.titleEm || 0.55, confidential: cfg.confidential || null, footer: cfg.footer!==false, partColors: cfg.partColors || ['accent1','accent2','accent4','accent3','accent6','tx2'] };
+    titleFont: cfg.titleFont || '', confidential: cfg.confidential || null, footer: cfg.footer!==false, partColors: cfg.partColors || ['accent1','accent2','accent4','accent3','accent6','tx2'] };
 }
 
 /* ===== Drawing ===== */
@@ -193,7 +193,7 @@ function clr(c){
 }
 // plain: text in a template placeholder keeps the template's own font and size unless a run sets them
 function rpr(r, fonts, plain){
-  const font = r.font==='head' ? fonts.head : r.font==='body' || (!r.font && !plain) ? fonts.body : r.font;
+  const font = r.font==='head' ? fonts.head : r.font==='head-template' ? '+mj-lt' : r.font==='body' || (!r.font && !plain) ? fonts.body : r.font;
   const sz = r.sz || (plain ? 0 : 14);
   return `<a:rPr lang="en-US"${sz?` sz="${Math.round(sz*100)}"`:''}${r.b?' b="1"':''}${r.i?' i="1"':''} dirty="0">${r.color?`<a:solidFill>${clr(r.color)}</a:solidFill>`:''}${font?`<a:latin typeface="${esc(font)}"/><a:cs typeface="${esc(font)}"/>`:''}</a:rPr>`;
 }
@@ -590,14 +590,43 @@ function paginate(tpl, slides){
   return out;
 }
 
-/* Largest size (in points) at which a title fits its box, between max and min */
-function fitTitle(text, box, maxPt, minPt, em, maxLines){
-  if(!box) return 0;
-  for(let pt=maxPt; pt>minPt; pt-=2){
-    const lines = lineCount(text, (box.w-0.2)*CHAR_EM/em, pt);   // lineCount assumes CHAR_EM-wide letters
-    if(lines<=(maxLines||9) && lines*pt*0.95/72 <= box.h-0.1) return pt;
+/* Letter widths of title fonts, in thousandths of the font size. Fonts not listed use a wide average. */
+const FONT_W = {
+  'Arial Black': (()=>{ const w={' ':333,'!':333,'"':500,'#':667,'$':667,'%':1000,'&':889,"'":278,'(':389,')':389,'*':556,'+':667,',':333,'-':333,'.':333,'/':278,':':333,';':333,'?':611,'@':778,'’':278,'‘':278,'“':500,'”':500,'–':500,'—':1000,'·':333,'•':500};
+    '0123456789'.split('').forEach(c=>w[c]=667);
+    Object.assign(w,{a:667,b:667,c:667,d:667,e:667,f:389,g:667,h:667,i:333,j:333,k:667,l:333,m:1000,n:667,o:667,p:667,q:667,r:444,s:611,t:444,u:667,v:611,w:944,x:667,y:611,z:556,
+      A:778,B:778,C:778,D:778,E:722,F:667,G:833,H:833,I:389,J:667,K:833,L:667,M:944,N:833,O:833,P:722,Q:833,R:778,S:722,T:722,U:833,V:778,W:1000,X:778,Y:778,Z:722});
+    return w; })()
+};
+// Width of text in inches at a point size, with 6% to spare
+function textW(text, pt, font){
+  const t = FONT_W[font]; let u=0;
+  for(const ch of String(text)) u += t ? (t[ch] || 700) : 640;
+  return u/1000*pt/72*1.06;
+}
+// Lines a text needs at a width; Infinity when one word is wider than the line
+function wrapCount(text, widthIn, pt, font){
+  let lines=0;
+  for(const par of String(text).split('\n')){
+    let line='', n=1;
+    for(const w of par.split(/\s+/).filter(Boolean)){
+      if(textW(w, pt, font) > widthIn) return Infinity;
+      const tryL = line ? line+' '+w : w;
+      if(textW(tryL, pt, font) <= widthIn) line=tryL; else { n++; line=w; }
+    }
+    lines+=n;
   }
-  return minPt;
+  return lines;
+}
+/* Largest size (in points) at which text fits a placeholder box, from maxPt down to minPt; 0 if it never fits */
+function fitSize(text, box, maxPt, minPt, maxLines, font){
+  if(!box) return 0;
+  const w = box.w-0.3, h = box.h-0.1;          // the placeholder's inner margins, plus a little to spare
+  for(let pt=maxPt; pt>=minPt; pt-=1){
+    const n = wrapCount(text, w, pt, font);
+    if(n<=(maxLines||99) && n*pt*1.0/72 <= h) return pt;
+  }
+  return 0;
 }
 
 function renderSlide(tpl, sl, idx, total){
@@ -607,14 +636,17 @@ function renderSlide(tpl, sl, idx, total){
   const ctx = new SlideCtx(tpl, layout);
   const titleType = layout.ph.find(p=>p.type==='ctrTitle') ? 'ctrTitle' : 'title';
   const titleBox = (()=>{ const p=layout.ph.find(x=>x.type===titleType); return p ? tpl.boxOf(layout,p) : null; })();
-  const bodyPh = p => (p.type==='body'||p.type==='obj'||p.type==='subTitle') && String(p.idx)!==String(tpl.badge) && (!p.box || p.box.w>1.2);
+  const bodyPh = p => (p.type==='body'||p.type==='obj'||p.type==='subTitle') && !(tpl.badge && String(p.idx)===String(tpl.badge.idx)) && (!p.box || p.box.w>1.2);
   const H = (t, extra) => [{ runs:[{t, ...(extra||{})}] }];
-  // Titles keep the template's font; the size is lowered only when the text would not fit
-  const T = (t, maxPt, minPt, maxLines) => { const pt=fitTitle(t, titleBox, maxPt, minPt, tpl.titleEm, maxLines); return H(t, pt && pt<maxPt ? { sz:pt } : {}); };
+  // Titles keep the template's font; the size is set so the text fits its box. Each step: [largest, smallest, most lines]
+  const fit = (t, box, steps) => { for(const [mx,mn,ln] of steps){ const pt=fitSize(t, box, mx, mn, ln, tpl.titleFont); if(pt) return pt; } return steps[steps.length-1][1]; };
+  const T = (t, steps) => H(t, { sz: fit(t, titleBox, steps) });
+  const phBox = test => { const p=layout.ph.find(test); return p ? tpl.boxOf(layout,p) : null; };
+  const B = (test, t, steps) => ctx.ph(test, H(t, { sz: fit(t, phBox(test), steps) }));
   switch(sl.kind){
     case 'title': {
-      ctx.ph(titleType, T(sl.title, 59, 28));
-      ctx.ph(p=>p.type==='subTitle'||bodyPh(p), H([sl.presenter, sl.date].filter(Boolean).join('  ·  ')));
+      ctx.ph(titleType, T(sl.title, [[59,30,2],[30,24,3]]));
+      B(p=>p.type==='subTitle'||bodyPh(p), [sl.presenter, sl.date].filter(Boolean).join('  ·  '), [[24,12,1]]);
       const tb = tpl.titleInfo || (titleBox ? { x:titleBox.x, y:Math.min(tpl.H-0.9, titleBox.y+titleBox.h+0.05), w:titleBox.w, h:0.9 } : null);
       if(tb) ctx.shape({ ...tb, inset:[0,0,0,0], name:'Patient',
         paras:[ ...(sl.info?[{ runs:[{t:sl.info, sz:18, b:true, color:'tx1'}] }]:[]),
@@ -624,7 +656,7 @@ function renderSlide(tpl, sl, idx, total){
       break;
     }
     case 'agenda': {
-      ctx.ph(titleType, T(sl.title, 40, 24, 1));
+      ctx.ph(titleType, T(sl.title, [[32,20,1]]));
       badge(ctx, tpl, layout, 'O');
       const A=tpl.area, bh=0.56, gap=0.2, cols=tpl.partColors;
       const top = A.y + Math.max(0,(A.h - sl.items.length*(bh+gap))/2.4);
@@ -635,20 +667,20 @@ function renderSlide(tpl, sl, idx, total){
       break;
     }
     case 'section':
-      ctx.ph(titleType, T(sl.title, 60, 32, 2));
-      ctx.ph(bodyPh, H(sl.kicker));
+      ctx.ph(titleType, T(sl.title, [[60,32,2],[34,24,3]]));
+      B(bodyPh, sl.kicker, [[24,14,1]]);
       break;
     case 'quote': {
-      ctx.ph('title', [{ runs:[{t:sl.title, sz:fitTitle(sl.title, titleBox, 44, 20, 0.5) || 32, i:true}] }]);
-      ctx.ph(bodyPh, H(sl.sub));
+      ctx.ph('title', [{ runs:[{t:sl.title, sz:fit(sl.title, titleBox, [[44,18,6]]), i:true}] }]);
+      B(bodyPh, sl.sub, [[18,12,1]]);
       break;
     }
     case 'end':
-      ctx.ph(titleType, T(sl.title, 60, 28, 1));
-      if(sl.sub) ctx.ph(bodyPh, H(sl.sub));
+      ctx.ph(titleType, T(sl.title, [[60,28,1]]));
+      if(sl.sub) B(bodyPh, sl.sub, [[18,11,2]]);
       break;
     default: {
-      ctx.ph(titleType, T(sl.title, 32, 18, 2));
+      ctx.ph(titleType, T(sl.title, [[32,20,1],[22,14,2]]));
       badge(ctx, tpl, layout, firstLetter(sl.title));
       const A=tpl.area;
       sl.placed.forEach(({b,y},i)=>draw(ctx, b, A.x, y, A.w, i, (sl.risk && (b.type==='text'||b.type==='chips')) ? 'accent1' : null));
@@ -658,10 +690,14 @@ function renderSlide(tpl, sl, idx, total){
   ctx.notes = sl.kind==='content' ? (sl.title.endsWith('(cont.)') ? '' : sl.notes||'') : '';
   return { xml: ctx.xml(), layout: layout.path, notes: ctx.notes };
 }
+/* The colored circle beside the title, with the slide's letter on it. The circle is a placeholder of the
+   layout, so the slide must include it to show it; the letter is a text box laid over the circle. */
 function badge(ctx, tpl, layout, letter){
-  if(tpl.badge==null) return;
-  const test = tpl.badge==='sldNum' ? p=>p.type==='sldNum' : p=>String(p.idx)===String(tpl.badge);
-  ctx.ph(test, [{ runs:[{t:letter}], align:'ctr' }]);
+  const b = tpl.badge; if(!b) return;
+  const p = layout.ph.find(x=>String(x.idx)===String(b.idx)); if(!p) return;
+  ctx.ph(q=>q===p, [{ runs:[{t:letter}], align:'ctr' }]);
+  const box = tpl.boxOf(layout, p); if(!box) return;
+  ctx.shape({ ...box, inset:[0,0,0,0], anchor:'ctr', name:'Letter', paras:[{ runs:[{t:letter, sz:b.size||24, color:b.color||'bg1', font:'head-template'}], align:'ctr' }] });
 }
 
 function notesXML(text){
