@@ -172,6 +172,9 @@ textarea.big{min-height:180px}
 .credit a{color:var(--blue)}
 .sheet p{margin:0 0 12px;color:var(--ink-2)}
 .sheet p strong{color:var(--ink)}
+.sheet .field{margin-bottom:18px}
+.sheet .warn-box{margin:8px 0 0;font-size:14px}
+.sheet.wide{max-width:640px}
 
 /* ----- case layout ----- */
 .layout{display:grid;grid-template-columns:var(--rail) 1fr;min-height:calc(100% - var(--bar))}
@@ -261,6 +264,7 @@ textarea.big{min-height:180px}
 </head>
 <body>
 <noscript>This app needs JavaScript turned on in Safari.</noscript>
+<script src="slides.js"></script>
 <script>
 /* ---------- Template structure (mirrors the Integrated Psychiatry Resident Case + MSE Template) ---------- */
 const SECTIONS = [
@@ -1641,7 +1645,7 @@ const DocxImport = (() => {
 /* ---------- App ---------- */
 (function(){
   const KEY='psyCaseApp.v1';
-  const VERSION='September 30, 2026';
+  const VERSION='October 7, 2026';
   const $ = (s,el=document)=>el.querySelector(s);
   const h = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   const FIELDS = {}; Object.keys(SCHEMAS).forEach(k=>FIELDS[k]={});
@@ -1671,9 +1675,9 @@ const DocxImport = (() => {
   const recKind = rec => rec.kind==='pn' ? ('Progress note'+(str(rec.data.hday)?', hospital day '+str(rec.data.hday):'')) : rec.kind==='dc' ? ('Discharge summary'+(str(rec.data.dischargeDate)?', '+str(rec.data.dischargeDate):'')) : rec.kind==='mc' ? ('Medical certificate'+(str(rec.data.certDate)?', '+str(rec.data.certDate):'')) : rec.kind==='ca' ? ('Clinical abstract'+(str(rec.data.dateIssued)?', '+str(rec.data.dateIssued):'')) : rec.kind==='ho' ? ('Handover sheet'+(str(rec.data.hoDate)?', '+str(rec.data.hoDate):'')) : rec.kind==='sp' ? ('Safety plan'+(str(rec.data.spDate)?', '+str(rec.data.spDate):'')) : 'Case';
   const samePt = (a,b) => !!str(a) && str(a).toLowerCase().replace(/\s+/g,' ')===str(b).toLowerCase().replace(/\s+/g,' ');
 
-  function sheet(html, onReady){
+  function sheet(html, onReady, cls){
     const s=document.createElement('div'); s.className='scrim';
-    s.innerHTML=`<div class="sheet" role="dialog" aria-modal="true">${html}</div>`;
+    s.innerHTML=`<div class="sheet${cls?' '+cls:''}" role="dialog" aria-modal="true">${html}</div>`;
     document.body.appendChild(s);
     const close=()=>s.remove(); s.onclick=e=>{ if(e.target===s) close(); };
     onReady(s, close);
@@ -2060,6 +2064,7 @@ const DocxImport = (() => {
         <span class="status" id="status">Saved on this iPad</span>
         ${['mc','ca','ho','sp'].includes(rec.kind)?'':'<button class="btn hide-sm" id="rem">Reminders</button>'}
         <button class="btn quiet danger hide-sm" id="del">Delete</button>
+        ${rec.kind==='case'?'<button class="btn" id="pres" aria-label="Create presentation slides">Slides</button>':''}
         <button class="btn primary" id="export">Export Word file</button>
       </header>
       <div class="layout"><nav class="rail" id="rail" aria-label="Sections"></nav><main class="main" id="main"></main></div>`;
@@ -2068,6 +2073,7 @@ const DocxImport = (() => {
     if($('#rem')) $('#rem').onclick = showReminders;
     $('#del').onclick = ()=>{ if(confirm('Delete this record from this iPad? Export it first if you need a copy.')){ delete store.cases[cur]; persist(); renderHome(); } };
     $('#export').onclick = exportDocx;
+    if($('#pres')) $('#pres').onclick = presentationSheet;
     renderRail(); renderSection();
   }
   function renderRail(){
@@ -2132,11 +2138,11 @@ const DocxImport = (() => {
       <div class="${s.risk?'risky':''}">${s.fields.map(f=>fieldHTML(f,d,rec)).join('')}</div>
       <div class="pager">
         ${prev?`<button class="btn" id="prev">‹ ${h(prev.num)} ${h(prev.title)}</button>`:'<span></span>'}
-        ${next?`<button class="btn primary" id="next">${h(next.num)} ${h(next.title)} ›</button>`:`<button class="btn primary" id="done">Export Word file</button>`}
+        ${next?`<button class="btn primary" id="next">${h(next.num)} ${h(next.title)} ›</button>`:`<span class="tools" style="margin:0">${rec.kind==='case'?'<button class="btn" id="donePres">Create slides</button>':''}<button class="btn primary" id="done">Export Word file</button></span>`}
       </div>`;
     const go = i => { secIdx=i; renderRail(); renderSection(); window.scrollTo(0,0); };
     if(prev) $('#prev').onclick=()=>go(secIdx-1);
-    if(next) $('#next').onclick=()=>go(secIdx+1); else $('#done').onclick=exportDocx;
+    if(next) $('#next').onclick=()=>go(secIdx+1); else { $('#done').onclick=exportDocx; if($('#donePres')) $('#donePres').onclick=presentationSheet; }
     const cm=$('#copymse'); if(cm) cm.onclick=()=>{
       const L=rec.lastMSE, touched=Object.keys(L).some(k=>{ const x=d[k]; return Array.isArray(x)?x.length:!!x; });
       if(touched && !confirm('Replace your current 3A–3C selections with the last MSE?')) return;
@@ -2231,7 +2237,11 @@ const DocxImport = (() => {
     const base = (str(d.patient)||str(d.patientName)||(R().kind==='ho'?(str(d.unit)||'Unit'):'')||'Patient').replace(/[^\w\- ]+/g,' ').trim().replace(/\s+/g,'_').slice(0,50) || 'Patient';
     const hd = rec.kind==='pn' && /^\d+$/.test(str(d.hday)) ? '_HD'+str(d.hday) : '';
     const name = `${base}_${SCHEMAS[rec.kind].file}${hd}_${new Date().toISOString().slice(0,10)}.docx`;
-    const file = new File([bytes], name, {type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+    await saveFile(bytes, name, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'Word file created: '+name);
+  }
+  // Hands a file to the iPad's share sheet (Save to Files, AirDrop, open in an app); downloads it elsewhere
+  async function saveFile(bytes, name, type, done){
+    const file = new File([bytes], name, {type});
     if(navigator.canShare && navigator.canShare({files:[file]})){
       try{ await navigator.share({files:[file], title:name}); return; }
       catch(err){ if(err && err.name==='AbortError') return; }
@@ -2239,7 +2249,70 @@ const DocxImport = (() => {
     const url=URL.createObjectURL(file), a=document.createElement('a');
     a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove();
     setTimeout(()=>URL.revokeObjectURL(url), 5000);
-    toast('Word file created: '+name);
+    toast(done);
+  }
+
+  /* ----- case presentation (PowerPoint) ----- */
+  const tplCache = {};
+  async function templateBytes(t){
+    if(tplCache[t.id]) return tplCache[t.id];
+    const r = await fetch(t.file); if(!r.ok) throw new Error('no-template');
+    return (tplCache[t.id] = await r.arrayBuffer());
+  }
+  function presentationSheet(){
+    persist();
+    const rec=R(), d=D(), avail=CaseSlides.availableSections(d, SECTIONS);
+    if(!avail.length){ toast('Nothing to present yet. Fill in the case first.'); return; }
+    const P = store.last.pres || {}, T = CaseSlides.TEMPLATES;
+    const st = { tpl: T.some(t=>t.id===P.tpl) ? P.tpl : T[0].id, mode: ['initials','alias','full'].includes(P.mode) ? P.mode : 'initials',
+      dividers: P.dividers!==false, notes: P.notes!==false, include: new Set(avail.map(s=>s.id)) };
+    const initials = CaseSlides.deidentify(d,'initials').label;
+    const title = str(rec.presTitle) || str(d.primaryDx).split(/\n/)[0].slice(0,90) || 'Case presentation';
+    const presenter = str(d.interviewer) || str(store.last.interviewer);
+    const modes = [['initials','Initials ('+initials+')'],['alias','“Patient A”'],['full','Full name']];
+    sheet(`<h3>Case presentation</h3>
+      <p class="small">Makes a PowerPoint file from this case, in the order of the case file. Slides show the entries in short blocks; the full text you typed goes into the speaker notes. It opens in PowerPoint, Keynote, or Google Slides for editing.</p>
+      <div class="field"><span class="lab" id="l-pt">Slide design</span>${T.length>1?'':'<span class="hint">More designs can be added later.</span>'}<div class="seg" role="group" aria-labelledby="l-pt">${T.map(t=>`<button data-pt="${h(t.id)}" aria-pressed="${t.id===st.tpl}">${h(t.name)}</button>`).join('')}</div></div>
+      <div class="field"><label class="lab" for="ptitle">Title</label><input type="text" id="ptitle" value="${h(title)}" autocomplete="off"></div>
+      <div class="field"><label class="lab" for="ppres">Presenter</label><input type="text" id="ppres" value="${h(presenter)}" autocomplete="off"></div>
+      <div class="field"><span class="lab" id="l-pm">Show the patient as</span><span class="hint">The name and MRN are replaced everywhere in the slides and notes. Read the slides before presenting: names of relatives or places typed into the text are not changed.</span>
+        <div class="seg" role="group" aria-labelledby="l-pm">${modes.map(([k,l])=>`<button data-pm="${k}" aria-pressed="${k===st.mode}">${h(l)}</button>`).join('')}</div>
+        <p class="warn-box" id="pmwarn" ${st.mode==='full'?'':'hidden'}>The full name and MRN will appear on the slides. Use this only within the care team, and follow your department's privacy rules.</p></div>
+      <div class="field"><span class="lab" id="l-ps">Sections</span><span class="hint">Only sections with entries are listed. Tap to leave one out.</span>
+        <div class="chips" role="group" aria-labelledby="l-ps">${avail.map(s=>`<button class="chip" data-ps="${h(s.id)}" aria-pressed="true">${h(s.num)}. ${h(s.title)}</button>`).join('')}</div></div>
+      <div class="field"><span class="lab" id="l-px">Also include</span>
+        <div class="chips" role="group" aria-labelledby="l-px"><button class="chip" data-px="dividers" aria-pressed="${st.dividers}">Outline and part dividers</button><button class="chip" data-px="notes" aria-pressed="${st.notes}">Full text in speaker notes</button></div></div>
+      <div class="tools"><button class="btn primary" id="pgo">Create PowerPoint</button><button class="btn quiet" data-close>Cancel</button></div>`,
+    (s, close)=>{
+      s.querySelector('[data-close]').onclick=close;
+      s.addEventListener('click', e=>{
+        const b=e.target.closest('button'); if(!b) return;
+        if(b.dataset.pt){ st.tpl=b.dataset.pt; s.querySelectorAll('[data-pt]').forEach(x=>x.setAttribute('aria-pressed', x===b)); }
+        else if(b.dataset.pm){ st.mode=b.dataset.pm; s.querySelectorAll('[data-pm]').forEach(x=>x.setAttribute('aria-pressed', x===b)); s.querySelector('#pmwarn').hidden = st.mode!=='full'; }
+        else if(b.dataset.ps){ const id=b.dataset.ps, on=!st.include.has(id); on?st.include.add(id):st.include.delete(id); b.setAttribute('aria-pressed', on); }
+        else if(b.dataset.px){ const k=b.dataset.px; st[k]=!st[k]; b.setAttribute('aria-pressed', st[k]); }
+      });
+      const go=s.querySelector('#pgo');
+      go.onclick = async ()=>{
+        if(!st.include.size){ toast('Choose at least one section.'); return; }
+        const t=T.find(x=>x.id===st.tpl), ttl=str(s.querySelector('#ptitle').value)||'Case presentation', pres=str(s.querySelector('#ppres').value);
+        rec.presTitle = ttl===title && !str(rec.presTitle) ? '' : ttl;
+        store.last.pres = { tpl:st.tpl, mode:st.mode, dividers:st.dividers, notes:st.notes }; persist();
+        go.disabled=true; go.textContent='Creating…';
+        try{
+          const out = await CaseSlides.generate(D(), { template: await templateBytes(t), templateCfg:t, title:ttl, presenter:pres, patientAs:st.mode,
+            dividers:st.dividers, notes:st.notes, include:avail.map(x=>x.id).filter(id=>st.include.has(id)) });
+          const base = String(out.label).replace(/\./g,'').replace(/[^\w\- ]+/g,' ').trim().replace(/\s+/g,'_').slice(0,40) || 'Patient';
+          const name = `${base}_Case_presentation_${new Date().toISOString().slice(0,10)}.pptx`;
+          close();
+          await saveFile(out.bytes, name, 'application/vnd.openxmlformats-officedocument.presentationml.presentation', `PowerPoint created: ${out.count} slides`);
+        }catch(err){
+          go.disabled=false; go.textContent='Create PowerPoint';
+          toast(err && err.message==='old-ios' ? 'Update the iPad (iPadOS 16.4 or later) to create slides.' : err && err.message==='no-template' ? 'The slide design could not be loaded. Connect to the internet once, then try again.' : 'The presentation could not be created. Export the Word file and contact the developer.');
+          if(typeof console!=='undefined') console.error(err);
+        }
+      };
+    }, 'wide');
   }
 
   function showReminders(){
