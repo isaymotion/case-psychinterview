@@ -24,6 +24,7 @@ const TEMPLATES = [
     // each part of the presentation uses its own layout, so the circle changes color: red, blue, orange, green
     partLayouts:['Title and Content','Title and Content - Chart','Title and Content - Table','2_Title and Content'],
     partColors:['accent1','accent2','accent4','accent3'],
+    pdf:{ backgrounds:'templates/colorful-bg/' },   // pictures of the layouts for PDF slides: node tools/make_backgrounds.js colorful
     titleInfo:{ x:2.98, y:4.68, w:7.6, h:0.62 },   // patient line under the title on the first slide
     confidential:{ x:0.8, y:6.98, w:8, h:0.3 } }   // confidentiality line at the bottom of the first slide
 ];
@@ -128,8 +129,15 @@ function placeholders(xml){
   while((m=re.exec(xml))){
     const sp=m[1], ph=sp.match(/<p:ph\b[^>]*>/); if(!ph) continue;
     const off=sp.match(/<a:off x="(-?\d+)" y="(-?\d+)"\s*\/>\s*<a:ext cx="(\d+)" cy="(\d+)"/);
+    // How the placeholder draws text (used for the PDF): anchor, alignment, line spacing, insets, fill and shape
+    const bp=(sp.match(/<a:bodyPr\b[^>]*>/)||[''])[0], lv=(sp.match(/<a:lvl1pPr\b[^>]*>[\s\S]*?<\/a:lvl1pPr>|<a:lvl1pPr\b[^>]*\/>/)||[''])[0];
+    const spPr=(sp.match(/<p:spPr\b[^>]*>[\s\S]*?<\/p:spPr>/)||[''])[0], fill=spPr.match(/<a:solidFill>\s*<a:(?:schemeClr|srgbClr) val="(\w+)"/);
+    const ins = k => { const v=attr(bp,k); return v==null ? null : +v/EMU; };
     out.push({ type: attr(ph[0],'type') || 'obj', idx: attr(ph[0],'idx'), rawType: attr(ph[0],'type'),
-      box: off ? { x:+off[1]/EMU, y:+off[2]/EMU, w:+off[3]/EMU, h:+off[4]/EMU } : null });
+      box: off ? { x:+off[1]/EMU, y:+off[2]/EMU, w:+off[3]/EMU, h:+off[4]/EMU } : null,
+      anchor: attr(bp,'anchor'), align: attr(lv,'algn'), lnSpc: (lv.match(/<a:lnSpc>\s*<a:spcPct val="(\d+)"/)||[])[1] ? +(lv.match(/<a:lnSpc>\s*<a:spcPct val="(\d+)"/)[1])/100000 : null,
+      inset: [ins('lIns'), ins('tIns'), ins('rIns'), ins('bIns')], fill: fill ? fill[1] : null,
+      geom: (spPr.match(/<a:prstGeom prst="(\w+)"/)||[])[1] || null });
   }
   return out;
 }
@@ -160,6 +168,13 @@ async function loadTemplate(buf, cfg){
     return { path, name: (x.match(/<p:cSld\b[^>]*name="([^"]*)"/)||[])[1] || '', type: attr(tag,'type') || '', ph: placeholders(x) };
   });
   if(!layouts.length) throw new Error('not-pptx');
+  // Theme colors (for drawing the PDF)
+  const themeRel = readRels(files, master).find(r=>/\/theme$/.test(r.type));
+  const themeXml = themeRel ? T(resolve(master, themeRel.target)) : '';
+  const theme = {};
+  ['dk1','lt1','dk2','lt2','accent1','accent2','accent3','accent4','accent5','accent6','hlink','folHlink'].forEach(k=>{
+    const m = themeXml.match(new RegExp('<a:'+k+'>\\s*<a:(?:srgbClr val="([0-9A-Fa-f]{6})"|sysClr[^>]*lastClr="([0-9A-Fa-f]{6})")')); if(m) theme[k]=(m[1]||m[2]).toUpperCase(); });
+  const mx = T(master), mbg = mx.match(/<p:bg>[\s\S]*?<a:(?:schemeClr|srgbClr) val="(\w+)"/);
   const sz = pres.match(/<p:sldSz cx="(\d+)" cy="(\d+)"/);
   const W = sz ? +sz[1]/EMU : 13.333, H = sz ? +sz[2]/EMU : 7.5;
 
@@ -178,7 +193,12 @@ async function loadTemplate(buf, cfg){
   const area = cfg.area || (mb ? { x:mb.x, y:mb.y, w:mb.w, h:Math.min(mb.h, H-mb.y-0.6) } : { x:0.6, y:1.6, w:W-1.2, h:H-2.3 });
   // A placeholder's box, inherited from the master when the layout leaves it out
   const boxOf = (layout, p) => p.box || ((masterPh.find(m=>m.type===p.type) || masterPh.find(m=>m.idx!=null && m.idx===p.idx) || {}).box) || null;
-  return { files, layouts, L, area, W, H, boxOf, notesMaster: notesRel ? resolve('ppt/presentation.xml', notesRel.target) : null,
+  // Placeholder drawing settings, from the layout or else the master
+  const phInfo = (layout, p) => { const m = masterPh.find(x=>x.type===(p.type==='ctrTitle'?'title':p.type==='subTitle'||p.type==='obj'?'body':p.type)) || {};
+    const pick = k => p[k]!=null ? p[k] : m[k];
+    return { box: boxOf(layout,p), anchor: pick('anchor') || 't', align: pick('align') || 'l', lnSpc: pick('lnSpc') || (/title/i.test(p.type)?0.9:1),
+      inset: [0,1,2,3].map(i=> p.inset[i]!=null ? p.inset[i] : m.inset && m.inset[i]!=null ? m.inset[i] : (i%2?0.05:0.1)), fill: p.fill, geom: p.geom }; };
+  return { files, layouts, L, area, W, H, boxOf, phInfo, theme, bg: mbg ? mbg[1] : 'bg1', notesMaster: notesRel ? resolve('ppt/presentation.xml', notesRel.target) : null,
     bodyFont: cfg.bodyFont || '+mn-lt', headFont: cfg.headFont || '+mj-lt', badge: cfg.badge, titleInfo: cfg.titleInfo || null,
     titleFont: cfg.titleFont || '', confidential: cfg.confidential || null, footer: cfg.footer!==false, partColors: cfg.partColors || ['accent1','accent2','accent4','accent3','accent6','tx2'] };
 }
@@ -213,19 +233,21 @@ function paraXML(p, fonts, plain){
 }
 
 class SlideCtx {
-  constructor(tpl, layout){ this.tpl=tpl; this.layout=layout; this.id=1; this.shapes=[]; this.notes=''; this.fonts={ body:tpl.bodyFont, head:tpl.headFont }; }
+  constructor(tpl, layout){ this.tpl=tpl; this.layout=layout; this.id=1; this.shapes=[]; this.items=[]; this.notes=''; this.fonts={ body:tpl.bodyFont, head:tpl.headFont }; }
   P(list, plain){ return list.map(p=>paraXML(p, this.fonts, plain)).join(''); }
   ph(type, paras, opts={}){
     const lay = this.layout.ph;
     const p = typeof type==='function' ? lay.find(type) : lay.find(x=>x.type===type);
     if(!p) return null;
     const id=++this.id;
+    this.items.push({ kind:'ph', ph:p, info:this.tpl.phInfo(this.layout, p), paras });
     this.shapes.push(`<p:sp><p:nvSpPr><p:cNvPr id="${id}" name="${esc(opts.name||('Placeholder '+id))}"/><p:cNvSpPr><a:spLocks noGrp="1"/></p:cNvSpPr><p:nvPr><p:ph${p.rawType?` type="${p.rawType}"`:''}${p.idx!=null?` idx="${p.idx}"`:''}/></p:nvPr></p:nvSpPr><p:spPr/>`+
       `<p:txBody><a:bodyPr${opts.anchor?` anchor="${opts.anchor}"`:''}/><a:lstStyle/>${this.P(paras, true)}</p:txBody></p:sp>`);
     return p;
   }
   shape(o){ // {x,y,w,h, geom, adj, fill, line, lineW, paras, inset, anchor, name, shadow}
     const id=++this.id, ins=o.inset||[0.14,0.1,0.14,0.1];
+    this.items.push({ kind:'shape', o:{ ...o, inset:ins } });
     const geom = `<a:prstGeom prst="${o.geom||'rect'}"><a:avLst>${o.adj!=null?`<a:gd name="adj" fmla="val ${o.adj}"/>`:''}</a:avLst></a:prstGeom>`;
     const fill = o.fill ? `<a:solidFill>${clr(o.fill)}</a:solidFill>` : '<a:noFill/>';
     const ln = o.line ? `<a:ln w="${E(o.lineW||0.014)}"><a:solidFill>${clr(o.line)}</a:solidFill></a:ln>` : '<a:ln><a:noFill/></a:ln>';
@@ -235,6 +257,7 @@ class SlideCtx {
     this.shapes.push(`<p:sp><p:nvSpPr><p:cNvPr id="${id}" name="${esc(o.name||('Shape '+id))}"/><p:cNvSpPr${isText?' txBox="1"':''}/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x="${E(o.x)}" y="${E(o.y)}"/><a:ext cx="${E(o.w)}" cy="${E(o.h)}"/></a:xfrm>${geom}${fill}${ln}${fx}</p:spPr>${tx}</p:sp>`);
   }
   table(o){ // {x,y,w, cols:[w...], rows:[{cells:[paras[]], fill:[...], h}], name}
+    this.items.push({ kind:'table', o });
     const id=++this.id, cell=(paras, fill)=>`<a:tc><a:txBody><a:bodyPr/><a:lstStyle/>${this.P(paras.length?paras:[{runs:[{t:''}]}])}</a:txBody><a:tcPr marL="${E(0.1)}" marR="${E(0.1)}" marT="${E(0.06)}" marB="${E(0.06)}">`+
       ['lnL','lnR','lnT','lnB'].map(k=>`<a:${k} w="9525"><a:solidFill>${clr('bg1:line')}</a:solidFill></a:${k}>`).join('')+`<a:solidFill>${clr(fill||'bg1')}</a:solidFill></a:tcPr></a:tc>`;
     const H = o.rows.reduce((a,r)=>a+r.h,0);
@@ -487,23 +510,25 @@ function draw(ctx, b, x, y, w, toneIdx, sectionTone){
 
 /* ===== Building the deck ===== */
 function deidentify(d, mode){
-  const raw = S(d.patient), name = raw.split(/\s*[\/|]\s*/)[0].replace(/\s*,?\s*MRN\b.*$/i,'').trim();
-  const mrn = (raw.match(/MRN[:#\s]*([\w-]+)/i)||[])[1] || (raw.split(/\s*[\/|]\s*/)[1]||'').trim();
+  // Older records kept "Name / MRN" in one field; newer ones have a separate MRN
+  const raw = S(d.patient), legacy = !S(d.mrn) && /[\/|]|\bMRN\b/i.test(raw);
+  const name = (legacy ? raw.split(/\s*[\/|]\s*/)[0].replace(/\s*,?\s*MRN\b.*$/i,'') : raw).trim();
+  const mrn = S(d.mrn) || (legacy ? ((raw.match(/MRN[:#\s]*([\w-]+)/i)||[])[1] || (raw.split(/\s*[\/|]\s*/)[1]||'').trim()) : '');
   const ordered = /,/.test(name) ? name.split(/\s*,\s*/).reverse().join(' ') : name;
   const words = ordered.split(/\s+/).filter(w=>/^[A-Za-zÀ-ÿñÑ'.-]+$/.test(w) && !/^(jr|sr|ii|iii|iv|mr|mrs|ms|miss)\.?$/i.test(w));
   const initials = words.map(w=>w[0].toUpperCase()+'.').join('');
-  if(mode==='full') return { d, label: name || 'Patient' };
+  if(mode==='full') return { d: { ...d, patient:name, mrn }, label: name || 'Patient', mrn };
   const label = mode==='alias' ? 'Patient A' : (initials || 'Patient');
   const reEsc = s => s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
   const subs = [];
   if(ordered) subs.push(new RegExp(reEsc(ordered).replace(/\s+/g,'\\s+'),'gi'));
   if(name && name!==ordered) subs.push(new RegExp(reEsc(name).replace(/\s+/g,'\\s+'),'gi'));
   words.filter(w=>w.replace(/\./g,'').length>=3).forEach(w=>subs.push(new RegExp('\\b'+reEsc(w)+'\\b','g')));
-  if(mrn && mrn.length>=3) subs.push(new RegExp(reEsc(mrn),'g'));
+  if(mrn && mrn.length>=3) subs.push(new RegExp(reEsc(mrn).replace(/[\s-]+/g,'[\\s-]*'),'g'));
   const scrub = s => { let t=s; subs.forEach(re=>{ t=t.replace(re, label); }); return t.replace(new RegExp('('+reEsc(label)+')(\\s+'+reEsc(label)+')+','g'),'$1'); };
   const walk = v => typeof v==='string' ? scrub(v) : Array.isArray(v) ? v.map(walk) : v && typeof v==='object' ? Object.fromEntries(Object.entries(v).map(([k,x])=>[k,walk(x)])) : v;
-  const out = walk(d); out.patient = label;
-  return { d: out, label };
+  const out = walk(d); out.patient = label; out.mrn = '';
+  return { d: out, label, mrn:'' };
 }
 
 function mseRows(d, secs){
@@ -522,7 +547,7 @@ const longDate = dt => dt.toLocaleDateString('en-US',{ month:'long', day:'numeri
 /* Plan the deck: a list of slides { kind, title, blocks, notes, ... } */
 function plan(data, opts){
   const secs = opts.sections || (typeof SECTIONS!=='undefined' ? SECTIONS : []);
-  const { d, label } = deidentify(data, opts.patientAs||'initials');
+  const { d, label, mrn } = deidentify(data, opts.patientAs||'initials');
   const incl = id => !opts.include || opts.include.includes(id);
   const byId = Object.fromEntries(secs.map(s=>[s.id,s]));
   const has = s => s && s.fields.some(f=>filled(f,d));
@@ -543,7 +568,7 @@ function plan(data, opts){
   });
 
   slides.push({ kind:'title', title: S(opts.title)||'Case presentation', presenter, date: longDate(opts.date||new Date()),
-    info: [label, S(d.agesex), S(d.location)].filter(Boolean).join('  ·  '), attending: S(d.attending) });
+    info: [label, mrn && 'MRN '+mrn, S(d.agesex), S(d.location)].filter(Boolean).join('  ·  '), attending: S(d.attending) });
   if(opts.dividers && present.length>1) slides.push({ kind:'agenda', title:'Outline', items: present.map(p=>p.part) });
 
   present.forEach((p,pi)=>{
@@ -688,7 +713,7 @@ function renderSlide(tpl, sl, idx, total){
   }
   if(tpl.footer && (sl.kind==='content' || sl.kind==='agenda')) ctx.ph('ftr', H('Confidential patient information'));
   ctx.notes = sl.kind==='content' ? (sl.title.endsWith('(cont.)') ? '' : sl.notes||'') : '';
-  return { xml: ctx.xml(), layout: layout.path, notes: ctx.notes };
+  return { xml: ctx.xml(), layout: layout.path, notes: ctx.notes, items: ctx.items };
 }
 /* The colored circle beside the title, with the slide's letter on it. The circle is a placeholder of the
    layout, so the slide must include it to show it; the letter is a text box laid over the circle. */
@@ -758,7 +783,10 @@ async function generate(data, opts){
   const pages = paginate(tpl, slides);
   const rendered = pages.map((s,i)=>renderSlide(tpl, s, i, pages.length));
   const bytes = assemble(tpl, rendered, { notes: opts.notes!==false, title: (S(opts.title)||'Case presentation')+' – '+label, author: S(opts.presenter) });
-  return { bytes, label, count: pages.length };
+  // What the PDF needs to draw the same slides
+  const deck = { W:tpl.W, H:tpl.H, theme:tpl.theme, bg:tpl.bg, badgeIdx: tpl.badge ? tpl.badge.idx : null,
+    slides: rendered.map(r=>({ layout: r.layout.split('/').pop().replace(/\.xml$/,''), items: r.items })) };
+  return { bytes, label, count: pages.length, deck };
 }
 
 /* Sections that have something to show, for the options sheet */
@@ -771,6 +799,6 @@ function availableSections(d, secs){
   return out;
 }
 
-return { TEMPLATES, CASE_FORMAT, generate, availableSections, deidentify, _test:{ loadTemplate, plan, paginate, unzip } };
+return { TEMPLATES, CASE_FORMAT, generate, availableSections, deidentify, _test:{ loadTemplate, plan, paginate, unzip, assemble, zip } };
 })();
 if (typeof module !== 'undefined') module.exports = CaseSlides;

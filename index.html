@@ -268,11 +268,13 @@ textarea.big{min-height:180px}
 <body>
 <noscript>This app needs JavaScript turned on in Safari.</noscript>
 <script src="slides.js"></script>
+<script src="pdf.js"></script>
 <script>
 /* ---------- Template structure (mirrors the Integrated Psychiatry Resident Case + MSE Template) ---------- */
 const SECTIONS = [
   { id:'enc', num:'A', title:'Patient & encounter information', fields:[
-    {t:'text', id:'patient', label:'Patient / MRN'},
+    {t:'text', id:'patient', label:'Patient name', hint:'Surname, First name Middle initial. For example: Santos, Maria Clara R.'},
+    {t:'text', id:'mrn', label:'MRN / hospital no.', hint:'As written on the chart. Spaces and dashes are ignored when the app matches records of the same patient.'},
     {t:'text', id:'datetime', label:'Date / time'},
     {t:'text', id:'agesex', label:'Age / sex'},
     {t:'text', id:'location', label:'Location / unit'},
@@ -466,7 +468,8 @@ if (typeof module !== 'undefined') module.exports = { SECTIONS, REMINDERS, isFil
 /* ---------- Progress note structure (SOAP). Field ids match the case template where the meaning is the same. ---------- */
 const PN_SECTIONS = [
   { id:'pnInfo', num:'A', title:'Patient & note information', fields:[
-    {t:'text', id:'patient', label:'Patient / MRN'},
+    {t:'text', id:'patient', label:'Patient name', hint:'Surname, First name Middle initial. For example: Santos, Maria Clara R.'},
+    {t:'text', id:'mrn', label:'MRN / hospital no.', hint:'As written on the chart. Spaces and dashes are ignored when the app matches records of the same patient.'},
     {t:'text', id:'datetime', label:'Note date / time'},
     {t:'text', id:'agesex', label:'Age / sex'},
     {t:'text', id:'location', label:'Location / unit'},
@@ -556,7 +559,7 @@ const SAFETY_CHIPS = ['Suicidal ideation','Homicidal / violent ideation','NSSI']
 /* Build a new progress note from a case or an earlier progress note */
 function progressFromSource(src, srcKind, now, author){
   const d = { datetime: now.toLocaleString('en-US',{dateStyle:'medium',timeStyle:'short'}), author: author || str(src.author) || str(src.interviewer) || '' };
-  ['patient','agesex','location','attending','primaryDx','differential','otherDx'].forEach(k=>{ if(str(src[k])) d[k]=src[k]; });
+  ['patient','mrn','agesex','location','attending','primaryDx','differential','otherDx'].forEach(k=>{ if(str(src[k])) d[k]=src[k]; });
   d.admitDate = srcKind==='case' ? str(src.datetime).replace(/,?\s*\d{1,2}:\d{2}.*$/,'') : str(src.admitDate);
   const ad = parseLooseDate(d.admitDate);
   if(ad){ const today=new Date(now.getFullYear(),now.getMonth(),now.getDate()); const n=Math.round((today-ad)/86400000)+1; if(n>=1 && n<1000) d.hday=String(n); }
@@ -577,7 +580,8 @@ if (typeof module !== 'undefined') module.exports = { PN_SECTIONS, SCHEMAS, pars
 /* ---------- Discharge summary structure ---------- */
 const DC_SECTIONS = [
   { id:'dcInfo', num:'A', title:'Patient & admission information', fields:[
-    {t:'text', id:'patient', label:'Patient / MRN'},
+    {t:'text', id:'patient', label:'Patient name', hint:'Surname, First name Middle initial. For example: Santos, Maria Clara R.'},
+    {t:'text', id:'mrn', label:'MRN / hospital no.', hint:'As written on the chart. Spaces and dashes are ignored when the app matches records of the same patient.'},
     {t:'text', id:'agesex', label:'Age / sex'},
     {t:'text', id:'location', label:'Location / unit'},
     {t:'text', id:'admitDate', label:'Admission date'},
@@ -640,7 +644,7 @@ function dischargeFromSources(caseD, pns, now, author){
   const c = caseD || {};
   const pickv = k => (last && str(last[k])) ? last[k] : (str(c[k]) ? c[k] : '');
   const d = { author: author || (last && str(last.author)) || str(c.interviewer) || '' };
-  ['patient','agesex','location','attending'].forEach(k=>{ const v=pickv(k); if(v) d[k]=v; });
+  ['patient','mrn','agesex','location','attending'].forEach(k=>{ const v=pickv(k); if(v) d[k]=v; });
   d.admitDate = (last && str(last.admitDate)) || str(c.datetime).replace(/,?\s*\d{1,2}:\d{2}.*$/,'');
   d.dischargeDate = shortDate(now);
   d.los = daysBetween(d.admitDate, d.dischargeDate);
@@ -756,6 +760,19 @@ function signersOf(d){
   if(str(d.attName)) s.push({name:str(d.attName), title:str(d.attTitle)||'Attending Physician', lic:str(d.attLic)});
   return s;
 }
+/* Records from before the name and MRN had separate fields kept both in "Name / MRN" */
+function splitLegacyPatient(d){
+  if(!d || typeof d!=='object' || str(d.mrn) || !/[\/|]|\bMRN\b/i.test(str(d.patient))) return d;
+  const sp=splitPatient(d.patient); d.patient=sp.name; if(sp.mrn) d.mrn=sp.mrn; return d;
+}
+const normMRN = s => str(s).toUpperCase().replace(/[^A-Z0-9]/g,'');
+/* Same patient: the MRN decides when both records have one; otherwise the name, in any word order */
+function samePt(a, b){
+  a=a||{}; b=b||{};
+  const ma=normMRN(a.mrn), mb=normMRN(b.mrn); if(ma && mb) return ma===mb;
+  const n = x => str(x).toLowerCase().replace(/[^a-z0-9ñ]+/g,' ').trim().split(' ').filter(Boolean).sort().join(' ');
+  return !!n(a.patient) && n(a.patient)===n(b.patient);
+}
 function splitPatient(p){ const parts=str(p).split(/\s*[\/|]\s*/); const name=parts[0].replace(/\s+MRN\b.*$/i,'').trim(); const m=str(p).match(/MRN[:#\s]*([\w-]+)/i); return { name, mrn: m?m[1]:(parts[1]||'').trim() }; }
 function splitAgeSex(s){ const as=str(s).split(/\s*[\/,]\s*/); const out={}; if(as[0]) out.age=as[0].replace(/\s*(y\/?o|yrs?|years? old)\.?$/i,'').trim(); const sx=(as[1]||'').toLowerCase(); if(/^m/.test(sx)) out.sex='Male'; else if(/^f/.test(sx)) out.sex='Female'; return out; }
 
@@ -866,7 +883,7 @@ function abstractFromSources(dc, cs, pn, now, last){
   const pt = splitPatient(any.patient);
   const d = { dateIssued: shortDate(now), instName:last.instName||'', instDept:last.instDept||'Department of Psychiatry', instAddress:last.instAddress||'',
     resTitle:last.resTitle||'Resident Physician', attTitle:last.attTitle||'Attending Physician',
-    patientName:pt.name, mrn:pt.mrn, ...splitAgeSex(first(dc&&dc.agesex, pn&&pn.agesex, cs&&cs.agesex)) };
+    patientName:pt.name, mrn:str(any.mrn)||pt.mrn, ...splitAgeSex(first(dc&&dc.agesex, pn&&pn.agesex, cs&&cs.agesex)) };
   if(cs && str(cs.marital)) d.civil = cs.marital;
   d.ward = first(dc&&dc.location, pn&&pn.location, cs&&cs.location);
   const dateOnly = s => str(s).replace(/,?\s*\d{1,2}:\d{2}.*$/,'');
@@ -971,7 +988,7 @@ function hdOn(admitDate, day){ const a=parseLooseDate(admitDate); if(!a) return 
 function handoverRow(src, kind, recId, now){
   const admit = kind==='pn' ? str(src.admitDate) : str(src.datetime).replace(/,?\s*\d{1,2}:\d{2}.*$/,'');
   const risk = [src.suicideRisk&&'Suicide: '+src.suicideRisk, src.violenceRisk&&'Violence: '+src.violenceRisk, str(src.obs)&&'Obs: '+str(src.obs)].filter(Boolean).join('. ');
-  return { key:recId||'', patient:str(src.patient), agesex:str(src.agesex), ward:str(src.location), admitDate:admit, hday:hdOn(admit, now) || str(src.hday),
+  return { key:recId||'', patient:str(src.patient), mrn:str(src.mrn), agesex:str(src.agesex), ward:str(src.location), admitDate:admit, hday:hdOn(admit, now) || str(src.hday),
     dx:str(src.primaryDx), risk, meds:medsCompact(src.meds), pending:'', watch:'', overnight:'' };
 }
 
@@ -979,19 +996,19 @@ function handoverRow(src, kind, recId, now){
 function handoverPages(d){
   const rows = d.rows||[]; if(!rows.length) return 0;
   const lineTw=190, padTw=150, minRow=900, firstPage=8300, otherPage=9500;
-  const cellText = (r,c) => c.k==='patient' ? [r.patient, [r.agesex,r.ward].filter(str).join(' | '), [r.hday&&'HD '+r.hday, r.admitDate&&'Adm. '+r.admitDate].filter(Boolean).join(' | ')].filter(str).join('\n') : str(r[c.k]);
+  const cellText = (r,c) => c.k==='patient' ? [[r.patient, str(r.mrn)&&'MRN '+str(r.mrn)].filter(str).join('  '), [r.agesex,r.ward].filter(str).join(' | '), [r.hday&&'HD '+r.hday, r.admitDate&&'Adm. '+r.admitDate].filter(Boolean).join(' | ')].filter(str).join('\n') : str(r[c.k]);
   const h = rows.map(r=>{ let lines=1; HO_COLS.forEach(c=>{ const per=Math.max(8, Math.floor((c.w-220)/80)); const n=cellText(r,c).split('\n').reduce((a,l)=>a+Math.max(1,Math.ceil(l.length/per)),0); lines=Math.max(lines,n); }); return Math.max(minRow, lines*lineTw+padTw); });
   let pages=1, used=0, cap=firstPage; h.forEach(x=>{ if(used+x>cap){ pages++; used=x; cap=otherPage; } else used+=x; });
   return pages;
 }
-const hoPatientCell = r => [str(r.patient), [str(r.agesex), str(r.ward)].filter(Boolean).join(' | '), [str(r.hday)&&'HD '+str(r.hday), str(r.admitDate)&&'Adm. '+str(r.admitDate)].filter(Boolean).join(' | ')];
+const hoPatientCell = r => [[str(r.patient), str(r.mrn)&&'MRN '+str(r.mrn)].filter(Boolean).join('  '), [str(r.agesex), str(r.ward)].filter(Boolean).join(' | '), [str(r.hday)&&'HD '+str(r.hday), str(r.admitDate)&&'Adm. '+str(r.admitDate)].filter(Boolean).join(' | ')];
 
 /* A morning progress note from a handover row (and the patient's latest record, if this iPad has it) */
 function progressFromHandover(row, ho, src, srcKind, now, author){
   let built;
   if(src) built = progressFromSource(src, srcKind, now, author);
   else {
-    const d = { datetime: now.toLocaleString('en-US',{dateStyle:'medium',timeStyle:'short'}), author: author||'', patient:row.patient, agesex:row.agesex, location:row.ward, admitDate:row.admitDate, primaryDx:row.dx, meds:medsFromCompact(row.meds) };
+    const d = { datetime: now.toLocaleString('en-US',{dateStyle:'medium',timeStyle:'short'}), author: author||'', patient:row.patient, mrn:str(row.mrn), agesex:row.agesex, location:row.ward, admitDate:row.admitDate, primaryDx:row.dx, meds:medsFromCompact(row.meds) };
     d.hday = hdOn(row.admitDate, now);
     if(!d.hday && /^\d+$/.test(str(row.hday))){ const hd=parseLooseDate(ho.hoDate); d.hday = String(+row.hday + (hd ? Math.max(0,Math.round((new Date(now.getFullYear(),now.getMonth(),now.getDate())-hd)/86400000)) : 1)); }
     const m1=str(row.risk).match(/suicide[^:]*:\s*(low|moderate|high)/i), m2=str(row.risk).match(/violence[^:]*:\s*(low|moderate|high)/i);
@@ -1220,8 +1237,8 @@ const DocxGen = (() => {
     const body=[];
     body.push(para({style:'Title', runs:[{text:sch.title}]}));
     const sub = (kind==='dc'
-      ? [str(d.patient), str(d.admitDate)&&'Admitted '+str(d.admitDate), str(d.dischargeDate)&&'Discharged '+str(d.dischargeDate)]
-      : [str(d.patient), str(d.datetime), (kind==='pn' && str(d.hday)) ? 'Hospital day '+str(d.hday) : '']).filter(Boolean).join('  |  ');
+      ? [str(d.patient), str(d.mrn)&&'MRN '+str(d.mrn), str(d.admitDate)&&'Admitted '+str(d.admitDate), str(d.dischargeDate)&&'Discharged '+str(d.dischargeDate)]
+      : [str(d.patient), str(d.mrn)&&'MRN '+str(d.mrn), str(d.datetime), (kind==='pn' && str(d.hday)) ? 'Hospital day '+str(d.hday) : '']).filter(Boolean).join('  |  ');
     if(sub) body.push(para({align:'center', after:200, runs:[{text:sub, color:C.grey, sz:20}]}));
     let lastGroup = null;
     sch.sections.forEach(s=>{
@@ -1557,6 +1574,7 @@ const DocxImport = (() => {
     let data; try{ data = JSON.parse(json); }catch(e){ return null; }
     let edited = false;
     try{ const docXml = await readPart(buf, 'word/document.xml'); edited = !!props.CaseAppPrint && DocxGen.textPrint(docXml)!==props.CaseAppPrint; }catch(e){}
+    splitLegacyPatient(data); (data.rows||[]).forEach(splitLegacyPatient);
     return { kind:props.CaseAppKind, data, filled:Object.keys(data).length, missed:[], edited };
   }
   /* Handover: read the printed table (it may have been typed into in Word); the hidden copy supplies what the table doesn't show */
@@ -1569,11 +1587,12 @@ const DocxImport = (() => {
     const old = base.rows || [], used = new Set();
     const rows = tbl.slice(1).filter(r=>r.some(c=>c.trim())).map((cells, i)=>{
       const lines = cells[0].split('\n').map(x=>x.trim()).filter(Boolean);
-      const name = lines[0]||'';
-      let prev = old.findIndex((o,j)=>!used.has(j) && norm(o.patient)===norm(name)); if(prev<0 && old[i] && !used.has(i)) prev=i;
+      const first = lines[0]||'', mm = first.match(/^(.*?)\s+MRN[:#\s]*(\S+)\s*$/i);
+      const name = mm ? mm[1].trim() : first, mrn = mm ? mm[2] : '';
+      let prev = old.findIndex((o,j)=>!used.has(j) && samePt(o, {patient:name, mrn})); if(prev<0 && old[i] && !used.has(i)) prev=i;
       const r = prev>=0 ? {...old[prev]} : {key:'', agesex:'', ward:'', hday:'', admitDate:''};
       if(prev>=0) used.add(prev);
-      r.patient = name;
+      r.patient = name; if(mrn) r.mrn = mrn;
       if(prev<0){
         const l2=(lines[1]||'').split(/\s*\|\s*/), l3=lines[2]||'';
         l2.forEach(x=>{ if(/^\d+\s*\/\s*[a-z]/i.test(x)) r.agesex=x; else if(x) r.ward=x; });
@@ -1631,6 +1650,7 @@ const DocxImport = (() => {
       }
       rows.forEach(r=>{
         if(r.length<2) return;
+        if(norm(r[0])==='patient / mrn'){ const v=r.slice(1).join(' ').trim(); if(v){ const sp=splitPatient(v); d.patient=sp.name; if(sp.mrn) d.mrn=sp.mrn; filled++; } return; }
         const f=findField(r[0]); const val=r.slice(1).join('\n').trim();
         if(!f){ if(val) miss.push((r[0]||'(no label)')+': '+val); return; }
         if(!val) return;
@@ -1640,6 +1660,7 @@ const DocxImport = (() => {
     const walk = n => { for(const c of n.childNodes){ if(c.nodeType!==1||c.namespaceURI!==NS) continue;
       if(c.localName==='p') handleP(c); else if(c.localName==='tbl') handleTbl(c); else if(c.localName==='sdt'||c.localName==='sdtContent') walk(c); } };
     walk(body);
+    splitLegacyPatient(d);
     return { kind, data:d, filled, missed:miss };
   }
   return { fileToData };
@@ -1658,7 +1679,7 @@ const DocxImport = (() => {
   let cur = null, secIdx = 0, saveTimer = null;
 
   function load(){
-    try{ const s = JSON.parse(localStorage.getItem(KEY)); if(s && s.cases){ Object.values(s.cases).forEach(c=>{ c.kind=c.kind||'case'; }); s.last=s.last||{}; return s; } }catch(e){}
+    try{ const s = JSON.parse(localStorage.getItem(KEY)); if(s && s.cases){ Object.values(s.cases).forEach(c=>{ c.kind=c.kind||'case'; splitLegacyPatient(c.data); ((c.data||{}).rows||[]).forEach(splitLegacyPatient); }); s.last=s.last||{}; return s; } }catch(e){}
     return {cases:{}, last:{}};
   }
   function persist(){
@@ -1676,7 +1697,6 @@ const DocxImport = (() => {
   const progress = rec => SECS(rec).filter(s=>sectionStarted(s,rec.data)).length;
   const recTitle = rec => rec.kind==='ho' ? ((str(rec.data.unit)||'On-call handover')+', '+(rec.data.rows||[]).length+' patient'+((rec.data.rows||[]).length===1?'':'s')) : str(rec.data.patient) || str(rec.data.patientName) || ('Untitled '+SCHEMAS[rec.kind].name.toLowerCase());
   const recKind = rec => rec.kind==='pn' ? ('Progress note'+(str(rec.data.hday)?', hospital day '+str(rec.data.hday):'')) : rec.kind==='dc' ? ('Discharge summary'+(str(rec.data.dischargeDate)?', '+str(rec.data.dischargeDate):'')) : rec.kind==='mc' ? ('Medical certificate'+(str(rec.data.certDate)?', '+str(rec.data.certDate):'')) : rec.kind==='ca' ? ('Clinical abstract'+(str(rec.data.dateIssued)?', '+str(rec.data.dateIssued):'')) : rec.kind==='ho' ? ('Handover sheet'+(str(rec.data.hoDate)?', '+str(rec.data.hoDate):'')) : rec.kind==='sp' ? ('Safety plan'+(str(rec.data.spDate)?', '+str(rec.data.spDate):'')) : 'Case';
-  const samePt = (a,b) => !!str(a) && str(a).toLowerCase().replace(/\s+/g,' ')===str(b).toLowerCase().replace(/\s+/g,' ');
 
   function sheet(html, onReady, cls){
     const s=document.createElement('div'); s.className='scrim';
@@ -1717,7 +1737,7 @@ const DocxImport = (() => {
           const n=SECS(c).length, p=progress(c), pct=Math.round(p/n*100);
           return `<li><button class="open" data-open="${c.id}">
             <span class="who"><span class="kind ${c.kind}">${h(recKind(c))}</span><strong>${h(recTitle(c))}</strong>
-            <span>${h(str(c.data.datetime))}${str(c.data.datetime)?'. ':''}Edited ${h(when(c.updated))}</span></span>
+            <span>${str(c.data.mrn)?'MRN '+h(str(c.data.mrn))+'. ':''}${h(str(c.data.datetime))}${str(c.data.datetime)?'. ':''}Edited ${h(when(c.updated))}</span></span>
             <span class="meter">${p} of ${n} sections<i><b style="width:${pct}%"></b></i></span></button></li>`;}).join('')}</ul>`
           : `<p class="empty">Nothing here yet. Tap <strong>New case</strong> to start an interview, or <strong>Open Word file</strong> to continue one you exported.</p>`}
         <div class="privacy"><strong>Where your data lives.</strong> Records are saved only in this app on this iPad; nothing is uploaded anywhere. Export the Word file to your hospital's approved storage, then delete the record here.</div>
@@ -1797,7 +1817,7 @@ const DocxImport = (() => {
     (s,close)=>{
       s.querySelectorAll('[data-src]').forEach(b=>b.onclick=()=>{
         close(); const pick=store.cases[b.dataset.src], pt=pick.data.patient;
-        const same = Object.values(store.cases).filter(c=>c.id===pick.id || samePt(c.data.patient, pt));
+        const same = Object.values(store.cases).filter(c=>c.id===pick.id || samePt(c.data, pick.data));
         const cs = pick.kind==='case' ? pick : same.filter(c=>c.kind==='case').sort((a,b)=>b.updated-a.updated)[0];
         const pns = same.filter(c=>c.kind==='pn').map(c=>c.data);
         createDischarge(cs?cs.data:null, pns, 'this iPad');
@@ -1859,7 +1879,7 @@ const DocxImport = (() => {
     (s,close)=>{
       s.querySelectorAll('[data-src]').forEach(b=>b.onclick=()=>{
         close(); const pick=store.cases[b.dataset.src];
-        const same = Object.values(store.cases).filter(c=>c.kind in ORDER && (c.id===pick.id || samePt(c.data.patient, pick.data.patient)));
+        const same = Object.values(store.cases).filter(c=>c.kind in ORDER && (c.id===pick.id || samePt(c.data, pick.data)));
         const get = k => pick.kind===k ? pick : newest(same, k);
         const dc=get('dc'), cs=get('case'), pn=get('pn');
         const used=[cs&&'case', pn&&'progress note', dc&&'discharge summary'].filter(Boolean);
@@ -1909,7 +1929,7 @@ const DocxImport = (() => {
     (s,close)=>{
       s.querySelectorAll('[data-src]').forEach(b=>b.onclick=()=>{
         close(); const pick=store.cases[b.dataset.src];
-        const same = Object.values(store.cases).filter(c=>c.kind in ORDER && (c.id===pick.id || samePt(c.data.patient, pick.data.patient)));
+        const same = Object.values(store.cases).filter(c=>c.kind in ORDER && (c.id===pick.id || samePt(c.data, pick.data)));
         const recs = ['dc','pn','case'].map(k=> pick.kind===k ? pick : newest(same,k)).filter(Boolean);
         createSafety(recs, recTitle(pick));
       });
@@ -1951,12 +1971,12 @@ const DocxImport = (() => {
   function patientGroups(){
     const groups = [];
     Object.values(store.cases).filter(c=>['case','pn','dc'].includes(c.kind) && str(c.data.patient)).forEach(c=>{
-      let g = groups.find(g=>samePt(g.patient, c.data.patient)); if(!g){ g={patient:c.data.patient, recs:[]}; groups.push(g); } g.recs.push(c); });
+      let g = groups.find(g=>g.recs.some(x=>samePt(x.data, c.data))); if(!g){ g={patient:c.data.patient, mrn:str(c.data.mrn), recs:[]}; groups.push(g); } g.recs.push(c); if(!g.mrn && str(c.data.mrn)) g.mrn=str(c.data.mrn); });
     return groups.map(g=>{
       const latest = newest(g.recs,'pn') || newest(g.recs,'case');
       const discharged = g.recs.some(c=>c.kind==='dc');
       const outpatient = !g.recs.some(c=>c.kind==='pn') && latest && latest.kind==='case' && latest.data.loc==='Outpatient';
-      return {patient:g.patient, latest, active: !!latest && !discharged && !outpatient};
+      return {patient:g.patient, mrn:g.mrn, latest, active: !!latest && !discharged && !outpatient};
     });
   }
   const byWard = (a,b) => str(a.ward).localeCompare(str(b.ward), undefined, {numeric:true}) || str(a.patient).localeCompare(str(b.patient));
@@ -1970,13 +1990,13 @@ const DocxImport = (() => {
   }
   function addPatientSheet(){
     const d=D(), have=d.rows||[];
-    const opts = patientGroups().filter(g=>g.latest && !have.some(r=>samePt(r.patient,g.patient)));
+    const opts = patientGroups().filter(g=>g.latest && !have.some(r=>samePt(r,g)));
     sheet(`<h3>Add patients</h3>
-      ${opts.length?`<p>Patients on this iPad not yet on the sheet. Discharged patients are marked.</p><ul class="pick checks">${opts.map((g,i)=>`<li><label><input type="checkbox" data-gi="${i}" ${g.active?'checked':''}><span><strong>${h(g.patient)}</strong><span>${h(recKind(g.latest))}${g.active?'':'. Discharged or outpatient'}</span></span></label></li>`).join('')}</ul>`:'<p>Every patient on this iPad is already on the sheet.</p>'}
+      ${opts.length?`<p>Patients on this iPad not yet on the sheet. Discharged patients are marked.</p><ul class="pick checks">${opts.map((g,i)=>`<li><label><input type="checkbox" data-gi="${i}" ${g.active?'checked':''}><span><strong>${h(g.patient)}</strong><span>${g.mrn?'MRN '+h(g.mrn)+'. ':''}${h(recKind(g.latest))}${g.active?'':'. Discharged or outpatient'}</span></span></label></li>`).join('')}</ul>`:'<p>Every patient on this iPad is already on the sheet.</p>'}
       <div class="tools">${opts.length?'<button class="btn primary" data-add>Add selected</button>':''}<button class="btn" data-blankrow>Add a patient not on this iPad</button><button class="btn quiet" data-close>Cancel</button></div>`,
     (s,close)=>{
       const add=s.querySelector('[data-add]'); if(add) add.onclick=()=>{ const now=new Date(); s.querySelectorAll('[data-gi]:checked').forEach(cb=>{ const g=opts[+cb.dataset.gi]; d.rows.push(handoverRow(g.latest.data, g.latest.kind, g.latest.id, now)); }); close(); touch(); renderSection(); };
-      s.querySelector('[data-blankrow]').onclick=()=>{ d.rows.push({key:'',patient:'',agesex:'',ward:'',hday:'',admitDate:'',dx:'',risk:'',meds:'',pending:'',watch:'',overnight:''}); close(); touch(); renderSection(); setTimeout(()=>{ const els=document.querySelectorAll('[data-rk="patient"]'); if(els.length) els[els.length-1].focus(); },50); };
+      s.querySelector('[data-blankrow]').onclick=()=>{ d.rows.push({key:'',patient:'',mrn:'',agesex:'',ward:'',hday:'',admitDate:'',dx:'',risk:'',meds:'',pending:'',watch:'',overnight:''}); close(); touch(); renderSection(); setTimeout(()=>{ const els=document.querySelectorAll('[data-rk="patient"]'); if(els.length) els[els.length-1].focus(); },50); };
       s.querySelector('[data-close]').onclick=close;
     });
   }
@@ -1984,7 +2004,7 @@ const DocxImport = (() => {
     const n=handoverPages(d); if(!n) return '';
     return `<p class="fit ${n>1?'over':''}" id="fit">${n===1?'Fits on one printed page.':'About '+n+' printed pages. Shorten entries or split the list to fit one page.'}</p>`;
   }
-  const HO_FIELDS = [['patient','Patient / MRN','text'],['agesex','Age / sex','text'],['ward','Ward / bed','text'],['hday','Hospital day','text'],['admitDate','Admission date','text'],
+  const HO_FIELDS = [['patient','Patient name','text'],['mrn','MRN / hospital no.','text'],['agesex','Age / sex','text'],['ward','Ward / bed','text'],['hday','Hospital day','text'],['admitDate','Admission date','text'],
     ['dx','Diagnosis','area'],['risk','Risk','area','Suicide / violence risk, observation level'],['meds','Current meds','area','Name and dose; separate with semicolons'],
     ['pending','Pending labs / results','area'],['watch','Watch overnight / to do','area','What could go wrong, and what to do'],['overnight','Overnight events','area','Filled in by the on-call resident']];
   function patientsHTML(d){
@@ -2022,7 +2042,7 @@ const DocxImport = (() => {
     picks.forEach(i=>{
       const row=ho.rows[i];
       let src = row.key && store.cases[row.key];
-      const g = patientGroups().find(g=>samePt(g.patient,row.patient)); if(g && g.latest) src = g.latest;
+      const g = patientGroups().find(g=>samePt(g,row)); if(g && g.latest) src = g.latest;
       const built = progressFromHandover(row, ho, src?src.data:null, src?src.kind:null, now, store.last.interviewer);
       built.data.author = built.data.author || store.last.interviewer || '';
       const id=newId();
@@ -2268,13 +2288,18 @@ const DocxImport = (() => {
     if(!avail.length){ toast('Nothing to present yet. Fill in the case first.'); return; }
     const P = store.last.pres || {}, T = CaseSlides.TEMPLATES;
     const st = { tpl: T.some(t=>t.id===P.tpl) ? P.tpl : T[0].id, mode: ['initials','alias','full'].includes(P.mode) ? P.mode : 'initials',
-      dividers: P.dividers!==false, notes: P.notes!==false, include: new Set(avail.map(s=>s.id)) };
+      dividers: P.dividers!==false, notes: P.notes!==false, include: new Set(avail.map(s=>s.id)), fmt: ['pptx','pdf','key'].includes(P.fmt) ? P.fmt : 'pptx' };
+    const FMT = {
+      pptx:{ label:'PowerPoint', go:'Create PowerPoint', hint:'Opens in PowerPoint, Keynote, or Google Slides, where you can edit it.' },
+      pdf: { label:'PDF', go:'Create PDF', hint:'Ready to present or send; it cannot be edited. Speaker notes are not included, and the text cannot be selected.' },
+      key: { label:'Keynote', go:'Create for Keynote', hint:'Keynote turns the slides into a Keynote presentation on this iPad. After you tap Share, choose Keynote (tap More if you do not see it). Keynote may swap fonts it does not have.' } };
     const initials = CaseSlides.deidentify(d,'initials').label;
     const title = str(rec.presTitle) || str(d.primaryDx).split(/\n/)[0].slice(0,90) || 'Case presentation';
     const presenter = str(d.interviewer) || str(store.last.interviewer);
     const modes = [['initials','Initials ('+initials+')'],['alias','“Patient A”'],['full','Full name']];
     sheet(`<h3>Case presentation</h3>
-      <p class="small">Makes a PowerPoint file from this case, in the order of the case file. Slides show the entries in short blocks; the full text you typed goes into the speaker notes. It opens in PowerPoint, Keynote, or Google Slides for editing.</p>
+      <p class="small">Makes slides from this case, in the order of the case file. Slides show the entries in short blocks; the full text you typed goes into the speaker notes.</p>
+      <div class="field"><span class="lab" id="l-pf">Save as</span><span class="hint" id="pfhint">${h(FMT[st.fmt].hint)}</span><div class="seg" role="group" aria-labelledby="l-pf">${Object.entries(FMT).map(([k,f])=>`<button data-pf="${k}" aria-pressed="${k===st.fmt}">${h(f.label)}</button>`).join('')}</div></div>
       <div class="field"><span class="lab" id="l-pt">Slide design</span>${T.length>1?'':'<span class="hint">More designs can be added later.</span>'}<div class="seg" role="group" aria-labelledby="l-pt">${T.map(t=>`<button data-pt="${h(t.id)}" aria-pressed="${t.id===st.tpl}">${h(t.name)}</button>`).join('')}</div></div>
       <div class="field"><label class="lab" for="ptitle">Title</label><input type="text" id="ptitle" value="${h(title)}" autocomplete="off"></div>
       <div class="field"><label class="lab" for="ppres">Presenter</label><input type="text" id="ppres" value="${h(presenter)}" autocomplete="off"></div>
@@ -2285,7 +2310,7 @@ const DocxImport = (() => {
         <div class="chips" role="group" aria-labelledby="l-ps">${avail.map(s=>`<button class="chip" data-ps="${h(s.id)}" aria-pressed="true">${h(s.num)}. ${h(s.title)}</button>`).join('')}</div></div>
       <div class="field"><span class="lab" id="l-px">Also include</span>
         <div class="chips" role="group" aria-labelledby="l-px"><button class="chip" data-px="dividers" aria-pressed="${st.dividers}">Outline and part dividers</button><button class="chip" data-px="notes" aria-pressed="${st.notes}">Full text in speaker notes</button></div></div>
-      <div class="tools"><button class="btn primary" id="pgo">Create PowerPoint</button><button class="btn quiet" data-close>Cancel</button></div>`,
+      <div class="tools" id="ptools"><button class="btn primary" id="pgo">${h(FMT[st.fmt].go)}</button><button class="btn quiet" data-close>Cancel</button></div>`,
     (s, close)=>{
       s.querySelector('[data-close]').onclick=close;
       s.addEventListener('click', e=>{
@@ -2294,24 +2319,37 @@ const DocxImport = (() => {
         else if(b.dataset.pm){ st.mode=b.dataset.pm; s.querySelectorAll('[data-pm]').forEach(x=>x.setAttribute('aria-pressed', x===b)); s.querySelector('#pmwarn').hidden = st.mode!=='full'; }
         else if(b.dataset.ps){ const id=b.dataset.ps, on=!st.include.has(id); on?st.include.add(id):st.include.delete(id); b.setAttribute('aria-pressed', on); }
         else if(b.dataset.px){ const k=b.dataset.px; st[k]=!st[k]; b.setAttribute('aria-pressed', st[k]); }
+        else if(b.dataset.pf){ st.fmt=b.dataset.pf; s.querySelectorAll('[data-pf]').forEach(x=>x.setAttribute('aria-pressed', x===b)); s.querySelector('#pfhint').textContent=FMT[st.fmt].hint; const g=s.querySelector('#pgo'); if(g && !g.disabled) g.textContent=FMT[st.fmt].go; }
       });
       const go=s.querySelector('#pgo');
       go.onclick = async ()=>{
         if(!st.include.size){ toast('Choose at least one section.'); return; }
         const t=T.find(x=>x.id===st.tpl), ttl=str(s.querySelector('#ptitle').value)||'Case presentation', pres=str(s.querySelector('#ppres').value);
         rec.presTitle = ttl===title && !str(rec.presTitle) ? '' : ttl;
-        store.last.pres = { tpl:st.tpl, mode:st.mode, dividers:st.dividers, notes:st.notes }; persist();
+        store.last.pres = { tpl:st.tpl, mode:st.mode, dividers:st.dividers, notes:st.notes, fmt:st.fmt }; persist();
+        const fmt=st.fmt;
         go.disabled=true; go.textContent='Creating…';
         try{
           const out = await CaseSlides.generate(D(), { template: await templateBytes(t), templateCfg:t, title:ttl, presenter:pres, patientAs:st.mode,
             dividers:st.dividers, notes:st.notes, include:avail.map(x=>x.id).filter(id=>st.include.has(id)) });
           const base = String(out.label).replace(/\./g,'').replace(/[^\w\- ]+/g,' ').trim().replace(/\s+/g,'_').slice(0,40) || 'Patient';
-          const name = `${base}_Case_presentation_${new Date().toISOString().slice(0,10)}.pptx`;
-          close();
-          await saveFile(out.bytes, name, 'application/vnd.openxmlformats-officedocument.presentationml.presentation', `PowerPoint created: ${out.count} slides`);
+          const stem = `${base}_Case_presentation_${new Date().toISOString().slice(0,10)}`;
+          let file;
+          if(fmt==='pdf'){
+            if(!t.pdf) throw new Error('no-pdf');
+            const bytes = await CasePDF.render(out.deck, { backgrounds:t.pdf.backgrounds, fonts:'fonts/', title:ttl,
+              onProgress:(i,n)=>{ go.textContent=`Drawing slide ${i} of ${n}…`; } });
+            file = { bytes, name:stem+'.pdf', type:'application/pdf', what:'PDF' };
+          } else file = { bytes:out.bytes, name:stem+'.pptx', type:'application/vnd.openxmlformats-officedocument.presentationml.presentation', what: fmt==='key' ? 'Slides for Keynote' : 'PowerPoint' };
+          // Sharing needs a fresh tap on the iPad, so the file waits for one
+          const tools = s.querySelector('#ptools');
+          tools.innerHTML = `<p class="small" style="flex-basis:100%;margin:0 0 6px"><strong>${h(file.what)} ready: ${out.count} slides.</strong> ${fmt==='key'?'Tap Share, then choose <strong>Keynote</strong>. Keynote converts the slides and keeps them as a Keynote presentation.':'Tap Share to save it to Files, AirDrop it, or open it in another app.'}</p><button class="btn primary" id="pshare">Share</button><button class="btn quiet" data-close>Done</button>`;
+          tools.querySelector('[data-close]').onclick=close;
+          tools.querySelector('#pshare').onclick=()=>saveFile(file.bytes, file.name, file.type, `${file.what} saved: ${file.name}`);
+          tools.querySelector('#pshare').focus();
         }catch(err){
-          go.disabled=false; go.textContent='Create PowerPoint';
-          toast(err && err.message==='old-ios' ? 'Update the iPad (iPadOS 16.4 or later) to create slides.' : err && err.message==='no-template' ? 'The slide design could not be loaded. Connect to the internet once, then try again.' : 'The presentation could not be created. Export the Word file and contact the developer.');
+          go.disabled=false; go.textContent=FMT[st.fmt].go;
+          toast(err && err.message==='old-ios' ? 'Update the iPad (iPadOS 16.4 or later) to create slides.' : err && err.message==='no-pdf' ? 'This slide design cannot be saved as PDF yet. Choose PowerPoint.' : err && err.message==='no-template' ? 'The slide design could not be loaded. Connect to the internet once, then try again.' : 'The presentation could not be created. Export the Word file and contact the developer.');
           if(typeof console!=='undefined') console.error(err);
         }
       };
