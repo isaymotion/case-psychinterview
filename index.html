@@ -10,7 +10,8 @@
 <meta name="apple-mobile-web-app-title" content="Case & MSE">
 <meta name="theme-color" content="#365F91">
 <link rel="apple-touch-icon" href="icon-180.png">
-<link rel="icon" href="icon-180.png">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="manifest" href="manifest.webmanifest">
 <style>
 :root{
@@ -45,6 +46,8 @@ textarea.big{min-height:180px}
 .bar{position:sticky;top:0;z-index:20;height:var(--bar);display:flex;align-items:center;gap:10px;padding:0 16px;background:var(--paper);border-bottom:1px solid var(--line)}
 .bar h1{font:600 19px/1.2 var(--serif);margin:0;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bar .status{font-size:13px;color:var(--ink-3);white-space:nowrap}
+.bar .logo{width:36px;height:36px;border-radius:22.5%;flex:none;display:block}
+.credit .logo{width:56px;height:56px;border-radius:22.5%;display:block;margin-bottom:10px}
 .btn{border:1px solid var(--line);background:var(--paper);border-radius:10px;padding:9px 14px;min-height:44px;font-size:16px;font-weight:500;white-space:nowrap}
 .btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
 @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .btn.primary{color:#0E151D} }
@@ -1689,7 +1692,7 @@ const DocxImport = (() => {
     cur=null; document.title='Case & MSE';
     const list = Object.values(store.cases).sort((a,b)=>b.updated-a.updated);
     document.body.innerHTML = `
-      <header class="bar"><h1>Case &amp; MSE</h1>
+      <header class="bar"><img class="logo" src="icon-192.png" alt="" width="36" height="36"><h1>Case &amp; MSE</h1>
         <button class="btn" id="imp">Open Word file</button>
         <input type="file" id="impFile" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden></header>
       <main class="home">
@@ -1719,7 +1722,7 @@ const DocxImport = (() => {
           : `<p class="empty">Nothing here yet. Tap <strong>New case</strong> to start an interview, or <strong>Open Word file</strong> to continue one you exported.</p>`}
         <div class="privacy"><strong>Where your data lives.</strong> Records are saved only in this app on this iPad; nothing is uploaded anywhere. Export the Word file to your hospital's approved storage, then delete the record here.</div>
         ${list.length?`<div class="foot"><button class="btn quiet danger" id="wipe">Delete all records</button></div>`:''}
-        <footer class="credit"><p>Web app developed in 2026 by Isabella Navarro, MD.</p><p>Latest version ${VERSION}.</p><p><a href="mailto:isaymotion@gmail.com">isaymotion@gmail.com</a></p></footer>
+        <footer class="credit"><img class="logo" src="icon-192.png" alt="Case &amp; MSE app icon" width="56" height="56"><p>Web app developed in 2026 by Isabella Navarro, MD.</p><p>Latest version ${VERSION}.</p><p><a href="mailto:isaymotion@gmail.com">isaymotion@gmail.com</a></p></footer>
       </main>`;
     $('#new').onclick = newCase;
     $('#newpn').onclick = chooseProgressSource;
