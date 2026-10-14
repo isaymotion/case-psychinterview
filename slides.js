@@ -26,7 +26,54 @@ const TEMPLATES = [
     partColors:['accent1','accent2','accent4','accent3'],
     pdf:{ backgrounds:'templates/colorful-bg/' },   // pictures of the layouts for PDF slides: node tools/make_backgrounds.js colorful
     titleInfo:{ x:2.98, y:4.68, w:7.6, h:0.62 },   // patient line under the title on the first slide
-    confidential:{ x:0.8, y:6.98, w:8, h:0.3 } }   // confidentiality line at the bottom of the first slide
+    confidential:{ x:0.8, y:6.98, w:8, h:0.3 } },  // confidentiality line at the bottom of the first slide
+
+  { id:'purple', name:'Purple', note:'Navy background with purple and blue waves',
+    file:'templates/purple.pptx', palette:'dark', bodyFont:'+mn-lt', headFont:'+mj-lt', charEm:0.55,
+    titleFont:820,                               // Tw Cen MT capitals with wide letter spacing
+    tones:['accent1','accent4','accent6','accent3','accent5'], riskTone:'accent6',
+    riskTones:{ Low:'accent3', Moderate:'accent4', High:'accent6' },
+    layouts:{ title:'Title Slide', content:'Title and Chart or Table', section:'Section Header', quote:'Quote', end:'Closing' },
+    partColors:['accent1','accent4','accent6','accent3'], slideNumbers:true,
+    area:{ x:1.05, y:2.3, w:11.35, h:4.3 },
+    titleInfo:{ x:2.8, y:5.55, w:7.73, h:0.75, align:'ctr' }, confidential:{ x:2.8, y:6.95, w:7.73, h:0.3, align:'ctr' },
+    pdf:{ backgrounds:'templates/purple-bg/', titleFont:'body' } },
+
+  { id:'spheres', name:'Spheres', note:'Soft gray with floating blue and violet spheres',
+    file:'templates/spheres.pptx', palette:'frost', bodyFont:'+mn-lt', headFont:'+mj-lt', charEm:0.55,
+    titleFont:620,
+    tones:['accent1','accent4'], riskTone:'accent1', riskTones:{ Low:'accent4', Moderate:'accent1', High:'accent1' },
+    layouts:{ title:'Title', content:'Title and content 04', section:'Section break 01', quote:null, end:'Closing' },
+    partColors:['accent1','accent4','accent1','accent4'], slideNumbers:true,
+    area:{ x:1.2, y:2.35, w:10.95, h:4.45 },
+    titleInfo:{ x:0.67, y:5.6, w:11.98, h:0.75, align:'ctr' }, confidential:{ x:0.67, y:6.85, w:11.98, h:0.3, align:'ctr' },
+    pdf:{ backgrounds:'templates/spheres-bg/', titleFont:'body' } },
+
+  { id:'unicorn', name:'Unicorn', note:'Pastel holographic gradient',
+    file:'templates/unicorn.pptx', palette:'frost', bodyFont:'+mn-lt', headFont:'+mj-lt', charEm:0.55,
+    titleFont:840,                               // Arial bold capitals with wide letter spacing
+    tones:['accent4','accent2','accent3','accent1','accent6'], riskTone:'accent1',
+    riskTones:{ Low:'accent6', Moderate:'accent4', High:'accent1' },
+    colors:{ label:'dk2', head:'tx1', stat:'dk2', chipLine:'dk2' },
+    layouts:{ title:'Title Slide', content:'Title Only', section:'Section Header', quote:'Quote', end:'Closing' },
+    partColors:['dk2','tx1','dk2','tx1'], slideNumbers:true,
+    area:{ x:1.0, y:2.6, w:11.33, h:3.9 },
+    titleInfo:{ x:1.18, y:6.0, w:10.98, h:0.7 }, confidential:{ x:1.18, y:7.0, w:10.98, h:0.3 },
+    pdf:{ backgrounds:'templates/unicorn-bg/', titleFont:'body' } },
+
+  { id:'pedia', name:'Pedia', note:'Bright pastel colors with reading kids',
+    file:'templates/pedia.pptx', palette:'frost', bodyFont:'+mn-lt', headFont:'+mj-lt',
+    titleFont:680,                               // Calibri bold capitals
+    tones:['accent1','accent3','accent4','accent6'], riskTone:'accent4',
+    riskTones:{ Low:'accent3', Moderate:'accent2', High:'accent4' },
+    layouts:{ title:'Content 2', content:'Two Content 1', section:'Title + Picture', quote:null, end:'Title Only' },
+    // each part has its own color: section slide and content slides match
+    sectionLayouts:['Title + Picture','Title + Subtitle + Picture','Title + Subtitle','Title Only'],
+    partLayouts:['Two Content 1','Table + Content','Two Content 2','Two Content 3'],
+    partColors:['accent1','accent3','accent4','accent6'], slideNumbers:true,
+    area:{ x:1.36, y:2.05, w:10.3, h:4.6 },
+    titleInfo:{ x:1.36, y:6.5, w:5.6, h:0.55 }, confidential:{ x:1.36, y:7.1, w:6, h:0.3 },
+    pdf:{ backgrounds:'templates/pedia-bg/', titleFont:'body' } }
 ];
 
 /* Parts of the presentation, in order. Section ids are the ones in the case template. */
@@ -137,9 +184,17 @@ function placeholders(xml){
       box: off ? { x:+off[1]/EMU, y:+off[2]/EMU, w:+off[3]/EMU, h:+off[4]/EMU } : null,
       anchor: attr(bp,'anchor'), align: attr(lv,'algn'), lnSpc: (lv.match(/<a:lnSpc>\s*<a:spcPct val="(\d+)"/)||[])[1] ? +(lv.match(/<a:lnSpc>\s*<a:spcPct val="(\d+)"/)[1])/100000 : null,
       inset: [ins('lIns'), ins('tIns'), ins('rIns'), ins('bIns')], fill: fill ? fill[1] : null,
-      geom: (spPr.match(/<a:prstGeom prst="(\w+)"/)||[])[1] || null });
+      geom: (spPr.match(/<a:prstGeom prst="(\w+)"/)||[])[1] || null, rot: +(attr((spPr.match(/<a:xfrm\b[^>]*>/)||[''])[0],'rot')||0)/60000, ...runStyle(lv) });
   }
   return out;
+}
+// Text color, capitals and bold of a level-1 paragraph style
+function runStyle(lv){
+  const d=(lv.match(/<a:defRPr\b[^>]*\/>|<a:defRPr\b[^>]*>[\s\S]*?<\/a:defRPr>/)||[''])[0], tag=(d.match(/<a:defRPr\b[^>]*>/)||[''])[0];
+  const c=d.match(/<a:solidFill>\s*<a:(?:schemeClr|srgbClr) val="(\w+)"\s*(\/>|>([\s\S]*?)<\/a:(?:schemeClr|srgbClr)>)/);
+  // brightness changes as "color@lumMod,lumOff" (for the PDF)
+  const mod = c && c[3] ? [(c[3].match(/lumMod val="(\d+)"/)||[])[1]||100000, (c[3].match(/lumOff val="(\d+)"/)||[])[1]||0] : null;
+  return { color: c ? c[1] + (mod ? '@'+mod.join(',') : '') : null, cap: attr(tag,'cap'), b: attr(tag,'b') };
 }
 
 /* ===== Template ===== */
@@ -181,12 +236,15 @@ async function loadTemplate(buf, cfg){
   const find = (...tests) => { for(const t of tests){ const l=layouts.find(t); if(l) return l; } return null; };
   const byName = re => l => re.test(l.name.trim());
   const L = {};
-  L.title   = find(l=>l.type==='title', byName(/^title slide$/i)) || layouts[0];
-  L.content = find(byName(/^title and content$/i), l=>l.type==='obj', byName(/^title only$/i), l=>l.type==='titleOnly') || L.title;
-  L.section = find(l=>l.type==='secHead', byName(/section/i)) || L.title;
-  L.quote   = find(byName(/quote/i));
-  L.end     = find(byName(/thank|closing|end/i)) || L.section;
-  L.parts   = (cfg.partLayouts||[]).map(n=>layouts.find(l=>l.name.trim().toLowerCase()===n.toLowerCase())).filter(Boolean);
+  const named = n => n ? layouts.find(l=>l.name.trim().toLowerCase()===String(n).trim().toLowerCase()) || null : null;
+  const pick = cfg.layouts || {};
+  L.title   = named(pick.title) || find(l=>l.type==='title', byName(/^title slide$/i)) || layouts[0];
+  L.content = named(pick.content) || find(byName(/^title and content$/i), l=>l.type==='obj', byName(/^title only$/i), l=>l.type==='titleOnly') || L.title;
+  L.section = named(pick.section) || find(l=>l.type==='secHead', byName(/section/i)) || L.title;
+  L.quote   = pick.quote===null ? null : named(pick.quote) || find(byName(/quote/i));
+  L.end     = named(pick.end) || find(byName(/thank|closing|end/i)) || L.section;
+  L.parts   = (cfg.partLayouts||[]).map(named).filter(Boolean);
+  L.sections = (cfg.sectionLayouts||[]).map(named).filter(Boolean);
 
   // Where content goes: the template's setting, else the master's body box, else safe margins
   const mb = (masterPh.find(p=>p.type==='body') || {}).box;
@@ -194,19 +252,26 @@ async function loadTemplate(buf, cfg){
   // A placeholder's box, inherited from the master when the layout leaves it out
   const boxOf = (layout, p) => p.box || ((masterPh.find(m=>m.type===p.type) || masterPh.find(m=>m.idx!=null && m.idx===p.idx) || {}).box) || null;
   // Placeholder drawing settings, from the layout or else the master
-  const phInfo = (layout, p) => { const m = masterPh.find(x=>x.type===(p.type==='ctrTitle'?'title':p.type==='subTitle'||p.type==='obj'?'body':p.type)) || {};
-    const pick = k => p[k]!=null ? p[k] : m[k];
+  const styleOf = tag => runStyle((mx.match(new RegExp('<p:'+tag+'>[\\s\\S]*?<\\/a:lvl1pPr>'))||[''])[0]);
+  const mStyle = { title: styleOf('titleStyle'), body: styleOf('bodyStyle'), other: styleOf('otherStyle') };
+  const phInfo = (layout, p) => { const kind = p.type==='ctrTitle'||p.type==='title' ? 'title' : p.type==='subTitle'||p.type==='obj'||p.type==='body' ? 'body' : p.type;
+    const m = masterPh.find(x=>x.type===kind) || {}, ms = mStyle[kind] || mStyle.other;
+    const pick = k => p[k]!=null ? p[k] : m[k]!=null ? m[k] : ms[k];
     return { box: boxOf(layout,p), anchor: pick('anchor') || 't', align: pick('align') || 'l', lnSpc: pick('lnSpc') || (/title/i.test(p.type)?0.9:1),
+      color: pick('color') || 'tx1', cap: pick('cap'), b: pick('b')==='1', rot: p.box ? p.rot : (m.rot||0),
       inset: [0,1,2,3].map(i=> p.inset[i]!=null ? p.inset[i] : m.inset && m.inset[i]!=null ? m.inset[i] : (i%2?0.05:0.1)), fill: p.fill, geom: p.geom }; };
   return { files, layouts, L, area, W, H, boxOf, phInfo, theme, bg: mbg ? mbg[1] : 'bg1', notesMaster: notesRel ? resolve('ppt/presentation.xml', notesRel.target) : null,
-    bodyFont: cfg.bodyFont || '+mn-lt', headFont: cfg.headFont || '+mj-lt', badge: cfg.badge, titleInfo: cfg.titleInfo || null,
-    titleFont: cfg.titleFont || '', confidential: cfg.confidential || null, footer: cfg.footer!==false, partColors: cfg.partColors || ['accent1','accent2','accent4','accent3','accent6','tx2'] };
+    bodyFont: cfg.bodyFont || '+mn-lt', headFont: cfg.headFont || '+mj-lt', badge: cfg.badge, titleInfo: cfg.titleInfo || null, footerText: cfg.footerText || '',
+    titleFont: cfg.titleFont || '', confidential: cfg.confidential || null, slideNumbers: !!cfg.slideNumbers, footer: cfg.footer!==false, partColors: cfg.partColors || ['accent1','accent2','accent4','accent3','accent6','tx2'] };
 }
 
 /* ===== Drawing ===== */
 // Colors are theme colors, so another template recolors the deck: "accent2", "accent2:tint", "accent2:dark", "tx1", "bg1"
+const ALPHA = { glass:12, glass2:6, glassline:30, frost:62, frost2:40, hair:22 };
 function clr(c){
   const [v, mod] = String(c).split(':');
+  if(ALPHA[mod]) return `<a:schemeClr val="${v}"><a:alpha val="${ALPHA[mod]*1000}"/></a:schemeClr>`;
+  if(/^[0-9A-Fa-f]{6}$/.test(v)) return `<a:srgbClr val="${v.toUpperCase()}"/>`;
   const m = mod==='tint' ? '<a:lumMod val="20000"/><a:lumOff val="80000"/>' : mod==='soft' ? '<a:lumMod val="40000"/><a:lumOff val="60000"/>' :
             mod==='dark' ? '<a:lumMod val="75000"/>' : mod==='line' ? '<a:lumMod val="85000"/>' : mod==='muted' ? '<a:lumMod val="65000"/><a:lumOff val="35000"/>' : '';
   return `<a:schemeClr val="${v}">${m}</a:schemeClr>`;
@@ -220,7 +285,9 @@ function rpr(r, fonts, plain){
 // paragraph: { runs:[{t,b,i,sz,color,font}], bullet, align, after, before }
 function paraXML(p, fonts, plain){
   if(plain){
-    const runs = (p.runs||[]).filter(r=>r.t!=='' && r.t!=null).map(r=>`<a:r>${rpr(r,fonts,true)}<a:t>${esc(r.t)}</a:t></a:r>`).join('');
+    const runs = (p.runs||[]).filter(r=>r.t!=='' && r.t!=null).map(r=> r.fld==='slidenum'
+      ? `<a:fld id="{B6F15528-21DE-4FAA-801E-634DDDAF4B2B}" type="slidenum">${rpr(r,fonts,true)}<a:t>${esc(r.t)}</a:t></a:fld>`
+      : `<a:r>${rpr(r,fonts,true)}<a:t>${esc(r.t)}</a:t></a:r>`).join('');
     return `<a:p>${p.align?`<a:pPr algn="${p.align}"/>`:''}${runs}</a:p>`;
   }
   const pp = `<a:pPr${p.bullet?' marL="228600" indent="-228600"':' marL="0" indent="0"'}${p.align?` algn="${p.align}"`:''}>`+
@@ -257,9 +324,9 @@ class SlideCtx {
     this.shapes.push(`<p:sp><p:nvSpPr><p:cNvPr id="${id}" name="${esc(o.name||('Shape '+id))}"/><p:cNvSpPr${isText?' txBox="1"':''}/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x="${E(o.x)}" y="${E(o.y)}"/><a:ext cx="${E(o.w)}" cy="${E(o.h)}"/></a:xfrm>${geom}${fill}${ln}${fx}</p:spPr>${tx}</p:sp>`);
   }
   table(o){ // {x,y,w, cols:[w...], rows:[{cells:[paras[]], fill:[...], h}], name}
-    this.items.push({ kind:'table', o });
+    this.items.push({ kind:'table', o:{ ...o, line:PAL.line, fill0:PAL.row(0) } });
     const id=++this.id, cell=(paras, fill)=>`<a:tc><a:txBody><a:bodyPr/><a:lstStyle/>${this.P(paras.length?paras:[{runs:[{t:''}]}])}</a:txBody><a:tcPr marL="${E(0.1)}" marR="${E(0.1)}" marT="${E(0.06)}" marB="${E(0.06)}">`+
-      ['lnL','lnR','lnT','lnB'].map(k=>`<a:${k} w="9525"><a:solidFill>${clr('bg1:line')}</a:solidFill></a:${k}>`).join('')+`<a:solidFill>${clr(fill||'bg1')}</a:solidFill></a:tcPr></a:tc>`;
+      ['lnL','lnR','lnT','lnB'].map(k=>`<a:${k} w="9525"><a:solidFill>${clr(PAL.line)}</a:solidFill></a:${k}>`).join('')+`<a:solidFill>${clr(fill||PAL.row(0))}</a:solidFill></a:tcPr></a:tc>`;
     const H = o.rows.reduce((a,r)=>a+r.h,0);
     this.shapes.push(`<p:graphicFrame><p:nvGraphicFramePr><p:cNvPr id="${id}" name="${esc(o.name||('Table '+id))}"/><p:cNvGraphicFramePr><a:graphicFrameLocks noGrp="1"/></p:cNvGraphicFramePr><p:nvPr/></p:nvGraphicFramePr>`+
       `<p:xfrm><a:off x="${E(o.x)}" y="${E(o.y)}"/><a:ext cx="${E(o.cols.reduce((a,b)=>a+b,0))}" cy="${E(H)}"/></p:xfrm><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/table"><a:tbl><a:tblPr firstRow="1" bandRow="1"/>`+
@@ -273,7 +340,7 @@ class SlideCtx {
 }
 
 /* ===== Text measuring (estimates, kept on the generous side so text stays inside its box) ===== */
-const CHAR_EM = 0.5;   // average character width of Calibri-like fonts, in ems, with some slack
+let CHAR_EM = 0.5;     // average character width of the body font, in ems, with some slack (set per template)
 function lineCount(text, widthIn, pt){
   const per = Math.max(6, Math.floor(widthIn / (pt/72*CHAR_EM)));
   let n=0;
@@ -292,8 +359,24 @@ const LH = pt => pt*1.22/72;
 const parasHeight = (list, widthIn) => list.reduce((a,p)=>{ const pt=(p.runs[0]&&p.runs[0].sz)||14; const t=p.runs.map(r=>r.t).join(''); return a + lineCount(t, widthIn-(p.bullet?0.25:0), pt)*LH(pt)*((p.line||100000)/100000) + ((p.after||0)+(p.before||0))/72; }, 0);
 
 /* ===== Case data to slide content ===== */
-const TONES = ['accent2','accent4','accent3','accent6','accent1'];
-const RISK_TONE = { Low:'accent3', Moderate:'accent4', High:'accent1' };
+/* Colors of the boxes, labels and tables the generator draws. A template picks a palette that suits its
+   background (light: tinted boxes; frost: see-through white boxes; dark: see-through boxes with light text),
+   the accent colors to rotate through, and its colors for risk. */
+const PALETTES = {
+  light: { card:t=>t+':tint', label:t=>t+':dark', text:'tx1', free:'tx1', head:t=>t+':dark', headText:'bg1', row:(i,t)=> i%2 ? t+':tint' : 'bg1', line:'bg1:line', chipLine:t=>t+':soft', stat:t=>t+':dark', barText:'bg1' },
+  frost: { card:()=>'lt1:frost', label:t=>t+':dark', text:'tx1', free:'tx1', head:t=>t+':dark', headText:'bg1', row:i=> i%2 ? 'lt1:frost2' : 'lt1:frost', line:'tx1:hair', chipLine:t=>t+':dark', stat:t=>t+':dark', barText:'bg1' },
+  dark:  { card:()=>'lt1:glass', label:t=>t, text:'lt1', free:'lt1', head:t=>t, headText:'dk1', row:i=> i%2 ? 'lt1:glass2' : 'lt1:glass', line:'lt1:glassline', chipLine:t=>t, stat:t=>t, barText:'dk1' }
+};
+let PAL = null, TONES = [], RISK_TONE = {}, RISK = 'accent1', MSE_TONE = 'accent2';
+function usePalette(cfg){
+  const base = PALETTES[cfg.palette || 'light'], over = cfg.colors || {};
+  PAL = { ...base };
+  Object.entries(over).forEach(([k,v]) => { PAL[k] = typeof base[k]==='function' ? () => v : v; });
+  TONES = cfg.tones || ['accent2','accent4','accent3','accent6','accent1'];
+  RISK_TONE = cfg.riskTones || { Low:'accent3', Moderate:'accent4', High:'accent1' };
+  RISK = cfg.riskTone || 'accent1'; MSE_TONE = TONES[0];
+  CHAR_EM = cfg.charEm || 0.5;
+}
 const BODY=14, LABEL=12.5;
 
 const asList = v => Array.isArray(v) ? v.filter(x=>S(x)) : [];
@@ -422,7 +505,7 @@ function colWidths(b, w){
 function textParas(text, pt, opt={}){
   const lines=String(text).split(/\n+/).map(s=>s.trim()).filter(Boolean);
   const bullet = lines.length>1 && lines.every(l=>l.length<260);
-  return lines.map(l=>({ runs:[{t:l.replace(/^[-•*]\s*/,''), sz:pt, color:opt.color||'tx1', i:opt.i}], bullet, after: bullet?3:6 }));
+  return lines.map(l=>({ runs:[{t:l.replace(/^[-•*]\s*/,''), sz:pt, color:opt.color||PAL.text, i:opt.i}], bullet, after: bullet?3:6 }));
 }
 
 // Split a text block so the first part fits in maxH; returns [head, rest] or null
@@ -448,15 +531,15 @@ function splitRows(b, w, maxH, key){
 /* Draw one block at (x,y) with width w */
 function draw(ctx, b, x, y, w, toneIdx, sectionTone){
   const m=measure(b,w), tone = i => sectionTone || TONES[(toneIdx+i)%TONES.length];
-  const labelP = (t, c) => ({ runs:[{t, sz:LABEL, b:true, color:c+':dark'}], after:3 });
+  const labelP = (t, c) => ({ runs:[{t, sz:LABEL, b:true, color:PAL.label(c)}], after:3 });
   switch(b.type){
     case 'facts': {
       let yy=y;
       m.rows.forEach((rh,ri)=>{
         b.items.slice(ri*m.cols, ri*m.cols+m.cols).forEach((it,ci)=>{
           const t = it.tone || tone(ri*m.cols+ci);
-          ctx.shape({ x:x+ci*(m.cw+GAP), y:yy, w:m.cw, h:rh, geom:'roundRect', adj:8000, fill:t+':tint', name:it.label,
-            paras:[labelP(it.label, t), { runs:[{t:it.value, sz:BODY, color:'tx1'}] }] });
+          ctx.shape({ x:x+ci*(m.cw+GAP), y:yy, w:m.cw, h:rh, geom:'roundRect', adj:8000, fill:PAL.card(t), name:it.label,
+            paras:[labelP(it.label, t), { runs:[{t:it.value, sz:BODY, color:PAL.text}] }] });
         });
         yy+=rh+GAP;
       });
@@ -464,43 +547,43 @@ function draw(ctx, b, x, y, w, toneIdx, sectionTone){
     }
     case 'text': {
       const t=b.tone||tone(0), paras=[...(b.label?[labelP(b.label,t)]:[]), ...textParas(b.text, m.pt)];
-      ctx.shape({ x, y, w, h:m.h, geom:'roundRect', adj:b.feature?10000:5000, fill:t+':tint', name:b.label||'Text', paras, inset:[0.15,0.11,0.15,0.08] });
+      ctx.shape({ x, y, w, h:m.h, geom:'roundRect', adj:b.feature?10000:5000, fill:PAL.card(t), name:b.label||'Text', paras, inset:[0.15,0.11,0.15,0.08] });
       break;
     }
     case 'cards': {
       b.items.forEach((it,i)=>{ const t=it.tone||tone(i);
-        ctx.shape({ x:x+i*(m.cw+GAP), y, w:m.cw, h:m.h, geom:'roundRect', adj:6000, fill:t+':tint', name:it.label, inset:[0.15,0.11,0.15,0.08],
+        ctx.shape({ x:x+i*(m.cw+GAP), y, w:m.cw, h:m.h, geom:'roundRect', adj:6000, fill:PAL.card(t), name:it.label, inset:[0.15,0.11,0.15,0.08],
           paras:[labelP(it.label,t), ...textParas(it.text, BODY)] }); });
       break;
     }
     case 'chips': {
       const t=b.tone||tone(0);
-      ctx.shape({ x, y, w, h:LH(LABEL)+0.04, paras:[{runs:[{t:b.label, sz:LABEL, b:true, color:'tx1'}]}], inset:[0,0,0,0], name:b.label });
+      ctx.shape({ x, y, w, h:LH(LABEL)+0.04, paras:[{runs:[{t:b.label, sz:LABEL, b:true, color:PAL.free}]}], inset:[0,0,0,0], name:b.label });
       let cx=0, cy=y+LH(LABEL)+0.08;
       b.items.forEach(s=>{ const cw=Math.min(w, chipW(s)); if(cx>0 && cx+cw>w){ cx=0; cy+=m.ph+0.1; }
-        ctx.shape({ x:x+cx, y:cy, w:cw, h:m.ph, geom:'roundRect', adj:50000, fill:t+':tint', line:t+':soft', lineW:0.01, anchor:'ctr', inset:[0.1,0.02,0.1,0.02],
-          paras:[{runs:[{t:s, sz:12, color:'tx1'}], align:'ctr'}], name:s });
+        ctx.shape({ x:x+cx, y:cy, w:cw, h:m.ph, geom:'roundRect', adj:50000, fill:PAL.card(t), line:PAL.chipLine(t), lineW:0.01, anchor:'ctr', inset:[0.1,0.02,0.1,0.02],
+          paras:[{runs:[{t:s, sz:12, color:PAL.text}], align:'ctr'}], name:s });
         cx+=cw+0.1; });
       break;
     }
     case 'stats': {
       b.items.forEach((it,i)=>{ const t=it.tone||tone(i);
-        const paras=[{runs:[{t:it.value, sz:it.value.length>9?20:28, b:true, color:t+':dark', font:'head'}], align:'ctr', after:2},
-                     {runs:[{t:it.label, sz:12, color:'tx1'}], align:'ctr'}];
-        if(it.sub) paras.push({runs:[{t:it.sub, sz:11, color:'tx1:muted', i:true}], align:'ctr', before:3});
-        ctx.shape({ x:x+i*(m.tw+GAP), y, w:m.tw, h:m.h, geom:'roundRect', adj:9000, fill:t+':tint', anchor:'ctr', paras, name:it.label, inset:[0.12,0.08,0.12,0.08] }); });
+        const paras=[{runs:[{t:it.value, sz:it.value.length>9?20:28, b:true, color:PAL.stat(t), font:'head'}], align:'ctr', after:2},
+                     {runs:[{t:it.label, sz:12, color:PAL.text}], align:'ctr'}];
+        if(it.sub) paras.push({runs:[{t:it.sub, sz:11, color:PAL.text, i:true}], align:'ctr', before:3});
+        ctx.shape({ x:x+i*(m.tw+GAP), y, w:m.tw, h:m.h, geom:'roundRect', adj:9000, fill:PAL.card(t), anchor:'ctr', paras, name:it.label, inset:[0.12,0.08,0.12,0.08] }); });
       break;
     }
     case 'table': {
       let yy=y; const t=b.tone||tone(0);
-      if(b.label){ ctx.shape({ x, y, w, h:LH(LABEL)+0.04, paras:[{runs:[{t:b.label, sz:LABEL, b:true, color:'tx1'}]}], inset:[0,0,0,0], name:b.label }); yy+=LH(LABEL)+0.08; }
-      const rows=[{ h:m.head, cells:b.cols.map(c=>[{runs:[{t:c, sz:12.5, b:true, color:'bg1'}]}]), fill:b.cols.map(()=>t+':dark') }];
-      b.rows.forEach((r,ri)=>rows.push({ h:m.rowsH[ri], cells:r.map(c=>[{runs:[{t:c||'', sz:b.pt||13, color:'tx1'}]}]), fill:r.map(()=> ri%2 ? t+':tint' : 'bg1') }));
+      if(b.label){ ctx.shape({ x, y, w, h:LH(LABEL)+0.04, paras:[{runs:[{t:b.label, sz:LABEL, b:true, color:PAL.free}]}], inset:[0,0,0,0], name:b.label }); yy+=LH(LABEL)+0.08; }
+      const rows=[{ h:m.head, cells:b.cols.map(c=>[{runs:[{t:c, sz:12.5, b:true, color:PAL.headText}]}]), fill:b.cols.map(()=>PAL.head(t)) }];
+      b.rows.forEach((r,ri)=>rows.push({ h:m.rowsH[ri], cells:r.map(c=>[{runs:[{t:c||'', sz:b.pt||13, color:PAL.text}]}]), fill:r.map(()=> PAL.row(ri,t)) }));
       ctx.table({ x, y:yy, cols:m.cols, rows, name:b.label||'Table' });
       break;
     }
     case 'mse': {
-      const rows=b.rows.map((r,ri)=>({ h:m.rowsH[ri], cells:[[{runs:[{t:r.label, sz:13, b:true, color:(r.risk?'accent1':'accent2')+':dark'}]}], r.paras], fill:[(r.risk?'accent1':'accent2')+':tint', 'bg1'] }));
+      const rows=b.rows.map((r,ri)=>({ h:m.rowsH[ri], cells:[[{runs:[{t:r.label, sz:13, b:true, color:PAL.label(r.risk?RISK:MSE_TONE)}]}], r.paras], fill:[PAL.card(r.risk?RISK:MSE_TONE), PAL.row(0)] }));
       ctx.table({ x, y, cols:m.cols, rows, name:'Mental status examination' });
       break;
     }
@@ -536,8 +619,8 @@ function mseRows(d, secs){
     label: s.title, risk: !!s.risk,
     paras: s.fields.filter(f=>filled(f,d)).map(f=>{
       const t=fieldText(f,d);
-      if(f.t==='checks' || f.t==='area') return { runs:[{t, sz:13, color:'tx1'}], after:2 };
-      return { runs:[{t:f.label+': ', sz:13, b:true, color:'tx1'},{t, sz:13, color:'tx1'}], after:2 };
+      if(f.t==='checks' || f.t==='area') return { runs:[{t, sz:13, color:PAL.text}], after:2 };
+      return { runs:[{t:f.label+': ', sz:13, b:true, color:PAL.text},{t, sz:13, color:PAL.text}], after:2 };
     })
   }));
 }
@@ -625,8 +708,9 @@ const FONT_W = {
 };
 // Width of text in inches at a point size, with 6% to spare
 function textW(text, pt, font){
-  const t = FONT_W[font]; let u=0;
-  for(const ch of String(text)) u += t ? (t[ch] || 700) : 640;
+  // font: a name in FONT_W, or the template's average letter width in thousandths (capitals and spacing included)
+  const t = typeof font==='number' ? null : FONT_W[font], avg = typeof font==='number' ? font : 640; let u=0;
+  for(const ch of String(text)) u += t ? (t[ch] || 700) : avg;
   return u/1000*pt/72*1.06;
 }
 // Lines a text needs at a width; Infinity when one word is wider than the line
@@ -657,7 +741,8 @@ function fitSize(text, box, maxPt, minPt, maxLines, font){
 function renderSlide(tpl, sl, idx, total){
   const L = tpl.L;
   const partL = sl.part!=null && L.parts.length ? L.parts[sl.part % L.parts.length] : null;
-  const layout = sl.kind==='title' ? L.title : sl.kind==='section' ? L.section : sl.kind==='quote' ? (L.quote||L.content) : sl.kind==='end' ? L.end : (partL||L.content);
+  const secL = sl.part!=null && L.sections.length ? L.sections[sl.part % L.sections.length] : null;
+  const layout = sl.kind==='title' ? L.title : sl.kind==='section' ? (secL||L.section) : sl.kind==='quote' ? (L.quote||L.content) : sl.kind==='end' ? L.end : (partL||L.content);
   const ctx = new SlideCtx(tpl, layout);
   const titleType = layout.ph.find(p=>p.type==='ctrTitle') ? 'ctrTitle' : 'title';
   const titleBox = (()=>{ const p=layout.ph.find(x=>x.type===titleType); return p ? tpl.boxOf(layout,p) : null; })();
@@ -671,13 +756,14 @@ function renderSlide(tpl, sl, idx, total){
   switch(sl.kind){
     case 'title': {
       ctx.ph(titleType, T(sl.title, [[59,30,2],[30,24,3]]));
-      B(p=>p.type==='subTitle'||bodyPh(p), [sl.presenter, sl.date].filter(Boolean).join('  ·  '), [[24,12,1]]);
+      B(p=>p.type==='subTitle'||bodyPh(p), [sl.presenter, sl.date].filter(Boolean).join('  ·  '), [[24,16,1],[20,12,2]]);
       const tb = tpl.titleInfo || (titleBox ? { x:titleBox.x, y:Math.min(tpl.H-0.9, titleBox.y+titleBox.h+0.05), w:titleBox.w, h:0.9 } : null);
+      const al = tb && tb.align;
       if(tb) ctx.shape({ ...tb, inset:[0,0,0,0], name:'Patient',
-        paras:[ ...(sl.info?[{ runs:[{t:sl.info, sz:18, b:true, color:'tx1'}] }]:[]),
-                ...(sl.attending?[{ runs:[{t:'Attending: '+sl.attending, sz:13, color:'tx1'}], before:2 }]:[]) ] });
+        paras:[ ...(sl.info?[{ runs:[{t:sl.info, sz:18, b:true, color:PAL.free}], align:al }]:[]),
+                ...(sl.attending?[{ runs:[{t:'Attending: '+sl.attending, sz:13, color:PAL.free}], before:2, align:al }]:[]) ] });
       const cb = tpl.confidential || { x:0.8, y:tpl.H-0.55, w:8, h:0.3 };
-      ctx.shape({ ...cb, inset:[0,0,0,0], name:'Confidential', paras:[{ runs:[{t:'Confidential patient information. For case conference use only.', sz:11, i:true, color:'tx1:muted'}] }] });
+      ctx.shape({ ...cb, inset:[0,0,0,0], name:'Confidential', paras:[{ runs:[{t:'Confidential patient information. For case conference use only.', sz:11, i:true, color:PAL.free}], align:cb.align }] });
       break;
     }
     case 'agenda': {
@@ -686,7 +772,7 @@ function renderSlide(tpl, sl, idx, total){
       const A=tpl.area, bh=0.56, gap=0.2, cols=tpl.partColors;
       const top = A.y + Math.max(0,(A.h - sl.items.length*(bh+gap))/2.4);
       sl.items.forEach((t,i)=>{ const c=cols[i%cols.length], y=top+i*(bh+gap), w=Math.min(8.4, A.w-1);
-        ctx.shape({ x:A.x+0.2, y, w, h:bh, geom:'roundRect', adj:12000, fill:c, anchor:'ctr', inset:[0.25,0.04,0.8,0.04], name:t, paras:[{runs:[{t, sz:20, color:'bg1'}]}] });
+        ctx.shape({ x:A.x+0.2, y, w, h:bh, geom:'roundRect', adj:12000, fill:c, anchor:'ctr', inset:[0.25,0.04,0.8,0.04], name:t, paras:[{runs:[{t, sz:20, color:PAL.barText}]}] });
         ctx.shape({ x:A.x+0.2+w-0.66, y:y+0.05, w:0.46, h:0.46, geom:'ellipse', fill:'bg1', line:c, lineW:0.02, anchor:'ctr', inset:[0,0,0,0], name:'Part '+(i+1),
           paras:[{runs:[{t:String(i+1), sz:16, b:true, color:c==='tx2'?'tx1':c+':dark'}], align:'ctr'}] }); });
       break;
@@ -696,7 +782,7 @@ function renderSlide(tpl, sl, idx, total){
       B(bodyPh, sl.kicker, [[24,14,1]]);
       break;
     case 'quote': {
-      ctx.ph('title', [{ runs:[{t:sl.title, sz:fit(sl.title, titleBox, [[44,18,6]]), i:true}] }]);
+      ctx.ph(titleType, [{ runs:[{t:sl.title, sz:fit(sl.title, titleBox, [[44,18,6]]), i:true}] }]);
       B(bodyPh, sl.sub, [[18,12,1]]);
       break;
     }
@@ -708,10 +794,11 @@ function renderSlide(tpl, sl, idx, total){
       ctx.ph(titleType, T(sl.title, [[32,20,1],[22,14,2]]));
       badge(ctx, tpl, layout, firstLetter(sl.title));
       const A=tpl.area;
-      sl.placed.forEach(({b,y},i)=>draw(ctx, b, A.x, y, A.w, i, (sl.risk && (b.type==='text'||b.type==='chips')) ? 'accent1' : null));
+      sl.placed.forEach(({b,y},i)=>draw(ctx, b, A.x, y, A.w, i, (sl.risk && (b.type==='text'||b.type==='chips')) ? RISK : null));
     }
   }
-  if(tpl.footer && (sl.kind==='content' || sl.kind==='agenda')) ctx.ph('ftr', H('Confidential patient information'));
+  if(tpl.footer && (sl.kind==='content' || sl.kind==='agenda')) ctx.ph('ftr', H(tpl.footerText || 'Confidential'));
+  if(tpl.slideNumbers && (sl.kind==='content' || sl.kind==='agenda')) ctx.ph('sldNum', [{ runs:[{ t:String(idx+1), fld:'slidenum' }] }]);
   ctx.notes = sl.kind==='content' ? (sl.title.endsWith('(cont.)') ? '' : sl.notes||'') : '';
   return { xml: ctx.xml(), layout: layout.path, notes: ctx.notes, items: ctx.items };
 }
@@ -778,6 +865,7 @@ function assemble(tpl, rendered, meta){
 
 /* Public: build the .pptx bytes. opts: { template (ArrayBuffer), templateCfg, title, presenter, patientAs, dividers, notes, include, date } */
 async function generate(data, opts){
+  usePalette(opts.templateCfg || {});
   const tpl = await loadTemplate(opts.template, opts.templateCfg);
   const { slides, label } = plan(data, { ...opts, quoteLayout: !!tpl.L.quote });
   const pages = paginate(tpl, slides);
@@ -785,6 +873,7 @@ async function generate(data, opts){
   const bytes = assemble(tpl, rendered, { notes: opts.notes!==false, title: (S(opts.title)||'Case presentation')+' – '+label, author: S(opts.presenter) });
   // What the PDF needs to draw the same slides
   const deck = { W:tpl.W, H:tpl.H, theme:tpl.theme, bg:tpl.bg, badgeIdx: tpl.badge ? tpl.badge.idx : null,
+    titleFace: ((opts.templateCfg||{}).pdf||{}).titleFont || 'title',
     slides: rendered.map(r=>({ layout: r.layout.split('/').pop().replace(/\.xml$/,''), items: r.items })) };
   return { bytes, label, count: pages.length, deck };
 }

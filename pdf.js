@@ -40,8 +40,14 @@ function hslToHex(h, s, l){
   return '#'+[r,g,b].map(x=>Math.round(Math.min(1,Math.max(0,x))*255).toString(16).padStart(2,'0')).join('');
 }
 const MODS = { tint:[0.2,0.8], soft:[0.4,0.6], dark:[0.75,0], line:[0.85,0], muted:[0.65,0.35] };
+const ALPHA = { glass:0.12, glass2:0.06, glassline:0.30, frost:0.62, frost2:0.40, hair:0.22 };   // as in slides.js
 function color(c, theme){
+  if(String(c).includes('@')){   // a template's own brightness change: "accent2@25000,0"
+    const [base, m] = String(c).split('@'), [mod, off] = m.split(',').map(Number);
+    const [h,s,l] = hexToHsl(color(base, theme).slice(1)); return hslToHex(h, s, Math.min(1, l*mod/100000 + off/100000));
+  }
   const [v, mod] = String(c || 'tx1').split(':');
+  if(ALPHA[mod]!=null){ const hx = color(v, theme); const n = parseInt(hx.slice(1),16); return `rgba(${n>>16},${(n>>8)&255},${n&255},${ALPHA[mod]})`; }
   const key = { tx1:'dk1', tx2:'dk2', bg1:'lt1', bg2:'lt2' }[v] || v;
   const hex = (theme[key] || (/^[0-9a-f]{6}$/i.test(v) ? v : '000000')).toUpperCase();
   if(!MODS[mod]) return '#'+hex;
@@ -50,9 +56,9 @@ function color(c, theme){
 }
 
 /* ----- text ----- */
-function fontOf(r, def){
+function fontOf(r, def, defBold){
   const fam = r.font==='head' ? FAM.head : r.font==='head-template' || r.font==='+mj-lt' ? FAM.title : r.font ? FAM.body : def;
-  const weight = fam===FAM.body ? (r.b ? 700 : 400) : 900;
+  const weight = fam===FAM.body ? (r.b || (!r.font && defBold) ? 700 : 400) : 900;
   return { css: `${r.i?'italic ':''}${weight} SIZEpx ${STACK(fam)}`, fam };
 }
 // Lay paragraphs out in a width (inches); returns lines with their runs and positions
@@ -64,8 +70,8 @@ function layout(g, paras, widthIn, def){
     const indent = p.bullet ? 0.25 : 0, avail = Math.max(0.2, widthIn - indent);
     const tokens = [];
     runs.forEach(r => {
-      const sz = r.sz || def.sz, f = fontOf(r, def.fam), col = r.color || def.color;
-      String(r.t).split(/(\s+)/).filter(x=>x!=='').forEach(t => tokens.push({ t, sz, font:f.css.replace('SIZE', String(sz/72*PX)), color:col, space:/^\s+$/.test(t) }));
+      const sz = r.sz || def.sz, f = fontOf(r, def.fam, def.b), col = r.color || def.color;
+      String(def.cap==='all' ? String(r.t).toUpperCase() : r.t).split(/(\s+)/).filter(x=>x!=='').forEach(t => tokens.push({ t, sz, font:f.css.replace('SIZE', String(sz/72*PX)), color:col, space:/^\s+$/.test(t) }));
     });
     const width = tk => { g.font = tk.font; return g.measureText(tk.t).width / PX; };
     let cur = [], curW = 0, first = true;
@@ -135,14 +141,14 @@ function drawTable(g, o, theme){
     let x = o.x;
     r.cells.forEach((paras, i) => {
       const w = o.cols[i];
-      g.fillStyle = color((r.fill && r.fill[i]) || 'bg1', theme); g.fillRect(x*PX, y*PX, w*PX, r.h*PX);
+      g.fillStyle = color((r.fill && r.fill[i]) || o.fill0 || 'bg1', theme); g.fillRect(x*PX, y*PX, w*PX, r.h*PX);
       drawText(g, paras, { x, y, w, h:r.h }, [0.1,0.06,0.1,0.06], 't', { sz:14, fam:FAM.body, color:'tx1', align:'l', lnSpc:1 }, theme);
       x += w;
     });
     y += r.h;
   });
   // cell borders
-  g.strokeStyle = color('bg1:line', theme); g.lineWidth = Math.max(1, 0.75/72*PX);
+  g.strokeStyle = color(o.line || 'bg1:line', theme); g.lineWidth = Math.max(1, 0.75/72*PX);
   const W = o.cols.reduce((a,b)=>a+b,0); let yy = o.y;
   g.beginPath(); g.moveTo(o.x*PX, yy*PX); g.lineTo((o.x+W)*PX, yy*PX);
   o.rows.forEach(r => { yy += r.h; g.moveTo(o.x*PX, yy*PX); g.lineTo((o.x+W)*PX, yy*PX); });
@@ -161,7 +167,7 @@ async function drawSlide(deck, sl, bgBase){
   const c = document.createElement('canvas'); c.width = Math.round(deck.W*PX); c.height = Math.round(deck.H*PX);
   const g = c.getContext('2d');
   g.fillStyle = color(deck.bg, deck.theme); g.fillRect(0, 0, c.width, c.height);
-  const bg = bgBase ? await loadImage(bgBase + sl.layout + '.png') : null;
+  const bg = bgBase ? await loadImage(bgBase + sl.layout + '.jpg') : null;
   if(bg) g.drawImage(bg, 0, 0, c.width, c.height);
   g.textBaseline = 'alphabetic';
   for(const it of sl.items){
@@ -171,7 +177,9 @@ async function drawSlide(deck, sl, bgBase){
       const inf = it.info, b = inf.box; if(!b) continue;
       if(inf.fill){ path(g, inf.geom, b.x, b.y, b.w, b.h); g.fillStyle = color(inf.fill, deck.theme); g.fill(); }
       if(deck.badgeIdx!=null && String(it.ph.idx)===String(deck.badgeIdx)) continue;   // the circle's own text is hidden by the template
-      drawText(g, it.paras, b, inf.inset, inf.anchor, { sz:18, fam:FAM.title, color:'tx1', align:inf.align, lnSpc:inf.lnSpc }, deck.theme);
+      if(inf.rot){ g.save(); const cx=(b.x+b.w/2)*PX, cy=(b.y+b.h/2)*PX; g.translate(cx,cy); g.rotate(inf.rot*Math.PI/180); g.translate(-cx,-cy); }
+      drawText(g, it.paras, b, inf.inset, inf.anchor, { sz:18, fam: deck.titleFace==='body' ? FAM.body : FAM.title, b:inf.b, cap:inf.cap, color:inf.color||'tx1', align:inf.align, lnSpc:inf.lnSpc }, deck.theme);
+      if(inf.rot) g.restore();
     }
   }
   const blob = await new Promise(res => c.toBlob(res, 'image/jpeg', 0.86));

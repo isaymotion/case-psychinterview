@@ -16,7 +16,7 @@ const root = path.join(__dirname, '..'), tplPath = path.join(root, cfg.file), ou
   const buf = fs.readFileSync(tplPath);
   const tpl = await CaseSlides._test.loadTemplate(buf.buffer.slice(buf.byteOffset, buf.byteOffset+buf.length), cfg);
   // Only the layouts the generator uses
-  const used = [...new Set([tpl.L.title, tpl.L.content, tpl.L.section, tpl.L.quote, tpl.L.end, ...tpl.L.parts].filter(Boolean))];
+  const used = [...new Set([tpl.L.title, tpl.L.content, tpl.L.section, tpl.L.quote, tpl.L.end, ...tpl.L.parts, ...tpl.L.sections].filter(Boolean))];
   const dec = new TextDecoder(), enc = new TextEncoder();
   // Placeholders (titles, text, the badge circle) are drawn by the app, so leave them out of the picture
   for(const k of [...tpl.files.keys()]) if(/^ppt\/(slideLayouts|slideMasters)\/[^/]+\.xml$/.test(k)){
@@ -30,10 +30,10 @@ const root = path.join(__dirname, '..'), tplPath = path.join(root, cfg.file), ou
   fs.writeFileSync(path.join(tmp, 'bg.pptx'), Buffer.from(bytes));
   execFileSync(soffice.split(' ')[0], [...soffice.split(' ').slice(1), '--headless', '--convert-to', 'pdf', '--outdir', tmp, path.join(tmp, 'bg.pptx')], { stdio:'ignore' });
   const PX = 150;   // pixels per inch, as in pdf.js: 2000 pixels across a widescreen slide
-  execFileSync('pdftoppm', ['-png', '-scale-to-x', String(Math.round(tpl.W*PX)), '-scale-to-y', String(Math.round(tpl.H*PX)), path.join(tmp, 'bg.pdf'), path.join(tmp, 'p')]);
+  execFileSync('pdftoppm', ['-jpeg', '-jpegopt', 'quality=88', '-scale-to-x', String(Math.round(tpl.W*PX)), '-scale-to-y', String(Math.round(tpl.H*PX)), path.join(tmp, 'bg.pdf'), path.join(tmp, 'p')]);
   fs.mkdirSync(outDir, { recursive:true });
-  const pages = fs.readdirSync(tmp).filter(f => /^p-\d+\.png$/.test(f)).sort((a,b) => parseInt(a.slice(2)) - parseInt(b.slice(2)));
-  for(const f of fs.readdirSync(outDir)) if(/\.png$/.test(f)) fs.unlinkSync(path.join(outDir, f));
-  pages.forEach((f, i) => { const name = path.basename(used[i].path, '.xml') + '.png'; fs.copyFileSync(path.join(tmp, f), path.join(outDir, name)); });
+  const pages = fs.readdirSync(tmp).filter(f => /^p-\d+\.jpg$/.test(f)).sort((a,b) => parseInt(a.slice(2)) - parseInt(b.slice(2)));
+  for(const f of fs.readdirSync(outDir)) if(/\.(png|jpg)$/.test(f)) fs.unlinkSync(path.join(outDir, f));
+  pages.forEach((f, i) => { const name = path.basename(used[i].path, '.xml') + '.jpg'; fs.copyFileSync(path.join(tmp, f), path.join(outDir, name)); });
   console.log(`${pages.length} backgrounds in ${outDir}`);
 })().catch(e => { console.error(e); process.exit(1); });
