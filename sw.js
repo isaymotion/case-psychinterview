@@ -1,5 +1,5 @@
 /* Offline support: serve the app from the iPad's cache when there is no connection. */
-const CACHE = 'case-mse-v14';
+const CACHE = 'case-mse-v15';
 const FILES = [
   './',
   './index.html',

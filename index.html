@@ -200,6 +200,9 @@ textarea.big{min-height:180px}
 .sec-head p.note{margin:8px 0 0;color:var(--ink-2);font-style:italic}
 
 .field{margin:0 0 24px}
+.subhead{font:600 19px/1.25 var(--serif);color:var(--blue-deep);margin:34px 0 14px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+.subhead.small{font:600 14px/1.3 var(--sans);letter-spacing:.02em;color:var(--blue);background:var(--wash);border:0;border-radius:6px;padding:7px 12px;margin:26px 0 14px}
+.risky .subhead{color:var(--risk)}
 .field > .lab{display:block;font-weight:600;font-size:16px;margin:0 0 3px}
 .field > .hint{display:block;font-size:14px;color:var(--ink-3);margin:0 0 8px}
 .field > .lab + input,.field > .lab + textarea,.field > .lab + .chips,.field > .lab + .seg,.field > .lab + .grid{margin-top:6px}
@@ -323,6 +326,24 @@ const SECTIONS = [
   ]},
   { id:'med', num:'8', title:'Past medical history & medications', fields:[
     {t:'area', id:'medhx', label:'Medical / surgical history', hint:'Major illnesses, surgeries, neurologic history, and conditions that may mimic or complicate psychiatric illness.'},
+    {t:'area', id:'prenatal', label:'Prenatal / birth / developmental problems'},
+    {t:'sub', id:'hMens', label:'Menstrual history'},
+    {t:'checks', id:'mensNA', label:'Menstrual history applicability', o:['N/A (male)']},
+    {t:'text', id:'menarche', label:'Age at menarche'},
+    {t:'text', id:'cycle', label:'Cycle length and regularity'},
+    {t:'text', id:'lmp', label:'LMP (last menstrual period)', hint:'Date.'},
+    {t:'radio', id:'cycleMood', label:'Cycle-related mood or symptom changes', o:['Yes','No'], detail:'Details'},
+    {t:'sub', id:'hOB', label:'OB-Gyne history'},
+    {t:'checks', id:'obNA', label:'OB-Gyne history applicability', o:['N/A (male)']},
+    {t:'parts', id:'obGP', label:'Gravidity / parity', p:['G','P'], inline:true},
+    {t:'radio', id:'pregnant', label:'Currently pregnant', o:['Yes','No']},
+    {t:'area', id:'obComp', label:'Pregnancy complications', hint:'Preeclampsia, gestational diabetes, miscarriage, stillbirth; any perinatal psychiatric episode.'},
+    {t:'checks', id:'postpartum', label:'Breastfeeding / postpartum', o:['Breastfeeding','Postpartum']},
+    {t:'text', id:'ppOnset', label:'Onset of mood symptoms (if postpartum)'},
+    {t:'text', id:'contra', label:'Contraception method'},
+    {t:'radio', id:'contraUse', label:'Contraception used consistently', o:['Yes','No']},
+    {t:'radio', id:'meno', label:'Menopausal status', o:['N/A (too young)','Premenopausal','Perimenopausal','Postmenopausal'], detail:'Age at onset'},
+    {t:'sub', id:'hMeds', label:'Medications & allergies'},
     {t:'table', id:'meds', label:'Current medications', c:['Medication','Dose / frequency','Prescriber','Adherence / side effects'], rows:4},
     {t:'text', id:'allergies', label:'Allergies'},
     {t:'text', id:'otc', label:'OTC / herbal / supplements'}
@@ -338,7 +359,40 @@ const SECTIONS = [
     {t:'area', id:'trauma', label:'Trauma / abuse'},
     {t:'area', id:'legal', label:'Military / legal'},
     {t:'area', id:'living', label:'Current living situation'},
-    {t:'area', id:'sexual', label:'Sexual history (as indicated)'}
+    {t:'sub', id:'hSex', label:'Sexual history', big:true},
+    {t:'sub', id:'hSexScreen', label:'Screening', small:true},
+    {t:'radio', id:'sexActive', label:'Are you sexually active?', o:['Yes','No']},
+    {t:'radio', id:'sexChanges', label:'Any recent changes or problems?', o:['Yes','No'], detail:'Details'},
+    {t:'sub', id:'hSexDev', label:'Development', small:true},
+    {t:'area', id:'sexKnow', label:'How was sexual knowledge acquired?'},
+    {t:'area', id:'sexPuberty', label:'Puberty and menarche'},
+    {t:'area', id:'sexIdent', label:'Sexual identity and orientation'},
+    {t:'area', id:'sexFirst', label:'First experiences'},
+    {t:'area', id:'sexRel', label:'Sex in romantic relationships'},
+    {t:'area', id:'sexChange', label:'Change over time'},
+    {t:'area', id:'sexAging', label:'Sex and aging'},
+    {t:'sub', id:'hSexDesire', label:'Desire phase', small:true},
+    {t:'area', id:'sexFantasy', label:'Sexual thoughts and fantasies'},
+    {t:'area', id:'sexWhom', label:'When and about whom'},
+    {t:'area', id:'sexInitiate', label:'Who initiates and how'},
+    {t:'sub', id:'hSexExcite', label:'Excitement phase', small:true},
+    {t:'radio', id:'sexArousal', label:'Difficulty with arousal?', o:['Yes','No']},
+    {t:'radio', id:'sexErection', label:'Erection issues?', o:['Yes','No']},
+    {t:'radio', id:'sexLube', label:'Lubrication issues?', o:['Yes','No']},
+    {t:'sub', id:'hSexOrgasm', label:'Orgasm phase', small:true},
+    {t:'radio', id:'sexOrgasm', label:'Orgasm occurs?', o:['Yes','No']},
+    {t:'area', id:'sexTiming', label:'Too soon or too late?'},
+    {t:'area', id:'sexFreq', label:'How often and when'},
+    {t:'area', id:'sexAbsent', label:'If absent: lack of arousal, or despite arousal?'},
+    {t:'sub', id:'hSexResol', label:'Resolution phase', small:true},
+    {t:'radio', id:'sexResol', label:'What follows sex? (choose one)', o:['Contentment','Frustration','Continued arousal']},
+    {t:'sub', id:'hSexOther', label:'Other sexual health', small:true},
+    {t:'radio', id:'sexPain', label:'Pain with sex?', o:['Yes','No'], detail:'Details'},
+    {t:'radio', id:'sexMedFx', label:'Sexual side effects of medications?', o:['Yes','No'], detail:'Medication / details'},
+    {t:'area', id:'sexSTI', label:'STI history and protection / risk behaviors'},
+    {t:'area', id:'sexSatis', label:"Satisfaction (patient's and partner's)"},
+    {t:'radio', id:'sexCoerced', label:'Unwanted or coerced sexual experiences?', o:['Yes','No'], detail:'Details', hint:'Screen only; document details under Trauma / abuse.'},
+    {t:'area', id:'sexual', label:'Sexual history (as indicated)', hint:'Other notes. Kept so that older saved cases and Word files still open correctly.'}
   ]},
   { id:'app', num:'11A', group:'Mental status examination', groupNote:'Objective composite snapshot during the interview; interpretation belongs in the formulation.', title:'Appearance & behavior', note:'Describe what the reader would actually see.', fields:[
     {t:'checks', id:'appChecks', label:'Observed', o:['Well-groomed','Disheveled / poor hygiene','Appropriate clothing','Unusual clothing','Appears stated age','Older / younger than stated age','Eye contact appropriate','Limited / avoidant eye contact','Intense eye contact','Cooperative','Guarded','Hostile','Seductive / flirtatious','Withdrawn','Agitated / restless','Pacing','Subdued','Tremulous','Rigid','Peculiar mannerisms','Observed response to internal stimuli']},
@@ -1629,8 +1683,8 @@ const DocxImport = (() => {
     const tableFields=[]; SECS.forEach(s=>s.fields.forEach(f=>{ if(f.t==='table') tableFields.push(f); }));
     const findField = label => {
       const L=norm(label); if(!L) return null;
-      if(sec){ const f=sec.fields.find(f=>f.t!=='table' && norm(f.label)===L); if(f) return f; }
-      for(const s of SECS){ const f=s.fields.find(f=>f.t!=='table' && norm(f.label)===L); if(f) return f; }
+      if(sec){ const f=sec.fields.find(f=>f.t!=='table' && f.t!=='sub' && norm(f.label)===L); if(f) return f; }
+      for(const s of SECS){ const f=s.fields.find(f=>f.t!=='table' && f.t!=='sub' && norm(f.label)===L); if(f) return f; }
       return null;
     };
     const handleP = p => {
@@ -1669,7 +1723,7 @@ const DocxImport = (() => {
 /* ---------- App ---------- */
 (function(){
   const KEY='psyCaseApp.v1';
-  const VERSION='October 7, 2026';
+  const VERSION='October 17, 2026';
   const $ = (s,el=document)=>el.querySelector(s);
   const h = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   const FIELDS = {}; Object.keys(SCHEMAS).forEach(k=>FIELDS[k]={});
@@ -2120,6 +2174,7 @@ const DocxImport = (() => {
     const lab = `<span class="lab" id="l-${f.id}">${h(f.label)}</span>${f.hint?`<span class="hint">${h(f.hint)}</span>`:''}${prevV?`<span class="hint prev">Last documented: <strong>${h(prevV)}</strong></span>`:''}`;
     const v = d[f.id];
     switch(f.t){
+      case 'sub': return `<h3 class="subhead ${f.small?'small':''}" id="l-${f.id}">${h(f.label)}</h3>`;
       case 'text': return `<div class="field">${lab}<input type="text" data-f="${f.id}" aria-labelledby="l-${f.id}" value="${h(v)}" autocomplete="off"></div>`;
       case 'area': return `<div class="field">${lab}<textarea class="${f.big?'big':''}" data-f="${f.id}" aria-labelledby="l-${f.id}">${h(v)}</textarea>${f.tool==='course' && rec.courseNotes && rec.courseNotes.length?`<div class="tools"><button class="btn" id="draftCourse">Draft from ${rec.courseNotes.length===1?'1 progress note':rec.courseNotes.length+' progress notes'}</button></div>`:''}${f.tool==='lastMSE' && str(rec.lastMSE)?`<div class="tools"><button class="btn" id="insLastMSE">Insert last progress-note MSE</button></div>`:''}${f.mseTools?`<div class="tools"><button class="btn" id="draft">${h(typeof f.mseTools==='string'?f.mseTools:'Draft from 11A–11F')}</button><button class="btn" id="copy">Copy paragraph</button></div>`:''}</div>`;
       case 'checks': { const sel=v||[]; return `<div class="field" role="group" aria-labelledby="l-${f.id}">${lab}<div class="chips">${f.o.map(o=>`<button class="chip" data-chk="${f.id}" data-o="${h(o)}" aria-pressed="${sel.includes(o)}">${h(o)}</button>`).join('')}</div>${f.score?`<div class="score" id="sc-${f.id}">${sel.length}/${f.o.length} positive</div>`:''}</div>`; }
