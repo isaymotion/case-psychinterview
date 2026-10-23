@@ -268,6 +268,7 @@ select:focus{border-color:var(--blue);outline:none;box-shadow:0 0 0 3px color-mi
 .lnarea{min-height:52px}
 .ln{align-items:flex-start}.ln span{padding-top:12px}
 @media (max-width:700px){ .labs{grid-template-columns:1fr} }
+a.btn{display:inline-flex;align-items:center;text-decoration:none}
 /* ----- sheet + toast ----- */
 .scrim{position:fixed;inset:0;background:rgba(10,20,30,.38);z-index:40;display:flex;align-items:center;justify-content:center;padding:20px}
 .sheet{background:var(--paper);border-radius:14px;max-width:560px;width:100%;max-height:80vh;overflow:auto;padding:22px 24px}
@@ -1520,6 +1521,10 @@ function safetyParts(d){
   };
 }
 if (typeof module !== 'undefined') module.exports = { SP_SECTIONS, safetyFromSources, safetyParts, DEFAULT_HOTLINES, SP_TEXT, spSwapDefaults };
+
+/* ---------- Google Docs and Slides export: the app's Google sign-in key (an OAuth client ID, which is not a secret).
+   Leave it empty to hide the Google buttons. ---------- */
+const GOOGLE_CLIENT_ID = '';
 
 /* ---------- Hospital case presentation protocol: letterhead (change here for another institution) ---------- */
 const PROTOCOL_HEAD = {
@@ -3065,6 +3070,112 @@ const DocxImport = (() => {
       if(last.some(c=>str(c)) && !confirm('The last row has text in it. Remove it?')) return; d[f.id].pop(); touch(); renderSection(); }
   });
 
+  /* ----- the files themselves, so Share and Google Drive make the same thing ----- */
+  const DOCX_TYPE = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', PPTX_TYPE = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+  const today = () => new Date().toISOString().slice(0,10);
+  const fileBase = (d, kind) => (str(d.patient)||str(d.patientName)||(kind==='ho'?(str(d.unit)||'Unit'):'')||'Patient').replace(/[^\w\- ]+/g,' ').trim().replace(/\s+/g,'_').slice(0,50) || 'Patient';
+  async function docxFor(rec, layout){
+    const d = rec.data;
+    if(rec.kind==='case'){ let geno=null; try{ geno = await genogramPNG(d); }catch(e){ geno=null; }
+      return { bytes: DocxGen.build(d, 'case', { layout, geno }), name: `${fileBase(d,'case')}_${layout==='protocol'?'Case_Protocol':'Case'}_${today()}.docx` }; }
+    const hd = rec.kind==='pn' && /^\d+$/.test(str(d.hday)) ? '_HD'+str(d.hday) : '';
+    return { bytes: DocxGen.build(d, rec.kind), name: `${fileBase(d,rec.kind)}_${SCHEMAS[rec.kind].file}${hd}_${today()}.docx` };
+  }
+  async function slidesFor(rec, P){
+    const T = CaseSlides.TEMPLATES, t = T.find(x=>x.id===P.tpl) || T[0];
+    const out = await CaseSlides.generate(rec.data, { template: await templateBytes(t), templateCfg:t, title:P.title, presenter:P.presenter, patientAs:P.mode, dividers:P.dividers, notes:P.notes, include:P.include });
+    const base = String(out.label).replace(/\./g,'').replace(/[^\w\- ]+/g,' ').trim().replace(/\s+/g,'_').slice(0,40) || 'Patient';
+    return { bytes: out.bytes, name: `${base}_Case_presentation_${today()}.pptx`, out };
+  }
+
+  /* ----- Google Docs and Slides: an editable copy in the resident's own Google Drive -----
+     Sign-in goes to Google's page and back (pop-up windows often fail in Home Screen apps). The access
+     lasts about an hour and lets the app see only the files it creates. */
+  const gReady = () => /\.apps\.googleusercontent\.com$/.test(String(GOOGLE_CLIENT_ID||''));
+  const GK = 'psyCaseApp.google';
+  const sess = { get:k=>{ try{ return sessionStorage.getItem(k); }catch(e){ return null; } }, set:(k,v)=>{ try{ v==null ? sessionStorage.removeItem(k) : sessionStorage.setItem(k,v); }catch(e){} } };
+  const keep = { get:k=>{ try{ return localStorage.getItem(k); }catch(e){ return null; } }, set:(k,v)=>{ try{ v==null ? localStorage.removeItem(k) : localStorage.setItem(k,v); }catch(e){} } };
+  function gToken(){ try{ const t=JSON.parse(sess.get(GK)||'null'); return t && t.exp>Date.now()+60000 ? t.token : null; }catch(e){ return null; } }
+  function gSignIn(intent){
+    persist();
+    keep.set(GK+'.pending', JSON.stringify({ ...intent, at:Date.now() }));
+    const state = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    sess.set(GK+'.state', state); keep.set(GK+'.state', state);
+    const redirect = location.origin + location.pathname.replace(/index\.html$/,'');
+    location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + new URLSearchParams({ client_id:GOOGLE_CLIENT_ID, redirect_uri:redirect, response_type:'token',
+      scope:'https://www.googleapis.com/auth/drive.file', state, include_granted_scopes:'true' });
+  }
+  function gStart(intent){
+    if(navigator.onLine===false){ toast('Connect to the internet to save to Google Drive.'); return; }
+    const t = gToken(); if(t) gRun(intent, t, true); else gSignIn(intent);
+  }
+  async function gFolder(token){
+    const auth = { Authorization:'Bearer '+token };
+    const id = store.last.gFolder;
+    if(id){ const r = await fetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(id)}?fields=id,trashed`, { headers:auth });
+      if(r.ok){ const j = await r.json(); if(!j.trashed) return id; } }
+    const r = await fetch('https://www.googleapis.com/drive/v3/files?fields=id', { method:'POST', headers:{ ...auth, 'Content-Type':'application/json' }, body:JSON.stringify({ name:'Case & MSE', mimeType:'application/vnd.google-apps.folder' }) });
+    if(r.status===401) throw new Error('google-auth');
+    if(!r.ok) return null;
+    const j = await r.json(); store.last.gFolder = j.id; persist(); return j.id;
+  }
+  async function gUpload(bytes, name, srcType, gType, token){
+    const auth = { Authorization:'Bearer '+token };
+    const check = r => { if(r.status===401) throw new Error('google-auth'); if(r.status===403) throw new Error('google-denied'); if(!r.ok) throw new Error('google-upload'); return r; };
+    const folder = await gFolder(token);
+    const meta = { name: name.replace(/\.(docx|pptx)$/,''), mimeType:gType, ...(folder ? { parents:[folder] } : {}) };
+    const q = 'fields=id,name,webViewLink';
+    if(bytes.length <= 4*1024*1024){
+      const bd = 'caseapp' + Math.random().toString(36).slice(2);
+      const body = new Blob([`--${bd}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(meta)}\r\n--${bd}\r\nContent-Type: ${srcType}\r\n\r\n`, bytes, `\r\n--${bd}--`]);
+      return (await check(await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&'+q, { method:'POST', headers:{ ...auth, 'Content-Type':'multipart/related; boundary='+bd }, body }))).json();
+    }
+    // larger files (some slide designs): Google's two-step upload
+    const start = check(await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&'+q, { method:'POST',
+      headers:{ ...auth, 'Content-Type':'application/json; charset=UTF-8', 'X-Upload-Content-Type':srcType }, body:JSON.stringify(meta) }));
+    const loc = start.headers.get('Location'); if(!loc) throw new Error('google-upload');
+    return (await check(await fetch(loc, { method:'PUT', headers:{ 'Content-Type':srcType }, body:bytes }))).json();
+  }
+  async function gRun(intent, token, canRetry){
+    const rec = store.cases[intent.rec]; if(!rec){ toast('That record is no longer on this iPad.'); return; }
+    const slides = intent.what==='slides', what = slides ? 'Google Slides' : 'Google Docs';
+    let close = ()=>{}, box = null;
+    sheet(`<h3>Saving to ${what}</h3><p id="gstat">Creating the file…</p>`, (s,c)=>{ close=c; box=s; });
+    const stat = t => { const el = box && box.querySelector('#gstat'); if(el) el.textContent = t; };
+    try{
+      const f = slides ? await slidesFor(rec, intent.pres) : await docxFor(rec, intent.layout);
+      stat('Uploading to your Google Drive…');
+      const res = await gUpload(f.bytes, f.name, slides ? PPTX_TYPE : DOCX_TYPE, slides ? 'application/vnd.google-apps.presentation' : 'application/vnd.google-apps.document', token);
+      box.querySelector('.sheet').innerHTML = `<h3>Saved to ${what}</h3><p><strong>${h(res.name||f.name)}</strong> is in the <strong>Case &amp; MSE</strong> folder of your Google Drive. Check the layout there; ${slides?'Google Slides may swap fonts it does not have.':'Google Docs may move pictures a little.'}</p>
+        <div class="tools">${res.webViewLink ? `<a class="btn primary" href="${h(res.webViewLink)}" target="_blank" rel="noopener">Open in ${what}</a>` : ''}<button class="btn quiet" data-close>Done</button></div>`;
+      box.querySelector('[data-close]').onclick = close;
+      const a = box.querySelector('a.btn'); if(a) a.focus();
+    }catch(err){
+      close();
+      const m = err && err.message;
+      if(m==='google-auth' && canRetry){ sess.set(GK, null); gSignIn(intent); return; }
+      toast(m==='google-denied' ? 'Google refused the upload. Check that the Google Drive API is turned on in the app\'s Google Cloud project.'
+        : m==='old-ios' ? 'Update the iPad (iPadOS 16.4 or later) to create slides.'
+        : 'The file could not be saved to Google Drive. Check the internet connection and try again.');
+      if(typeof console!=='undefined') console.error(err);
+    }
+  }
+  /* Back from Google's sign-in page: keep the access, then finish the export that started it */
+  function gResume(){
+    const hs = location.hash.slice(1); if(!/(^|&)(access_token|error)=/.test(hs)) return;
+    const p = new URLSearchParams(hs);
+    history.replaceState(null, '', location.pathname + location.search);
+    let pending = null; try{ pending = JSON.parse(keep.get(GK+'.pending')||'null'); }catch(e){}
+    const want = sess.get(GK+'.state') || keep.get(GK+'.state');
+    keep.set(GK+'.pending', null); keep.set(GK+'.state', null); sess.set(GK+'.state', null);
+    if(p.get('error')){ toast(p.get('error')==='access_denied' ? 'Google sign-in was cancelled, or this Gmail account is not on the app\'s list of testers.' : 'Google sign-in did not finish. Try again.'); return; }
+    if(!want || p.get('state')!==want){ toast('Google sign-in could not be confirmed. Try again.'); return; }
+    const token = p.get('access_token'); if(!token) return;
+    sess.set(GK, JSON.stringify({ token, exp: Date.now() + (+p.get('expires_in')||3600)*1000 }));
+    if(pending && Date.now()-pending.at < 15*60000 && store.cases[pending.rec]){ openRec(pending.rec); gRun(pending, token, false); }
+    else toast('Signed in to Google. Tap the export again.');
+  }
+
   /* The genogram as a PNG picture for Word: { bytes, w, h, wIn, hIn } (wIn/hIn in symbol units) */
   async function genogramPNG(d){
     const G = genogramLayout(d); if(!G) return null;
@@ -3098,14 +3209,23 @@ const DocxImport = (() => {
         const d=D(), base=(str(d.patient)||'Patient').replace(/[^\w\- ]+/g,' ').trim().replace(/\s+/g,'_').slice(0,50) || 'Patient';
         const name = `${base}_${lay==='protocol'?'Case_Protocol':'Case'}_${new Date().toISOString().slice(0,10)}.docx`;
         // Sharing needs a fresh tap on the iPad, so the file waits for one
-        s2.querySelector('.sheet').innerHTML = `<h3>Word file ready</h3><p>${h(name)}</p><div class="tools"><button class="btn primary" id="wshare">Share</button><button class="btn quiet" data-close>Done</button></div>`;
+        s2.querySelector('.sheet').innerHTML = `<h3>Word file ready</h3><p>${h(name)}</p><div class="tools"><button class="btn primary" id="wshare">Share</button>${gReady()?'<button class="btn" id="wgoogle">Save to Google Docs</button>':''}<button class="btn quiet" data-close>Done</button></div>`;
         s2.querySelector('[data-close]').onclick=close;
+        const wg=s2.querySelector('#wgoogle'); if(wg) wg.onclick=()=>{ close(); gStart({ rec:cur, what:'doc', layout:lay }); };
         const sh=s2.querySelector('#wshare'); sh.onclick=()=>saveFile(bytes, name, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'Word file created: '+name); sh.focus();
       });
     });
   }
   async function exportFile(){
     persist();
+    if(gReady()){
+      const rec=R(), f=await docxFor(rec);
+      sheet(`<h3>Word file ready</h3><p>${h(f.name)}</p><div class="tools"><button class="btn primary" id="wshare">Share</button><button class="btn" id="wgoogle">Save to Google Docs</button><button class="btn quiet" data-close>Done</button></div>`,
+        (s2, close)=>{ s2.querySelector('[data-close]').onclick=close;
+          s2.querySelector('#wshare').onclick=()=>saveFile(f.bytes, f.name, DOCX_TYPE, 'Word file created: '+f.name);
+          s2.querySelector('#wgoogle').onclick=()=>{ close(); gStart({ rec:cur, what:'doc' }); }; });
+      return;
+    }
     const rec=R(), d=D();
     const bytes = DocxGen.build(d, rec.kind);
     const base = (str(d.patient)||str(d.patientName)||(R().kind==='ho'?(str(d.unit)||'Unit'):'')||'Patient').replace(/[^\w\- ]+/g,' ').trim().replace(/\s+/g,'_').slice(0,50) || 'Patient';
@@ -3139,11 +3259,12 @@ const DocxImport = (() => {
     if(!avail.length){ toast('Nothing to present yet. Fill in the case first.'); return; }
     const P = store.last.pres || {}, T = CaseSlides.TEMPLATES;
     const st = { tpl: T.some(t=>t.id===P.tpl) ? P.tpl : T[0].id, mode: ['initials','alias','full'].includes(P.mode) ? P.mode : 'initials',
-      dividers: P.dividers!==false, notes: P.notes!==false, include: new Set(avail.map(s=>s.id)), fmt: ['pptx','pdf','key'].includes(P.fmt) ? P.fmt : 'pptx' };
+      dividers: P.dividers!==false, notes: P.notes!==false, include: new Set(avail.map(s=>s.id)), fmt: ['pptx','pdf','key'].concat(gReady()?['gslides']:[]).includes(P.fmt) ? P.fmt : 'pptx' };
     const FMT = {
       pptx:{ label:'PowerPoint', go:'Create PowerPoint', hint:'Opens in PowerPoint, Keynote, or Google Slides, where you can edit it.' },
       pdf: { label:'PDF', go:'Create PDF', hint:'Ready to present or send; it cannot be edited. Speaker notes are not included, and the text cannot be selected.' },
       key: { label:'Keynote', go:'Create for Keynote', hint:'Keynote turns the slides into a Keynote presentation on this iPad. After you tap Share, choose Keynote (tap More if you do not see it). Keynote may swap fonts it does not have.' } };
+    if(gReady()) FMT.gslides = { label:'Google Slides', go:'Save to Google Slides', hint:'Saves an editable copy in the Case & MSE folder of your Google Drive. You sign in with your Gmail account the first time in each session. Google Slides may swap fonts it does not have.' };
     const initials = CaseSlides.deidentify(d,'initials').label;
     const title = str(rec.presTitle) || str(d.caseTitle) || str(d.primaryDx).split(/\n/)[0].slice(0,90) || 'Case presentation';
     const presenter = str(d.preparedBy) || str(d.interviewer) || str(store.last.interviewer);
@@ -3179,6 +3300,7 @@ const DocxImport = (() => {
         rec.presTitle = ttl===title && !str(rec.presTitle) ? '' : ttl;
         store.last.pres = { tpl:st.tpl, mode:st.mode, dividers:st.dividers, notes:st.notes, fmt:st.fmt }; persist();
         const fmt=st.fmt;
+        if(fmt==='gslides'){ close(); gStart({ rec:cur, what:'slides', pres:{ tpl:st.tpl, mode:st.mode, dividers:st.dividers, notes:st.notes, title:ttl, presenter:pres, include:avail.map(x=>x.id).filter(id=>st.include.has(id)) } }); return; }
         go.disabled=true; go.textContent='Creating…';
         try{
           const out = await CaseSlides.generate(D(), { template: await templateBytes(t), templateCfg:t, title:ttl, presenter:pres, patientAs:st.mode,
@@ -3213,6 +3335,7 @@ const DocxImport = (() => {
   }
 
   window.addEventListener('pagehide', ()=>{ if(cur) persist(); });
+  setTimeout(()=>{ if(gReady()) gResume(); }, 0);
   document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='hidden' && cur) persist(); });
   if('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(()=>{});
   renderHome();
