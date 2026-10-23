@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Case &amp; MSE</title>
+<title>PsychInterview</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Case & MSE">
+<meta name="apple-mobile-web-app-title" content="PsychInterview">
 <meta name="theme-color" content="#365F91">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
@@ -2440,10 +2440,10 @@ const DocxImport = (() => {
 
   /* ----- home ----- */
   function renderHome(){
-    cur=null; document.title='Case & MSE';
+    cur=null; document.title='PsychInterview';
     const list = Object.values(store.cases).sort((a,b)=>b.updated-a.updated);
     document.body.innerHTML = `
-      <header class="bar"><img class="logo" src="icon-192.png" alt="" width="36" height="36"><h1>Case &amp; MSE</h1>
+      <header class="bar"><img class="logo" src="icon-192.png" alt="" width="36" height="36"><h1>PsychInterview</h1>
         <button class="btn" id="imp">Open Word file</button>
         <input type="file" id="impFile" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden></header>
       <main class="home">
@@ -2473,7 +2473,7 @@ const DocxImport = (() => {
           : `<p class="empty">Nothing here yet. Tap <strong>New case</strong> to start an interview, or <strong>Open Word file</strong> to continue one you exported.</p>`}
         <div class="privacy"><strong>Where your data lives.</strong> Records are saved only in this app on this iPad; nothing is uploaded anywhere. Export the Word file to your hospital's approved storage, then delete the record here.</div>
         ${list.length?`<div class="foot"><button class="btn quiet danger" id="wipe">Delete all records</button></div>`:''}
-        <footer class="credit"><img class="logo" src="icon-192.png" alt="Case &amp; MSE app icon" width="56" height="56"><p>Web app developed in 2026 by Isabella Navarro, MD.</p><p>Latest version ${VERSION}.</p><p><a href="mailto:isaymotion@gmail.com">isaymotion@gmail.com</a></p></footer>
+        <footer class="credit"><img class="logo" src="icon-192.png" alt="PsychInterview app icon" width="56" height="56"><p>Web app developed in 2026 by Isabella Navarro, MD.</p><p>Latest version ${VERSION}.</p><p><a href="mailto:isaymotion@gmail.com">isaymotion@gmail.com</a></p></footer>
       </main>`;
     $('#new').onclick = newCase;
     $('#newpn').onclick = chooseProgressSource;
@@ -2809,7 +2809,7 @@ const DocxImport = (() => {
   /* ----- editor ----- */
   function openRec(id){ cur=id; secIdx=0; renderEditor(); }
   function renderEditor(){
-    const rec=R(); document.title=recTitle(rec)+' | Case & MSE';
+    const rec=R(); document.title=recTitle(rec)+' | PsychInterview';
     document.body.innerHTML = `
       <header class="bar">
         <button class="btn quiet" id="back" aria-label="All records">‹ Records</button>
@@ -3114,7 +3114,7 @@ const DocxImport = (() => {
     const id = store.last.gFolder;
     if(id){ const r = await fetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(id)}?fields=id,trashed`, { headers:auth });
       if(r.ok){ const j = await r.json(); if(!j.trashed) return id; } }
-    const r = await fetch('https://www.googleapis.com/drive/v3/files?fields=id', { method:'POST', headers:{ ...auth, 'Content-Type':'application/json' }, body:JSON.stringify({ name:'Case & MSE', mimeType:'application/vnd.google-apps.folder' }) });
+    const r = await fetch('https://www.googleapis.com/drive/v3/files?fields=id', { method:'POST', headers:{ ...auth, 'Content-Type':'application/json' }, body:JSON.stringify({ name:'PsychInterview', mimeType:'application/vnd.google-apps.folder' }) });
     if(r.status===401) throw new Error('google-auth');
     if(!r.ok) return null;
     const j = await r.json(); store.last.gFolder = j.id; persist(); return j.id;
@@ -3146,7 +3146,7 @@ const DocxImport = (() => {
       const f = slides ? await slidesFor(rec, intent.pres) : await docxFor(rec, intent.layout);
       stat('Uploading to your Google Drive…');
       const res = await gUpload(f.bytes, f.name, slides ? PPTX_TYPE : DOCX_TYPE, slides ? 'application/vnd.google-apps.presentation' : 'application/vnd.google-apps.document', token);
-      box.querySelector('.sheet').innerHTML = `<h3>Saved to ${what}</h3><p><strong>${h(res.name||f.name)}</strong> is in the <strong>Case &amp; MSE</strong> folder of your Google Drive. Check the layout there; ${slides?'Google Slides may swap fonts it does not have.':'Google Docs may move pictures a little.'}</p>
+      box.querySelector('.sheet').innerHTML = `<h3>Saved to ${what}</h3><p><strong>${h(res.name||f.name)}</strong> is in the <strong>PsychInterview</strong> folder of your Google Drive. Check the layout there; ${slides?'Google Slides may swap fonts it does not have.':'Google Docs may move pictures a little.'}</p>
         <div class="tools">${res.webViewLink ? `<a class="btn primary" href="${h(res.webViewLink)}" target="_blank" rel="noopener">Open in ${what}</a>` : ''}<button class="btn quiet" data-close>Done</button></div>`;
       box.querySelector('[data-close]').onclick = close;
       const a = box.querySelector('a.btn'); if(a) a.focus();
@@ -3264,7 +3264,7 @@ const DocxImport = (() => {
       pptx:{ label:'PowerPoint', go:'Create PowerPoint', hint:'Opens in PowerPoint, Keynote, or Google Slides, where you can edit it.' },
       pdf: { label:'PDF', go:'Create PDF', hint:'Ready to present or send; it cannot be edited. Speaker notes are not included, and the text cannot be selected.' },
       key: { label:'Keynote', go:'Create for Keynote', hint:'Keynote turns the slides into a Keynote presentation on this iPad. After you tap Share, choose Keynote (tap More if you do not see it). Keynote may swap fonts it does not have.' } };
-    if(gReady()) FMT.gslides = { label:'Google Slides', go:'Save to Google Slides', hint:'Saves an editable copy in the Case & MSE folder of your Google Drive. You sign in with your Gmail account the first time in each session. Google Slides may swap fonts it does not have.' };
+    if(gReady()) FMT.gslides = { label:'Google Slides', go:'Save to Google Slides', hint:'Saves an editable copy in the PsychInterview folder of your Google Drive. You sign in with your Gmail account the first time in each session. Google Slides may swap fonts it does not have.' };
     const initials = CaseSlides.deidentify(d,'initials').label;
     const title = str(rec.presTitle) || str(d.caseTitle) || str(d.primaryDx).split(/\n/)[0].slice(0,90) || 'Case presentation';
     const presenter = str(d.preparedBy) || str(d.interviewer) || str(store.last.interviewer);

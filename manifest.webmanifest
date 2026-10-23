@@ -1,6 +1,6 @@
 {
-  "name": "Case & MSE",
-  "short_name": "Case & MSE",
+  "name": "PsychInterview",
+  "short_name": "PsychInterview",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
