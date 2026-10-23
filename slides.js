@@ -78,11 +78,14 @@ const TEMPLATES = [
 
 /* Parts of the presentation, in order. Section ids are the ones in the case template. */
 const CASE_FORMAT = [
-  { part:'History', sections:['idd','cc','hpi','ros','pph','safety','sub','med','fam','soc'] },
-  { part:'Mental status examination', sections:['mse'] },
-  { part:'Examination and work-up', sections:['pe','labs'] },
-  { part:'Formulation and plan', sections:['form','dx','risk','plan'] }
+  { part:'History', sections:['idd','cc','src','premorbid','hpi','ros','pph','safety','med','obgyn','sub','fam','famprof','soc'] },
+  { part:'Examination', sections:['rosmed','pe','neuro','mse'] },
+  { part:'Course in the wards', sections:['adm','course','labs'] },
+  { part:'Assessment and management', sections:['salient','ddx','dx','form','risk','prog','plan'] },
+  { part:'Discussion', sections:['disc'] }
 ];
+// Sections that are not slides of their own: encounter details, and the presentation details used on the title slide
+const NOT_SLIDES = ['enc','pres'];
 
 const EMU = 914400, E = n => Math.round(n*EMU);
 const enc = new TextEncoder(), dec = new TextDecoder();
@@ -317,11 +320,11 @@ class SlideCtx {
     this.items.push({ kind:'shape', o:{ ...o, inset:ins } });
     const geom = `<a:prstGeom prst="${o.geom||'rect'}"><a:avLst>${o.adj!=null?`<a:gd name="adj" fmla="val ${o.adj}"/>`:''}</a:avLst></a:prstGeom>`;
     const fill = o.fill ? `<a:solidFill>${clr(o.fill)}</a:solidFill>` : '<a:noFill/>';
-    const ln = o.line ? `<a:ln w="${E(o.lineW||0.014)}"><a:solidFill>${clr(o.line)}</a:solidFill></a:ln>` : '<a:ln><a:noFill/></a:ln>';
+    const ln = o.line ? `<a:ln w="${E(o.lineW||0.014)}"><a:solidFill>${clr(o.line)}</a:solidFill>${o.dash?'<a:prstDash val="dash"/>':''}</a:ln>` : '<a:ln><a:noFill/></a:ln>';
     const fx = o.shadow ? '<a:effectLst><a:outerShdw blurRad="76200" dist="19050" dir="5400000" algn="t" rotWithShape="0"><a:prstClr val="black"><a:alpha val="16000"/></a:prstClr></a:outerShdw></a:effectLst>' : '';
     const tx = o.paras ? `<p:txBody><a:bodyPr wrap="square" lIns="${E(ins[0])}" tIns="${E(ins[1])}" rIns="${E(ins[2])}" bIns="${E(ins[3])}" anchor="${o.anchor||'t'}" rtlCol="0"><a:noAutofit/></a:bodyPr><a:lstStyle/>${this.P(o.paras)}</p:txBody>` : '';
     const isText = o.paras && !o.fill && !o.line;
-    this.shapes.push(`<p:sp><p:nvSpPr><p:cNvPr id="${id}" name="${esc(o.name||('Shape '+id))}"/><p:cNvSpPr${isText?' txBox="1"':''}/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x="${E(o.x)}" y="${E(o.y)}"/><a:ext cx="${E(o.w)}" cy="${E(o.h)}"/></a:xfrm>${geom}${fill}${ln}${fx}</p:spPr>${tx}</p:sp>`);
+    this.shapes.push(`<p:sp><p:nvSpPr><p:cNvPr id="${id}" name="${esc(o.name||('Shape '+id))}"/><p:cNvSpPr${isText?' txBox="1"':''}/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm${o.flipV?' flipV="1"':''}><a:off x="${E(o.x)}" y="${E(o.y)}"/><a:ext cx="${E(o.w)}" cy="${E(o.h)}"/></a:xfrm>${geom}${fill}${ln}${fx}</p:spPr>${tx}</p:sp>`);
   }
   table(o){ // {x,y,w, cols:[w...], rows:[{cells:[paras[]], fill:[...], h}], name}
     this.items.push({ kind:'table', o:{ ...o, line:PAL.line, fill0:PAL.row(0) } });
@@ -394,7 +397,7 @@ function fieldText(f, d){
     case 'parts': return f.p.filter(k=>S((v||{})[k])).map(k=>k+': '+S(v[k])).join('; ');
     case 'table': return (v||[]).filter(r=>r.some(c=>S(c))).map(r=>f.c.map((c,i)=>S(r[i])?c+': '+S(r[i]):'').filter(Boolean).join('; ')).join('\n');
   }
-  return '';
+  return typeof extText==='function' ? extText(f, d) : '';
 }
 const filled = (f,d) => (typeof isFilled==='function' ? isFilled(f,d) : !!fieldText(f,d));
 
@@ -420,10 +423,26 @@ function sectionBlocks(s, d){
         else items.forEach(k=>fact(k, S(v[k])));
         break;
       }
-      case 'area': endFacts(); out.push({type:'text', label:f.label, text: f.quote ? quoteIt(S(v)) : S(v), feature: f.id==='primaryDx'}); break;
+      case 'area': endFacts(); out.push({type:'text', label:f.label, text: f.quote ? quoteIt(S(v)) : S(v), feature: f.id==='primaryDx' || f.id==='admitImp'}); break;
       case 'checks': endFacts();
         if(f.score) out.push({type:'stats', label:f.label, items:[{value:asList(v).length+'/'+f.o.length, label:f.label+' positive', sub:asList(v).join(', ')}]});
         else out.push({type:'chips', label:f.label, items:asList(v)});
+        break;
+      case 'lines': endFacts(); {
+        const list=asList(v);
+        out.push(f.id==='objectives' || f.id==='refs' ? {type:'text', label:f.label, text:list.map((t,i)=>(i+1)+'. '+t).join('\n'), plain:true} : {type:'text', label:f.label, text:list.join('\n')});
+        break;
+      }
+      case 'grid': endFacts(); {
+        const g=v||{}, rows=f.rows.filter(r=>f.cols.some(c=>S(g[r+'|'+c]))), cols=f.cols.filter(c=>rows.some(r=>S(g[r+'|'+c])));
+        out.push({type:'table', label:f.label, cols:['', ...cols], rows:rows.map(r=>[r, ...cols.map(c=>S(g[r+'|'+c]))])});
+        break;
+      }
+      case 'labs': endFacts();
+        out.push({type:'table', label:f.label, cols:['Test','Results'], rows:labsDone(d).map(x=>[x.panel.name, x.text || x.rows.map(labLine).join('; ')])});
+        break;
+      case 'family': endFacts();
+        out.push({type:'table', label:f.label, cols:['Name','Relationship','Age','Description'], rows:famMembers(d).map(m=>[S(m.name), [S(m.rel), m.status==='Deceased'?'deceased':'', m.psych?(S(m.cond)||'psychiatric condition'):''].filter(Boolean).join(', '), S(m.age), S(m.desc)])});
         break;
       case 'table': endFacts(); {
         const rows=(v||[]).filter(r=>r.some(c=>S(c))).map(r=>f.c.map((_,i)=>S(r[i])));
@@ -453,6 +472,7 @@ function sectionNotes(s, d){
 
 /* ===== Laying out blocks on slides ===== */
 const GAP = 0.2;
+let GENO_MAXH = 4.5;   // height of the content area, set per template
 
 function measure(b, w){
   switch(b.type){
@@ -464,7 +484,7 @@ function measure(b, w){
     }
     case 'text': {
       const pt = b.feature ? 18 : BODY;
-      return { h: 0.22 + (b.label?LH(LABEL)+0.06:0) + parasHeight(textParas(b.text, pt), w-0.3) + 0.04, pt };
+      return { h: 0.22 + (b.label?LH(LABEL)+0.06:0) + parasHeight(textParas(b.text, pt, {plain:b.plain}), w-0.3) + 0.04, pt };
     }
     case 'cards': {
       const n=b.items.length, cw=(w-GAP*(n-1))/n;
@@ -483,6 +503,10 @@ function measure(b, w){
     case 'table': {
       const cols=colWidths(b, w), head=rowH(b.cols, cols, 12.5, true), rows=b.rows.map(r=>rowH(r, cols, b.pt||13));
       return { h: (b.label?LH(LABEL)+0.08:0) + head + rows.reduce((a,x)=>a+x,0), cols, head, rowsH:rows };
+    }
+    case 'genogram': {
+      const G=b.G, sc=Math.min((w-0.4)/G.w, (GENO_MAXH-0.55)/G.h, 0.62);
+      return { h: G.h*sc + 0.25 + 0.35, sc };
     }
     case 'mse': {
       const cols=[2.55, w-2.55], rows=b.rows.map(r=>Math.max(rowH([r.label],[cols[0]],13,true), cellH(r.paras, cols[1])));
@@ -504,7 +528,7 @@ function colWidths(b, w){
 }
 function textParas(text, pt, opt={}){
   const lines=String(text).split(/\n+/).map(s=>s.trim()).filter(Boolean);
-  const bullet = lines.length>1 && lines.every(l=>l.length<260);
+  const bullet = !opt.plain && lines.length>1 && lines.every(l=>l.length<260);
   return lines.map(l=>({ runs:[{t:l.replace(/^[-•*]\s*/,''), sz:pt, color:opt.color||PAL.text, i:opt.i}], bullet, after: bullet?3:6 }));
 }
 
@@ -546,7 +570,7 @@ function draw(ctx, b, x, y, w, toneIdx, sectionTone){
       break;
     }
     case 'text': {
-      const t=b.tone||tone(0), paras=[...(b.label?[labelP(b.label,t)]:[]), ...textParas(b.text, m.pt)];
+      const t=b.tone||tone(0), paras=[...(b.label?[labelP(b.label,t)]:[]), ...textParas(b.text, m.pt, {plain:b.plain})];
       ctx.shape({ x, y, w, h:m.h, geom:'roundRect', adj:b.feature?10000:5000, fill:PAL.card(t), name:b.label||'Text', paras, inset:[0.15,0.11,0.15,0.08] });
       break;
     }
@@ -580,6 +604,27 @@ function draw(ctx, b, x, y, w, toneIdx, sectionTone){
       const rows=[{ h:m.head, cells:b.cols.map(c=>[{runs:[{t:c, sz:12.5, b:true, color:PAL.headText}]}]), fill:b.cols.map(()=>PAL.head(t)) }];
       b.rows.forEach((r,ri)=>rows.push({ h:m.rowsH[ri], cells:r.map(c=>[{runs:[{t:c||'', sz:b.pt||13, color:PAL.text}]}]), fill:r.map(()=> PAL.row(ri,t)) }));
       ctx.table({ x, y:yy, cols:m.cols, rows, name:b.label||'Table' });
+      break;
+    }
+    case 'genogram': {
+      const G=b.G, sc=m.sc, gw=G.w*sc, ox=x+(w-gw)/2, oy=y+0.12, ink='1B2A3A', S1=G.S*sc, X=v=>ox+v*sc, Y=v=>oy+v*sc;
+      const pt = (k, lo, hi) => Math.max(lo, Math.min(hi, Math.round(k*sc*72*0.88)));
+      ctx.shape({ x:ox-0.18, y:y, w:gw+0.36, h:G.h*sc+0.25, geom:'roundRect', adj:3500, fill:'FFFFFF', name:'Genogram' });
+      const line = (x1,y1,x2,y2,dash) => { if(x2<x1){ [x1,x2]=[x2,x1]; [y1,y2]=[y2,y1]; }
+        ctx.shape({ x:x1, y:Math.min(y1,y2), w:Math.max(0,x2-x1), h:Math.abs(y2-y1), geom:'line', line:ink, lineW:0.017, flipV:y2<y1, dash, name:'Line' }); };
+      G.lines.forEach(l=>line(X(l.x1),Y(l.y1),X(l.x2),Y(l.y2),l.dash));
+      G.nodes.forEach(n=>{
+        const geom = n.sex==='F' ? 'ellipse' : n.sex==='U' ? 'diamond' : 'rect', nx=X(n.x), ny=Y(n.y);
+        ctx.shape({ x:nx, y:ny, w:S1, h:S1, geom, fill:n.fill?ink:'FFFFFF', line:ink, lineW:0.022, anchor:'ctr', inset:[0,0,0,0], name:n.name||'Member',
+          paras: n.age ? [{ runs:[{ t:String(n.age).slice(0,4), sz:pt(0.36,10,20), b:true, color:n.fill?'FFFFFF':ink }], align:'ctr' }] : undefined });
+        if(n.pt){ const k=0.13*sc; ctx.shape({ x:nx+k, y:ny+k, w:S1-2*k, h:S1-2*k, geom, line:ink, lineW:0.018, name:'Patient' }); }
+        if(n.dead){ const e=0.12*sc; line(nx-e, ny-e, nx+S1+e, ny+S1+e); line(nx-e, ny+S1+e, nx+S1+e, ny-e); }
+        const lp = genoLabelPos(n, G.S), runs=[{ runs:[{ t:genoLabel(n.name,13), sz:pt(0.29,9,15), b:n.pt, color:ink }], align:lp.side?'l':'ctr' }];
+        if(n.cond) runs.push({ runs:[{ t:genoLabel(n.cond,15), sz:pt(0.25,8,13), i:true, color:'4A5A6B' }], align:lp.side?'l':'ctr' });
+        if(lp.side) ctx.shape({ x:X(lp.x), y:Y(n.y+0.05), w:2.0*sc, h:0.9*sc, inset:[0,0,0,0], anchor:'ctr', paras:runs, name:'Label' });
+        else ctx.shape({ x:nx-0.55*sc, y:ny+S1+0.04*sc, w:S1+1.1*sc, h:0.75*sc, inset:[0,0,0,0], paras:runs, name:'Label' });
+      });
+      ctx.shape({ x, y:y+G.h*sc+0.3, w, h:0.3, inset:[0,0,0,0], paras:[{ runs:[{ t:GENO_LEGEND, sz:10.5, i:true, color:PAL.free }], align:'ctr' }], name:'Legend' });
       break;
     }
     case 'mse': {
@@ -638,20 +683,23 @@ function plan(data, opts){
   // Parts in order; sections not listed in CASE_FORMAT join the part of the section before them
   const placed = new Set(); CASE_FORMAT.forEach(p=>p.sections.forEach(id=>placed.add(id)));
   const parts = CASE_FORMAT.map(p=>({ part:p.part, sections:p.sections.slice() }));
-  secs.forEach((s,i)=>{ if(s.id==='enc' || s.group || placed.has(s.id)) return;
+  secs.forEach((s,i)=>{ if(NOT_SLIDES.includes(s.id) || s.group || placed.has(s.id)) return;
     let prev=null; for(let j=i-1;j>=0;j--){ const id=secs[j].group?'mse':secs[j].id; if(placed.has(id)){ prev=id; break; } }
     const pt = parts.find(p=>p.sections.includes(prev)) || parts[parts.length-1];
     pt.sections.splice(prev ? pt.sections.indexOf(prev)+1 : pt.sections.length, 0, s.id); placed.add(s.id); });
 
   const slides=[], present=[];
-  const presenter = S(opts.presenter) || S(d.interviewer);
+  const presenter = S(opts.presenter) || S(d.preparedBy) || S(d.interviewer);
   parts.forEach(p=>{
     const items = p.sections.filter(id => id==='mse' ? incl('mse') && mseSecs.some(has) : incl(id) && has(byId[id]));
     if(items.length) present.push({ part:p.part, items });
   });
 
   slides.push({ kind:'title', title: S(opts.title)||'Case presentation', presenter, date: longDate(opts.date||new Date()),
-    info: [label, mrn && 'MRN '+mrn, S(d.agesex), S(d.location)].filter(Boolean).join('  ·  '), attending: S(d.attending) });
+    info: [label, mrn && 'MRN '+mrn, S(d.agesex), S(d.location)].filter(Boolean).join('  ·  '), attending: S(d.supervisedBy) ? 'Supervised by: '+S(d.supervisedBy) : S(d.attending) ? 'Attending: '+S(d.attending) : '' });
+  const objectives = asList(d.objectives);
+  if(objectives.length && (!opts.include || opts.include.includes('pres')))
+    slides.push({ kind:'content', title:'Objectives', blocks:[{type:'text', label:'', text:objectives.map((t,i)=>(i+1)+'. '+t).join('\n'), plain:true, feature:true}], notes:'' });
   if(opts.dividers && present.length>1) slides.push({ kind:'agenda', title:'Outline', items: present.map(p=>p.part) });
 
   present.forEach((p,pi)=>{
@@ -666,6 +714,19 @@ function plan(data, opts){
         return;
       }
       const s=byId[id];
+      if(id==='famprof'){
+        const G = typeof genogramLayout==='function' ? genogramLayout(d) : null;
+        if(G) slides.push({ kind:'content', title:'Family genogram', blocks:[{type:'genogram', G}], notes: sectionNotes(s,d) });
+        const fam = s.fields.find(f=>f.t==='family');
+        if(fam && filled(fam,d)) slides.push({ kind:'content', title:'Family profile', blocks:sectionBlocks({ ...s, fields:[fam] }, d).map(b=>({ ...b, label:'' })), notes:'' });
+        return;
+      }
+      if(id==='disc'){
+        if(S(d.discussion)) slides.push({ kind:'content', title:'Discussion', blocks:[{type:'text', label:'', text:S(d.discussion)}], notes:'' });
+        const refs = asList(Array.isArray(d.refs) ? d.refs : (typeof REFERENCES_DEFAULT!=='undefined' ? REFERENCES_DEFAULT : []));
+        if(refs.length) slides.push({ kind:'content', title:'References', blocks:[{type:'text', label:'', text:refs.map((t,i)=>(i+1)+'. '+t).join('\n'), plain:true}], notes:'' });
+        return;
+      }
       if(id==='cc' && S(d.cc) && S(d.cc).length<=260 && opts.quoteLayout){ slides.push({ kind:'quote', title:quoteIt(S(d.cc)), sub:'Chief complaint, in the patient’s own words', notes:'' }); return; }
       slides.push({ kind:'content', title:s.title, blocks:sectionBlocks(s,d), notes:sectionNotes(s,d), risk:!!s.risk });
     });
@@ -761,7 +822,7 @@ function renderSlide(tpl, sl, idx, total){
       const al = tb && tb.align;
       if(tb) ctx.shape({ ...tb, inset:[0,0,0,0], name:'Patient',
         paras:[ ...(sl.info?[{ runs:[{t:sl.info, sz:18, b:true, color:PAL.free}], align:al }]:[]),
-                ...(sl.attending?[{ runs:[{t:'Attending: '+sl.attending, sz:13, color:PAL.free}], before:2, align:al }]:[]) ] });
+                ...(sl.attending?[{ runs:[{t:sl.attending, sz:13, color:PAL.free}], before:2, align:al }]:[]) ] });
       const cb = tpl.confidential || { x:0.8, y:tpl.H-0.55, w:8, h:0.3 };
       ctx.shape({ ...cb, inset:[0,0,0,0], name:'Confidential', paras:[{ runs:[{t:'Confidential patient information. For case conference use only.', sz:11, i:true, color:PAL.free}], align:cb.align }] });
       break;
@@ -867,6 +928,7 @@ function assemble(tpl, rendered, meta){
 async function generate(data, opts){
   usePalette(opts.templateCfg || {});
   const tpl = await loadTemplate(opts.template, opts.templateCfg);
+  GENO_MAXH = tpl.area.h;
   const { slides, label } = plan(data, { ...opts, quoteLayout: !!tpl.L.quote });
   const pages = paginate(tpl, slides);
   const rendered = pages.map((s,i)=>renderSlide(tpl, s, i, pages.length));
@@ -882,7 +944,7 @@ async function generate(data, opts){
 function availableSections(d, secs){
   secs = secs || SECTIONS;
   const out=[]; let mse=false;
-  secs.forEach(s=>{ if(s.id==='enc') return; const on=s.fields.some(f=>filled(f,d));
+  secs.forEach(s=>{ if(s.id==='enc') return; if(s.id==='pres'){ if(asList(d.objectives).length) out.push({ id:'pres', num:s.num, title:'Objectives' }); return; } const on=s.fields.some(f=>filled(f,d));
     if(s.group){ if(!mse && secs.filter(x=>x.group).some(x=>x.fields.some(f=>filled(f,d)))){ out.push({ id:'mse', num:s.num.replace(/[A-Z]$/,''), title:s.group }); mse=true; } return; }
     if(on) out.push({ id:s.id, num:s.num, title:s.title }); });
   return out;
