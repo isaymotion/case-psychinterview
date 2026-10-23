@@ -208,7 +208,7 @@ function buildPDF(pages, Wpt, Hpt, title){
   const n = pages.length, pageObj = i => 4 + i*3;
   obj(1, () => add('<< /Type /Catalog /Pages 2 0 R >>'));
   obj(2, () => add(`<< /Type /Pages /Count ${n} /Kids [${pages.map((_,i)=>pageObj(i)+' 0 R').join(' ')}] >>`));
-  obj(3, () => add(`<< /Title ${pdfString(title||'Case presentation')} /Producer (Case & MSE app) /CreationDate (D:${new Date().toISOString().replace(/[-:T]/g,'').slice(0,14)}) >>`));
+  obj(3, () => add(`<< /Title ${pdfString(title||'Case presentation')} /Producer (PsychInterview app) /CreationDate (D:${new Date().toISOString().replace(/[-:T]/g,'').slice(0,14)}) >>`));
   pages.forEach((p, i) => {
     const po = pageObj(i), co = po+1, io = po+2;
     obj(po, () => add(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${Wpt} ${Hpt}] /Resources << /XObject << /Im0 ${io} 0 R >> >> /Contents ${co} 0 R >>`));
