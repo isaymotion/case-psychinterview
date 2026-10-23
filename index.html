@@ -240,6 +240,34 @@ textarea.big{min-height:180px}
 .pager{display:flex;justify-content:space-between;gap:12px;margin-top:36px;padding-top:18px;border-top:1px solid var(--line)}
 .pager .btn{max-width:48%;overflow:hidden;text-overflow:ellipsis}
 
+/* ----- case presentation format: family, labs, formulation grid ----- */
+select{font:inherit;font-size:17px;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:10px 12px;width:100%;min-height:46px}
+select:focus{border-color:var(--blue);outline:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--blue) 22%,transparent)}
+.fam{display:grid;gap:14px;margin-top:8px}
+.famcard{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.famrow{display:flex;flex-wrap:wrap;gap:10px 12px;align-items:flex-end;margin-bottom:10px}
+.famcard label{display:block;font-size:14px;color:var(--ink-2)}
+.famcard label input,.famcard label select,.famcard label textarea{margin-top:4px}
+.famcard .w1{flex:1 1 90px;max-width:130px}.famcard .w2{flex:2 1 200px}.famcard .full{display:block}
+.famcard textarea{min-height:60px}
+.seg.sm button{padding:8px 14px;min-height:44px;font-size:15px}
+.geno-wrap{margin-top:22px;padding-top:16px;border-top:1px solid var(--line)}
+.geno{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px;overflow-x:auto;margin:6px 0 8px}
+.geno svg{display:block;max-width:100%;height:auto;margin:0 auto}
+.labs{display:grid;grid-template-columns:repeat(auto-fill,minmax(400px,1fr));gap:14px;margin-top:8px}
+.labcard{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.labcard h4{margin:0 0 8px;font:600 16px/1.3 var(--sans);color:var(--blue-deep)}
+.labcard textarea{min-height:64px}
+.labgrid{display:grid;grid-template-columns:1.35fr 1fr 1fr 44px;gap:6px 8px;align-items:center}
+.labgrid > span{font-size:12.5px;color:var(--ink-3)}
+.labgrid input{padding:8px 9px;font-size:16px}
+.flag{font-size:12.5px;font-weight:700;color:var(--risk)}
+.gridtbl th[scope=row]{background:var(--wash);font-size:14px;width:16%;text-align:left;padding:8px 10px;vertical-align:top;color:var(--ink)}
+.gridtbl textarea{border:0;border-radius:0;min-height:64px;padding:10px;font-size:16px;background:transparent}
+.gridtbl td{border-left:1px solid var(--line)}
+.lnarea{min-height:52px}
+.ln{align-items:flex-start}.ln span{padding-top:12px}
+@media (max-width:700px){ .labs{grid-template-columns:1fr} }
 /* ----- sheet + toast ----- */
 .scrim{position:fixed;inset:0;background:rgba(10,20,30,.38);z-index:40;display:flex;align-items:center;justify-content:center;padding:20px}
 .sheet{background:var(--paper);border-radius:14px;max-width:560px;width:100%;max-height:80vh;overflow:auto;padding:22px 24px}
@@ -284,53 +312,66 @@ const SECTIONS = [
     {t:'text', id:'interviewer', label:'Interviewer'},
     {t:'text', id:'attending', label:'Attending'}
   ]},
-  { id:'idd', num:'1', title:'Identifying data & source of information', fields:[
+  { id:'pres', num:'B', title:'Case presentation details', note:'For the title page of the case presentation protocol and the slides.', fields:[
+    {t:'text', id:'caseTitle', label:'Title of the case', hint:'For example: A case of bipolar I disorder, current episode manic, severe, with psychotic features.'},
+    {t:'text', id:'preparedBy', label:'Prepared by', hint:'Resident presenting the case.'},
+    {t:'text', id:'supervisedBy', label:'Supervised by', hint:'Consultant or attending supervising the case.'},
+    {t:'lines', id:'objectives', label:'Objectives', n:2, hint:'For example: To discuss the diagnosis and management of …'}
+  ]},
+  { id:'idd', num:'1', title:'Identifying data', fields:[
     {t:'text', id:'marital', label:'Marital status'},
     {t:'text', id:'occupation', label:'Occupation'},
     {t:'text', id:'referred', label:'Referred by'},
     {t:'text', id:'livingwith', label:'Living with'},
-    {t:'text', id:'informant', label:'Informant'},
-    {t:'radio', id:'reliability', label:'Reliability', o:['Poor','Fair','Good'], detail:'Details'},
     {t:'area', id:'idsummary', label:'Identifying summary', hint:'Age, sex, marital status, occupation, how patient came to be seen, source and reliability.'}
   ]},
   { id:'cc', num:'2', title:'Chief complaint', fields:[
     {t:'area', id:'cc', label:'Chief complaint', hint:"Patient's own words whenever possible.", quote:true}
   ]},
-  { id:'hpi', num:'3', title:'History of present illness', fields:[
+  { id:'src', num:'3', title:'Sources of information', fields:[
+    {t:'text', id:'informant', label:'Informant'},
+    {t:'radio', id:'reliability', label:'Reliability', o:['Poor','Fair','Good'], detail:'Details'},
+    {t:'area', id:'otherSources', label:'Other sources', hint:'Records reviewed, referral letters, other informants.'}
+  ]},
+  { id:'premorbid', num:'4', title:'Premorbid personality', fields:[
+    {t:'area', id:'premorbid', label:'Premorbid personality', hint:'What the patient was like before the illness: temperament, coping style, relationships, interests, level of functioning.', big:true}
+  ]},
+  { id:'hpi', num:'5', title:'History of present illness', fields:[
+    {t:'text', id:'onset', label:'Onset of illness', hint:'For example: 2 months prior to admission.'},
     {t:'area', id:'hpi', label:'HPI narrative', hint:'Chronological: onset, course, severity, precipitants/stressors, associated symptoms, functional change, why seeking help now.', big:true},
     {t:'parts', id:'assoc', label:'Associated changes', p:['Sleep','Mood','Interests','Relationships','Functioning']},
     {t:'area', id:'timeline', label:'Timeline / key events'}
   ]},
-  { id:'ros', num:'4', title:'Psychiatric review of systems', fields:[
+  { id:'ros', num:'6', title:'Psychiatric review of systems', fields:[
     {t:'checks', id:'rosChecks', label:'Endorsed symptoms', o:['Sleep change','↓ Interest','Guilt','↓ Energy','↓ Concentration','Appetite change','Psychomotor change','Suicidality','↓ Need for sleep','Grandiosity','Impulsivity','Generalized worry','Panic attacks','Obsessions / compulsions','Trauma / PTSD symptoms','Social anxiety','Specific phobias','Hallucinations','Delusions / paranoia','Ideas of reference','Inattention / hyperactivity','Disordered eating']},
     {t:'area', id:'rosDetails', label:'ROS details', hint:'Positive symptoms, duration/severity, and pertinent negatives.'}
   ]},
-  { id:'pph', num:'5', title:'Past psychiatric history', fields:[
+  { id:'pph', num:'7', title:'Past psychiatric history', fields:[
     {t:'area', id:'priorDx', label:'Prior diagnoses', hint:'Diagnosis / who made it / approximate date.'},
     {t:'table', id:'episodes', label:'Past episodes', c:['Episode / diagnosis','Onset / duration / severity','Treatment / dose / duration','Response / adherence / outcome'], rows:3},
     {t:'area', id:'hosp', label:'Hospitalizations / ECT'},
     {t:'area', id:'psychotherapy', label:'Psychotherapy'},
     {t:'area', id:'pastMeds', label:'Past medication trials', hint:'Medication, dose, duration, response, adverse effects, adherence.'}
   ]},
-  { id:'safety', num:'6', title:'Safety & lethality history', risk:true, note:'Ask directly and specifically.', fields:[
+  { id:'safety', num:'8', title:'Safety & lethality history', risk:true, note:'Ask directly and specifically.', fields:[
     {t:'checks', id:'safetyChecks', label:'Endorsed', o:['Current SI','Current intent','Current plan','Access to means','Past attempt(s)','NSSI','Current HI','History of violence','Command hallucinations']},
     {t:'area', id:'pastAttempts', label:'Past attempts', hint:'Method, lethality, rescue potential, preparatory acts, circumstances.'},
     {t:'area', id:'protective', label:'Protective factors', hint:'What has stopped the patient from acting / reasons for living / supports.'},
     {t:'area', id:'otherSafety', label:'Other safety concerns'}
   ]},
-  { id:'sub', num:'7', title:'Substance use, abuse & addiction', fields:[
-    {t:'checks', id:'subChecks', label:'Substances / behaviors', o:['Alcohol','Tobacco / nicotine','Cannabis','Stimulants','Opioids','Sedatives','Hallucinogens','Other substances','Caffeine','Gambling']},
-    {t:'table', id:'subTable', label:'Use details', c:['Substance','Amount / route / frequency','Last use','Tolerance / withdrawal / consequences'], rows:4},
-    {t:'checks', id:'cage', label:'CAGE', score:true, o:['Cut down','Annoyed by criticism','Guilty','Eye-opener']},
-    {t:'checks', id:'raps4', label:'RAPS4', score:true, o:['Remorse','Amnesia','Perform (failed to)','Starter (morning drink)']}
-  ]},
-  { id:'med', num:'8', title:'Past medical history & medications', fields:[
+  { id:'med', num:'9', title:'Past medical history', fields:[
     {t:'area', id:'medhx', label:'Medical / surgical history', hint:'Major illnesses, surgeries, neurologic history, and conditions that may mimic or complicate psychiatric illness.'},
-    {t:'area', id:'prenatal', label:'Prenatal / birth / developmental problems'},
+    {t:'text', id:'allergies', label:'Allergies'},
+    {t:'text', id:'otc', label:'OTC / herbal / supplements'}
+  ]},
+  { id:'obgyn', num:'10', title:'OB-Gyne history', note:'Leave blank for male patients.', fields:[
     {t:'sub', id:'hMens', label:'Menstrual history'},
     {t:'checks', id:'mensNA', label:'Menstrual history applicability', o:['N/A (male)']},
     {t:'text', id:'menarche', label:'Age at menarche'},
-    {t:'text', id:'cycle', label:'Cycle length and regularity'},
+    {t:'text', id:'cycle', label:'Interval: cycle length and regularity', alias:['Cycle length and regularity']},
+    {t:'text', id:'mensDur', label:'Duration (days of flow)'},
+    {t:'text', id:'mensAmt', label:'Amount', hint:'For example: 3 to 4 moderately soaked pads per day.'},
+    {t:'text', id:'mensSx', label:'Symptoms', hint:'Dysmenorrhea, premenstrual symptoms.'},
     {t:'text', id:'lmp', label:'LMP (last menstrual period)', hint:'Date.'},
     {t:'radio', id:'cycleMood', label:'Cycle-related mood or symptom changes', o:['Yes','No'], detail:'Details'},
     {t:'sub', id:'hOB', label:'OB-Gyne history'},
@@ -342,23 +383,36 @@ const SECTIONS = [
     {t:'text', id:'ppOnset', label:'Onset of mood symptoms (if postpartum)'},
     {t:'text', id:'contra', label:'Contraception method'},
     {t:'radio', id:'contraUse', label:'Contraception used consistently', o:['Yes','No']},
-    {t:'radio', id:'meno', label:'Menopausal status', o:['N/A (too young)','Premenopausal','Perimenopausal','Postmenopausal'], detail:'Age at onset'},
-    {t:'sub', id:'hMeds', label:'Medications & allergies'},
-    {t:'table', id:'meds', label:'Current medications', c:['Medication','Dose / frequency','Prescriber','Adherence / side effects'], rows:4},
-    {t:'text', id:'allergies', label:'Allergies'},
-    {t:'text', id:'otc', label:'OTC / herbal / supplements'}
+    {t:'radio', id:'meno', label:'Menopausal status', o:['N/A (too young)','Premenopausal','Perimenopausal','Postmenopausal'], detail:'Age at onset'}
   ]},
-  { id:'fam', num:'9', title:'Family history', fields:[
+  { id:'sub', num:'11', title:'Substance history', fields:[
+    {t:'checks', id:'subChecks', label:'Substances / behaviors', o:['Alcohol','Tobacco / nicotine','Cannabis','Stimulants','Opioids','Sedatives','Hallucinogens','Other substances','Caffeine','Gambling']},
+    {t:'table', id:'subTable', label:'Use details', c:['Substance','Amount / route / frequency','Last use','Tolerance / withdrawal / consequences'], rows:4},
+    {t:'checks', id:'cage', label:'CAGE', score:true, o:['Cut down','Annoyed by criticism','Guilty','Eye-opener']},
+    {t:'checks', id:'raps4', label:'RAPS4', score:true, o:['Remorse','Amnesia','Perform (failed to)','Starter (morning drink)']}
+  ]},
+  { id:'fam', num:'12', title:'Family history', fields:[
     {t:'checks', id:'famChecks', label:'Noted', o:['Psychiatric diagnoses','Psychiatric hospitalizations','Substance use','Suicide','Medication response / adverse effects','Available family supports']},
     {t:'area', id:'famhx', label:'Family psychiatric history'}
   ]},
-  { id:'soc', num:'10', title:'Developmental & social history', fields:[
-    {t:'area', id:'childhood', label:'Childhood / development'},
-    {t:'area', id:'eduwork', label:'Education / work'},
-    {t:'area', id:'relationships', label:'Relationships / family'},
+  { id:'famprof', num:'13', title:'Family profile & genogram', note:'Add each family member once. The genogram is drawn from this list.', fields:[
+    {t:'radio', id:'parentsRel', label:"Parents' relationship", o:['Married','Living together','Separated','Annulled / divorced']},
+    {t:'radio', id:'ptRel', label:"Patient's relationship with spouse / partner", o:['Married','Living together','Separated','Annulled / divorced']},
+    {t:'family', id:'family', label:'Family members'}
+  ]},
+  { id:'soc', num:'14', title:'Anamnesis', note:'Personal history by stage of life.', fields:[
+    {t:'area', id:'anaInfancy', label:'Infancy & early childhood', hint:'Pregnancy and birth, milestones, temperament, early caregivers and home.'},
+    {t:'area', id:'prenatal', label:'Prenatal / birth / developmental problems'},
+    {t:'area', id:'anaChild', label:'Middle & late childhood', hint:'School entry and performance, peers, behavior, family events.'},
+    {t:'area', id:'anaAdol', label:'Adolescence', hint:'School, peers, puberty, identity, early substance use, conflicts.'},
+    {t:'area', id:'anaAdult', label:'Adulthood', hint:'Education, work history, relationships and marriage, children, major events.'},
+    {t:'area', id:'living', label:'Current psychosocial situation', hint:'Living arrangements, finances, supports, current stressors.', alias:['Current living situation']},
+    {t:'area', id:'religion', label:'Religion / spirituality'},
     {t:'area', id:'trauma', label:'Trauma / abuse'},
-    {t:'area', id:'legal', label:'Military / legal'},
-    {t:'area', id:'living', label:'Current living situation'},
+    {t:'area', id:'legal', label:'Legal history', hint:'Arrests, cases, VAWC or barangay cases; military service.', alias:['Military / legal']},
+    {t:'area', id:'childhood', label:'Childhood / development', legacy:true},
+    {t:'area', id:'eduwork', label:'Education / work', legacy:true},
+    {t:'area', id:'relationships', label:'Relationships / family', legacy:true},
     {t:'sub', id:'hSex', label:'Sexual history', big:true},
     {t:'sub', id:'hSexScreen', label:'Screening', small:true},
     {t:'radio', id:'sexActive', label:'Are you sexually active?', o:['Yes','No']},
@@ -394,34 +448,45 @@ const SECTIONS = [
     {t:'radio', id:'sexCoerced', label:'Unwanted or coerced sexual experiences?', o:['Yes','No'], detail:'Details', hint:'Screen only; document details under Trauma / abuse.'},
     {t:'area', id:'sexual', label:'Sexual history (as indicated)', hint:'Other notes. Kept so that older saved cases and Word files still open correctly.'}
   ]},
-  { id:'app', num:'11A', group:'Mental status examination', groupNote:'Objective composite snapshot during the interview; interpretation belongs in the formulation.', title:'Appearance & behavior', note:'Describe what the reader would actually see.', fields:[
+  { id:'rosmed', num:'15', title:'Review of systems', fields:[
+    {t:'area', id:'rosMed', label:'Review of systems', hint:'General, skin, HEENT, cardiorespiratory, gastrointestinal, genitourinary, musculoskeletal, neurologic, endocrine. Include pertinent negatives.', big:true}
+  ]},
+  { id:'pe', num:'16', title:'Physical examination', fields:[
+    {t:'parts', id:'vitals', label:'Vital signs', p:['BP','HR','RR','Temp','SpO₂','Weight','Height','BMI'], inline:true, alias:['Vitals']},
+    {t:'area', id:'peGen', label:'Physical examination', hint:'General survey, skin, HEENT, chest and lungs, heart, abdomen, extremities.'},
+    {t:'text', id:'deferred', label:'If not performed: reason deferred'}
+  ]},
+  { id:'neuro', num:'17', title:'Neurological examination', fields:[
+    {t:'area', id:'neuro', label:'Neurological examination', hint:'Cranial nerves, motor, sensory, reflexes, cerebellar, gait; EPS or AIMS if on antipsychotics.', alias:['General / neurologic']}
+  ]},
+  { id:'app', num:'18A', group:'Mental status examination', groupNote:'Objective composite snapshot during the interview; interpretation belongs in the formulation.', title:'Appearance & behavior', note:'Describe what the reader would actually see.', fields:[
     {t:'checks', id:'appChecks', label:'Observed', o:['Well-groomed','Disheveled / poor hygiene','Appropriate clothing','Unusual clothing','Appears stated age','Older / younger than stated age','Eye contact appropriate','Limited / avoidant eye contact','Intense eye contact','Cooperative','Guarded','Hostile','Seductive / flirtatious','Withdrawn','Agitated / restless','Pacing','Subdued','Tremulous','Rigid','Peculiar mannerisms','Observed response to internal stimuli']},
     {t:'area', id:'appNarr', label:'Appearance / behavior narrative', hint:'Specific clothing, grooming, notable features, motor behavior, attitude, and pertinent negatives.'}
   ]},
-  { id:'speech', num:'11B', group:'Mental status examination', title:'Speech & thought process', note:'Name the specific phenomenon and severity; avoid the nonspecific label "thought disorder."', fields:[
+  { id:'speech', num:'18B', group:'Mental status examination', title:'Speech & thought process', note:'Name the specific phenomenon and severity; avoid the nonspecific label "thought disorder."', fields:[
     {t:'checks', id:'speechChecks', label:'Observed', o:['Rate normal','Slow','Rapid','Volume normal','Soft','Loud','Pressured','Long response latency','Normal fluency','Linear / goal-directed','Circumstantial','Tangential','Derailment / loosening','Flight of ideas','Thought blocking','Perseveration','Illogical','Disorganized','Word salad','Clang associations']},
     {t:'area', id:'speechNarr', label:'Speech narrative', hint:'Rate, volume, pressure, latency, fluency, spontaneity, articulation.'},
     {t:'area', id:'thoughtNarr', label:'Thought-process narrative', hint:'Organization + phenomenon + severity + brief example if useful.'},
     {t:'area', id:'tpNeg', label:'Pertinent negatives', hint:'No pressure / no blocking / no illogic / no derailment, etc., as actually assessed.'}
   ]},
-  { id:'tc', num:'11C', group:'Mental status examination', risk:true, title:'Thought content', note:'Document beliefs and dangerousness specifically; refer to HPI rather than duplicating lengthy history.', fields:[
+  { id:'tc', num:'18C', group:'Mental status examination', risk:true, title:'Thought content', note:'Document beliefs and dangerousness specifically; refer to HPI rather than duplicating lengthy history.', fields:[
     {t:'checks', id:'tcChecks', label:'Present', o:['Ruminations','Obsessions','Compulsions','Delusions','Persecutory / paranoid','Grandiose','Somatic','Ideas of reference','Guilt / worthlessness','Hopelessness','Suicidal ideation','Homicidal / violent ideation','NSSI','No abnormal thought content elicited']},
     {t:'area', id:'delusions', label:'Delusions / other content', hint:'Content, conviction, preoccupation, behavioral consequences; "see HPI" when appropriate.'},
     {t:'radios', id:'si', label:'Suicide — current', p:[['SI',['Denied','Passive','Active']],['Plan',['None','Present']],['Intent',['None','Present']],['Actions taken',['None','Present']]]},
     {t:'radios', id:'hi', label:'Homicide / violence — current', p:[['HI',['Denied','Present']],['Plan',['None','Present']],['Intent',['None','Present']],['Actions / access',['None','Present']]]},
     {t:'radio', id:'nssi', label:'Self-harm (NSSI thoughts / behavior)', o:['Denied','Present'], detail:'Details'}
   ]},
-  { id:'perc', num:'11D', group:'Mental status examination', title:'Perception', note:'Specify what was asked and what was endorsed or denied.', fields:[
+  { id:'perc', num:'18D', group:'Mental status examination', title:'Perception', note:'Specify what was asked and what was endorsed or denied.', fields:[
     {t:'checks', id:'percChecks', label:'Reported / observed', o:['Auditory hallucinations','Visual hallucinations','Tactile hallucinations','Olfactory hallucinations','Gustatory hallucinations','Illusions','Depersonalization','Derealization','No abnormal perceptions reported','Observed behavior suggestive of hallucinations']},
     {t:'area', id:'percNarr', label:'Perception narrative', hint:'Modality, content/frequency if relevant, patient response, and observed behavior.'}
   ]},
-  { id:'mood', num:'11E', group:'Mental status examination', title:'Mood & affect', note:'Mood = patient-reported feeling. Affect = clinician-observed emotional expression.', fields:[
+  { id:'mood', num:'18E', group:'Mental status examination', title:'Mood & affect', note:'Mood = patient-reported feeling. Affect = clinician-observed emotional expression.', fields:[
     {t:'area', id:'mood', label:"Mood — patient's words", hint:'Quote the patient when possible.', quote:true},
     {t:'checks', id:'affectChecks', label:'Affect', o:['Broad / full range','Restricted','Blunted','Flat','Labile','Euthymic / neutral','Dysphoric','Anxious','Irritable','Expansive','Angry','Suspicious','Frightened','Sad / tearful','Other']},
     {t:'area', id:'affectNarr', label:'Affect narrative', hint:'Range + quality + reactivity/stability + observable expression.'},
     {t:'radio', id:'congruence', label:'Congruence', o:['Congruent','Incongruent','Notable discrepancy'], detail:'Details'}
   ]},
-  { id:'cog', num:'11F', group:'Mental status examination', title:'Sensorium, cognition & insight', note:'Always state level of consciousness and exactly what was tested.', fields:[
+  { id:'cog', num:'18F', group:'Mental status examination', title:'Sensorium, cognition & insight', note:'Always state level of consciousness and exactly what was tested.', fields:[
     {t:'checks', id:'cogChecks', label:'Sensorium', o:['Alert','Drowsy','Fluctuating','Hyper-alert / hypervigilant','Stable level of consciousness','Oriented person','Oriented place','Oriented date/time','Oriented situation','Distractible','Attention intact on interview']},
     {t:'parts', id:'orient', label:'Orientation', p:['Person','Place','Date/time','Situation']},
     {t:'parts', id:'attention', label:'Attention', p:['Digit span forward','Digit span backward','Vigilance','Other']},
@@ -433,40 +498,67 @@ const SECTIONS = [
     {t:'radio', id:'judgment', label:'Judgment', o:['Good','Fair','Poor'], detail:'Basis / example'},
     {t:'area', id:'motivation', label:'Treatment motivation / engagement', hint:'Willingness to accept evaluation, treatment, admission, safety measures, follow-up.'}
   ]},
-  { id:'mse', num:'11G', group:'Mental status examination', title:'One-paragraph MSE (EHR-ready)', note:'Tap "Draft from 11A–11F" to assemble a starting paragraph from what you entered, then edit it.', fields:[
-    {t:'area', id:'mseNarr', label:'MSE narrative', big:true, mseTools:true}
+  { id:'mse', num:'18G', group:'Mental status examination', title:'One-paragraph MSE (EHR-ready)', note:'Tap "Draft from 18A–18F" to assemble a starting paragraph from what you entered, then edit it.', fields:[
+    {t:'area', id:'mseNarr', label:'MSE narrative', big:true, mseTools:'Draft from 18A–18F'}
   ]},
-  { id:'pe', num:'12', title:'Physical & neurological examination', fields:[
-    {t:'parts', id:'vitals', label:'Vitals', p:['BP','HR','RR','Temp','SpO₂'], inline:true},
-    {t:'area', id:'neuro', label:'General / neurologic', hint:'General observation, gait, skin, pupils, focused neurologic findings, AIMS if indicated.'},
-    {t:'text', id:'deferred', label:'If not performed: reason deferred'}
+  { id:'adm', num:'19', title:'Admitting impression', fields:[
+    {t:'area', id:'admitImp', label:'Admitting impression', hint:'Diagnosis on admission (DSM-5-TR).'}
   ]},
-  { id:'labs', num:'13', title:'Labs, imaging & collateral information', fields:[
-    {t:'parts', id:'labs', label:'Labs', p:['CBC','Electrolytes','LFTs','TSH','B12 / folate','Utox','Other']},
+  { id:'course', num:'20', title:'Course in the wards & during follow-up', fields:[
+    {t:'area', id:'course', label:'Course in the wards and during follow-up', hint:'By hospital day (HD0, HD1 …) or by follow-up visit: treatment given, response, key events.', big:true, tool:'caseCourse'}
+  ]},
+  { id:'labs', num:'21', title:'Laboratory & diagnostic results', note:'Values outside the normal range are marked and printed in red. Check the ranges against your laboratory.', fields:[
+    {t:'labs', id:'labPanels', label:'Laboratory results'},
+    {t:'parts', id:'labs', label:'Labs (older entry)', p:['CBC','Electrolytes','LFTs','TSH','B12 / folate','Utox','Other'], legacy:true, alias:['Labs']},
     {t:'area', id:'imaging', label:'Imaging / other tests'},
     {t:'area', id:'collateral', label:'Collateral', hint:'Contact/source, date, key information, records reviewed.'}
   ]},
-  { id:'form', num:'14', title:'Formulation', note:'Integrate biological, psychological, and social factors; interpretation belongs here rather than in the MSE.', fields:[
-    {t:'area', id:'bio', label:'Biological'},
-    {t:'area', id:'psych', label:'Psychological'},
-    {t:'area', id:'social', label:'Social'},
-    {t:'area', id:'integrated', label:'Integrated formulation', big:true}
+  { id:'salient', num:'22', title:'Salient features', fields:[
+    {t:'lines', id:'positives', label:'Pertinent positives', n:4},
+    {t:'lines', id:'negatives', label:'Pertinent negatives', n:3}
   ]},
-  { id:'dx', num:'15', title:'Diagnostic impression (DSM-5)', fields:[
-    {t:'area', id:'primaryDx', label:'Primary diagnosis'},
-    {t:'area', id:'differential', label:'Differential / rule-outs'},
-    {t:'area', id:'otherDx', label:'Other relevant diagnoses'}
+  { id:'ddx', num:'23', title:'Differentials', fields:[
+    {t:'table', id:'ddx', label:'Differential diagnoses', c:['Diagnosis','More likely (supporting features)','Less likely (features against)'], rows:3},
+    {t:'area', id:'differential', label:'Differential / rule-outs (older entry)', legacy:true, alias:['Differential / rule-outs']}
   ]},
-  { id:'risk', num:'16', title:'Overall risk summary', risk:true, note:"Synthesize; don't just list findings.", fields:[
+  { id:'dx', num:'24', title:'Working diagnosis', fields:[
+    {t:'area', id:'primaryDx', label:'Working diagnosis', alias:['Primary diagnosis'], hint:'DSM-5-TR diagnosis with specifiers.'},
+    {t:'area', id:'otherDx', label:'Other diagnoses / comorbidities', alias:['Other relevant diagnoses']}
+  ]},
+  { id:'form', num:'25', title:'Biopsychosocial formulation', note:'Integrate biological, psychological, socio-cultural, and spiritual factors; interpretation belongs here rather than in the MSE.', fields:[
+    {t:'grid', id:'bps', label:'Formulation grid', rows:['Predisposing','Precipitating','Perpetuating','Protective'], cols:['Biological','Psychological','Socio-cultural','Spiritual']},
+    {t:'area', id:'integrated', label:'Integrated formulation (narrative)', big:true, alias:['Integrated formulation']},
+    {t:'area', id:'bio', label:'Biological (older entry)', legacy:true, alias:['Biological']},
+    {t:'area', id:'psych', label:'Psychological (older entry)', legacy:true, alias:['Psychological']},
+    {t:'area', id:'social', label:'Social (older entry)', legacy:true, alias:['Social']}
+  ]},
+  { id:'risk', num:'26', title:'Overall risk summary', risk:true, note:"Synthesize; don't just list findings.", fields:[
     {t:'radio', id:'suicideRisk', label:'Suicide risk', o:['Low','Moderate','High']},
     {t:'radio', id:'violenceRisk', label:'Violence risk', o:['Low','Moderate','High']},
     {t:'parts', id:'riskForm', label:'Risk formulation', p:['Acute risk factors','Chronic risk factors','Protective factors','Overall rationale'], long:true},
     {t:'radio', id:'loc', label:'Recommended level of care', o:['Outpatient','Partial / higher level of care','Inpatient voluntary','Inpatient involuntary']}
   ]},
-  { id:'plan', num:'17', title:'Comprehensive treatment plan', fields:[
+  { id:'prog', num:'27', title:'Prognosis', fields:[
+    {t:'radio', id:'progRating', label:'Prognosis', o:['Good','Fair','Guarded','Poor']},
+    {t:'area', id:'prognosis', label:'Basis', hint:'Good and poor prognostic factors; for example: "If the patient continues treatment …"'}
+  ]},
+  { id:'plan', num:'28', title:'Goals & plan of management', fields:[
+    {t:'sub', id:'hGoals', label:'Goals of management'},
+    {t:'lines', id:'goalsImm', label:'Immediate goals', n:2},
+    {t:'lines', id:'goalsShort', label:'Short-term goals', n:2},
+    {t:'lines', id:'goalsLong', label:'Long-term goals', n:2},
+    {t:'sub', id:'hMgmt', label:'Management'},
+    {t:'table', id:'meds', label:'Current medications', c:['Medication','Dose / frequency','Prescriber','Adherence / side effects'], rows:4},
+    {t:'area', id:'furtherPlans', label:'Further plans', hint:'Work-up, referrals, family meetings, disposition.'},
+    {t:'checks', id:'psychosocial', label:'Psychosocial interventions', o:['Psychoeducation','Supportive psychotherapy','Cognitive behavioral therapy','Dialectical behavior therapy','Family psychoeducation / therapy','Group therapy','Occupational therapy','Social service referral']},
+    {t:'area', id:'psychosocialNotes', label:'Psychosocial intervention details'},
     {t:'table', id:'planTable', label:'Plan by domain', c:['Domain','Plan / intervention','Dose / frequency / timing','Monitoring / follow-up'], rows:5},
     {t:'area', id:'safetyPlan', label:'Safety plan / emergency instructions'},
     {t:'area', id:'followup', label:'Follow-up', hint:'Timing, service, responsible clinician, emergency contact.'}
+  ]},
+  { id:'disc', num:'29', title:'Discussion & references', fields:[
+    {t:'area', id:'discussion', label:'Discussion', hint:'Literature on the case: diagnosis, differentials, management, and how this case compares.', big:true},
+    {t:'lines', id:'refs', label:'References', n:2, defaults:true}
   ]}
 ];
 
@@ -484,6 +576,9 @@ function isFilled(f, d){
     case 'table': return Array.isArray(v) && v.some(r=>r.some(c=>str(c)));
     case 'patients': return Array.isArray(v) && v.length>0;
     case 'lines': return Array.isArray(v) && v.some(x=>str(x));
+    case 'grid': return !!v && Object.values(v).some(x=>str(x));
+    case 'family': return famMembers(d).length>0;
+    case 'labs': return labsDone(d).length>0;
   }
   return false;
 }
@@ -492,7 +587,7 @@ function lc(s){ return /^[A-Z][a-z]/.test(s) ? s[0].toLowerCase()+s.slice(1) : s
 function quoted(s){ s=str(s); if(!s) return s; return /^["“]/.test(s) ? s : '“'+s+'”'; }
 function endDot(s){ s=str(s); return s && !/[.!?”"]$/.test(s) ? s+'.' : s; }
 
-/* Builds the one-paragraph MSE from sections 11A–11F */
+/* Builds the one-paragraph MSE from sections 18A–18F */
 function draftMSE(d){
   const j = a => (a||[]).map(lc).join(', ');
   const key = k => /^[A-Z]{2}/.test(k) ? k : lc(k.replace(/\s*\(\/3\)/,''));
@@ -517,6 +612,203 @@ function draftMSE(d){
   add('Sensorium/cognition/insight/judgment', [j(d.cogChecks), orient&&'orientation: '+orient, att&&'attention: '+att, mem&&'memory: '+mem, ex&&ex, d.testResults, ins, jud]);
   return segs.join(' ');
 }
+/* ---------- Laboratory panels (test names and normal ranges from the hospital's case presentation format) ---------- */
+const LAB_PANELS = [
+  { id:'cbc', name:'CBC', tests:[['Hemoglobin','12-15'],['Hematocrit','37-47'],['WBC','5000-10000'],['Neutrophils',''],['Lymphocytes',''],['Monocytes',''],['Eosinophils',''],['Basophils',''],['Platelet count','']] },
+  { id:'lytes', name:'Electrolytes', tests:[['Sodium','135-145'],['Potassium','3.5-5.5']] },
+  { id:'ua', name:'Urinalysis', text:true },
+  { id:'meta', name:'Metabolic profile', tests:[['FBS','60-110'],['Total cholesterol','150-240'],['Triglycerides','35-190'],['HDL','36-75'],['LDL','66-178']] },
+  { id:'ecg', name:'12-lead ECG', text:true },
+  { id:'cxr', name:'Chest X-ray (PA view)', text:true },
+  { id:'renal', name:'Renal function tests', tests:[['BUN','3.57-7.14'],['Creatinine','62-133']] },
+  { id:'hepa', name:'Hepatitis profile', tests:[['HBsAg',''],['Anti-HCV','']] },
+  { id:'pcr', name:'SARS-CoV-2 RT-PCR', text:true },
+  { id:'lft', name:'Liver function tests', tests:[['SGOT (AST)','5-35'],['SGPT (ALT)','8-40']] },
+  { id:'preg', name:'Pregnancy test', text:true },
+  { id:'thyroid', name:'Thyroid function test', tests:[['TSH','0.3-4.5'],['FT4','8.9-17.2'],['FT3','2.0-4.2']] },
+  { id:'other', name:'Other tests', text:true }
+];
+const labNum = s => { const m=String(s||'').replace(/,/g,'').match(/^\s*[<>≤≥]?\s*(-?\d+(?:\.\d+)?)/); return m ? parseFloat(m[1]) : null; };
+/* 'H' above the range, 'L' below it, '' inside it or when it cannot tell */
+function labFlag(value, range){
+  const v = labNum(value); if(v==null) return '';
+  const m = String(range||'').replace(/,/g,'').match(/(-?\d+(?:\.\d+)?)\s*(?:-|–|—|to)\s*(-?\d+(?:\.\d+)?)/i); if(!m) return '';
+  const lo=parseFloat(m[1]), hi=parseFloat(m[2]);
+  return v<lo ? 'L' : v>hi ? 'H' : '';
+}
+function labRows(d, p){ const v=(d.labPanels||{})[p.id]; return Array.isArray(v) ? v : (p.tests||[]).map(([t,r])=>[t,'',r]); }
+/* Filled panels in order: { panel, rows:[{test,value,range,flag}], text } */
+function labsDone(d){
+  const L = d.labPanels || {};
+  return LAB_PANELS.map(p=>{
+    if(p.text){ const t=str(L[p.id]); return t ? { panel:p, rows:[], text:t } : null; }
+    const rows = labRows(d,p).filter(r=>str(r[1])).map(r=>({ test:str(r[0]), value:str(r[1]), range:str(r[2]), flag:labFlag(r[1], r[2]) }));
+    return rows.length ? { panel:p, rows, text:'' } : null;
+  }).filter(Boolean);
+}
+const labLine = r => [r.test, r.value + (r.flag ? ' ('+r.flag+')' : ''), r.range && '('+r.range+')'].filter(Boolean).join(' ');
+
+/* ---------- Family members and genogram ---------- */
+const FAMILY_RELS = [
+  { rel:'Father', sex:'M', role:'father' }, { rel:'Mother', sex:'F', role:'mother' },
+  { rel:'Brother', sex:'M', role:'sib' }, { rel:'Sister', sex:'F', role:'sib' },
+  { rel:'Husband', sex:'M', role:'spouse' }, { rel:'Wife', sex:'F', role:'spouse' }, { rel:'Partner', sex:'', role:'spouse' },
+  { rel:'Son', sex:'M', role:'child' }, { rel:'Daughter', sex:'F', role:'child' },
+  { rel:'Paternal grandfather', sex:'M', role:'pgf' }, { rel:'Paternal grandmother', sex:'F', role:'pgm' },
+  { rel:'Maternal grandfather', sex:'M', role:'mgf' }, { rel:'Maternal grandmother', sex:'F', role:'mgm' },
+  { rel:'Paternal uncle', sex:'M', role:'pside' }, { rel:'Paternal aunt', sex:'F', role:'pside' },
+  { rel:'Maternal uncle', sex:'M', role:'mside' }, { rel:'Maternal aunt', sex:'F', role:'mside' },
+  { rel:'Other relative', sex:'', role:'other' }, { rel:'Household member (not related)', sex:'', role:'other' }
+];
+const relInfo = r => FAMILY_RELS.find(x=>x.rel===r) || { rel:str(r), sex:'', role:'other' };
+const famMembers = d => (Array.isArray(d.family) ? d.family : []).filter(m=>m && (str(m.name) || str(m.rel)));
+const memberSex = m => relInfo(m.rel).sex || (m.sex==='Male' ? 'M' : m.sex==='Female' ? 'F' : 'U');
+function patientSexOf(d){ const s=(/\b(f|female|babae)\b/i.test(str(d.agesex)) ? 'F' : /\b(m|male|lalaki)\b/i.test(str(d.agesex)) ? 'M' : 'U'); return s; }
+/* One family member as a line of text: "AA (Father, 58): description" */
+function memberLine(m){
+  const bits = [str(m.rel), str(m.age) && (/^\d+$/.test(str(m.age)) ? str(m.age)+' y/o' : str(m.age)), m.status==='Deceased' && 'deceased', m.psych && 'psychiatric condition'+(str(m.cond)?': '+str(m.cond):''), !m.psych && str(m.cond)].filter(Boolean);
+  return (str(m.name)||'(no name)') + (bits.length ? ' ('+bits.join(', ')+')' : '') + (str(m.desc) ? ' — '+str(m.desc) : '');
+}
+
+/* Lays out a three-to-four generation genogram in units of one symbol width.
+   Returns { nodes:[{x,y,sex,dead,fill,pt,age,name,cond}], lines:[{x1,y1,x2,y2,dash}], w, h, left:[names not drawn] } or null. */
+function genogramLayout(d){
+  const mem = famMembers(d); if(!mem.length) return null;
+  const S=1, G=0.95, CG=1.35, ROW=2.95, DROP=0.62;
+  const ageN = n => { const v=parseFloat(String(n.age||'').replace(/[^\d.]/g,'')); return isNaN(v) ? null : v; };
+  const mk = m => ({ sex:memberSex(m), dead:m.status==='Deceased', fill:!!m.psych, pt:false, age:str(m.age).replace(/\s*(y\/?o|yrs?|years? old)\.?$/i,''), name:str(m.name), cond:str(m.cond), x:0, y:0 });
+  const roleOf = m => relInfo(m.rel).role;
+  const by = role => mem.filter(m=>roleOf(m)===role).map(mk);
+  const left = [];
+  const P = { sex:patientSexOf(d), dead:false, fill:false, pt:true, age:(splitAgeSex(d.agesex).age||''), name:'Patient', cond:'', x:0, y:0 };
+  const byAge = (a,b) => { const x=ageN(a), y=ageN(b); return x!=null && y!=null ? y-x : 0; };
+  const sibs = by('sib'), sp = by('spouse'), kids = by('child').sort(byAge);
+  if(sp.length>1) sp.slice(1).forEach(n=>left.push(n.name||'partner'));
+  const spouse = sp[0] || null;
+  const row2 = [...sibs, P].sort(byAge);
+  let x = 0;
+  row2.forEach(n=>{ n.x=x; if(n===P && spouse){ spouse.x = P.x+S+CG; x = spouse.x+S+G; } else x += S+G; });
+  const cx = n => n.x+S/2;
+  const sibMid = (cx(row2[0]) + cx(row2[row2.length-1]))/2;
+  const fa = by('father')[0]||null, mo = by('mother')[0]||null;
+  const ps = fa ? by('pside') : [], ms = mo ? by('mside') : [];
+  if(!fa) by('pside').forEach(n=>left.push(n.name||'paternal relative'));
+  if(!mo) by('mside').forEach(n=>left.push(n.name||'maternal relative'));
+  const pgf = fa ? by('pgf')[0] : null, pgm = fa ? by('pgm')[0] : null, mgf = mo ? by('mgf')[0] : null, mgm = mo ? by('mgm')[0] : null;
+  if(!fa) ['pgf','pgm'].forEach(r=>by(r).forEach(n=>left.push(n.name||'grandparent')));
+  if(!mo) ['mgf','mgm'].forEach(r=>by(r).forEach(n=>left.push(n.name||'grandparent')));
+  mem.filter(m=>roleOf(m)==='other').forEach(m=>left.push(str(m.name)||str(m.rel)));
+  const couple = (a, b, mid) => { if(a && b){ a.x = mid-CG/2-S; b.x = mid+CG/2; } else if(a||b){ (a||b).x = mid-S/2; } };
+  let pg = CG;
+  for(let it=0; it<30; it++){
+    if(fa && mo){ fa.x = sibMid-pg/2-S; mo.x = sibMid+pg/2; } else if(fa||mo){ (fa||mo).x = sibMid-S/2; }
+    ps.forEach((n,i)=>{ n.x = fa.x-(ps.length-i)*(S+G); });
+    ms.forEach((n,i)=>{ n.x = mo.x+(i+1)*(S+G); });
+    if(fa) couple(pgf, pgm, ((ps.length ? cx(ps[0]) : cx(fa)) + cx(fa))/2);
+    if(mo) couple(mgf, mgm, (cx(mo) + (ms.length ? cx(ms[ms.length-1]) : cx(mo)))/2);
+    const pR = Math.max(...[pgf,pgm].filter(Boolean).map(n=>n.x+S), -1e9), mL = Math.min(...[mgf,mgm].filter(Boolean).map(n=>n.x), 1e9);
+    if(pR + G <= mL || !fa || !mo) break;
+    pg += (pR + G - mL);
+  }
+  // Rows from the top, skipping empty generations
+  const gens = [[pgf,pgm,mgf,mgm].filter(Boolean), [...ps, fa, mo, ...ms].filter(Boolean), [...row2, ...(spouse?[spouse]:[])], kids];
+  let y = 0; const rowY = [];
+  gens.forEach((g,i)=>{ rowY[i] = y; if(g.length){ g.forEach(n=>{ n.y=y; }); y += ROW; } });
+  if(kids.length){
+    const anchor = spouse ? (P.x+S+spouse.x)/2 : cx(P), wk = kids.length*S+(kids.length-1)*G;
+    kids.forEach((n,i)=>{ n.x = anchor-wk/2+i*(S+G); });
+  }
+  const lines = [];
+  const L = (x1,y1,x2,y2,dash) => lines.push({x1,y1,x2,y2,dash:!!dash});
+  // Partners joined by a line at mid-height; style shows the relationship. Returns the point children hang from.
+  const join = (a, b, status) => {
+    if(a && b){
+      const l = a.x<b.x ? a : b, r = l===a ? b : a, yy = l.y+S/2;
+      L(l.x+S, yy, r.x, yy, status==='Living together');
+      const mx = (l.x+S+r.x)/2;
+      const slash = off => L(mx+off-0.13, yy+0.24, mx+off+0.13, yy-0.24);
+      if(status==='Separated') slash(0);
+      if(status==='Annulled / divorced'){ slash(-0.09); slash(0.09); }
+      return { x:mx, y:yy };
+    }
+    const n = a||b; if(n) n.side = true;   // a lone parent: its label goes beside it, clear of the line down
+    return n ? { x:cx(n), y:n.y+S } : null;
+  };
+  const family = (top, children) => {
+    if(!children.length) return;
+    const ys = children[0].y - DROP;
+    const xs = children.map(cx);
+    let lo = Math.min(...xs), hi = Math.max(...xs);
+    if(top){ lo = Math.min(lo, top.x); hi = Math.max(hi, top.x); L(top.x, top.y, top.x, ys); }
+    if(hi-lo > 0.001) L(lo, ys, hi, ys);
+    children.forEach(n=>L(cx(n), ys, cx(n), n.y));
+  };
+  family(join(fa, mo, d.parentsRel), row2.length>1 || fa || mo ? row2 : []);
+  if(fa && (pgf||pgm||ps.length)) family(join(pgf, pgm, ''), [...ps, fa]);
+  if(mo && (mgf||mgm||ms.length)) family(join(mgf, mgm, ''), [mo, ...ms]);
+  const ptTop = spouse ? join(P, spouse, d.ptRel) : { x:cx(P), y:P.y+S };
+  if(kids.length) family(ptTop, kids);
+  // Arrow pointing at the patient, from the lower left
+  const tx = P.x-0.05, ty = P.y+S+0.05;
+  L(tx-0.5, ty+0.5, tx, ty);
+  L(tx, ty, tx-0.24, ty+0.06); L(tx, ty, tx-0.06, ty+0.24);
+  const nodes = [...gens.flat(), ...(spouse?[]:[])];
+  const all = [...new Set(nodes)];
+  const minX = Math.min(...all.map(n=>n.x), ...lines.map(l=>Math.min(l.x1,l.x2))) - 0.75;
+  const maxX = Math.max(...all.map(n=>n.x+S+(n.side?2.1:0)), ...lines.map(l=>Math.max(l.x1,l.x2))) + 0.75;
+  const minY = Math.min(...all.map(n=>n.y)) - 0.15, maxY = Math.max(...all.map(n=>n.y+S)) + 1.0;
+  all.forEach(n=>{ n.x-=minX; n.y-=minY; }); lines.forEach(l=>{ l.x1-=minX; l.x2-=minX; l.y1-=minY; l.y2-=minY; });
+  return { nodes:all, lines, w:maxX-minX, h:maxY-minY, S, left };
+}
+const GENO_LEGEND = 'Square: male. Circle: female. Filled: psychiatric condition. X: deceased. Double outline and arrow: patient. Age inside each symbol.';
+/* Where a symbol's name and condition go: under it, or beside it for a lone parent (baselines y1, y2) */
+const genoLabelPos = (n, S) => n.side && !n.pt ? { x:n.x+S+0.14, y1:n.y+S/2-0.02, y2:n.y+S/2+0.3, anchor:'start', side:true } : { x:n.x+S/2, y1:n.y+S+0.38, y2:n.y+S+0.7, anchor:'middle', side:false };
+const genoLabel = (t, n) => { t=str(t); return t.length>n ? t.slice(0,n-1)+'…' : t; };
+/* The genogram as an SVG picture (used in the app, and turned into a PNG for Word) */
+function genogramSVG(G, unit){
+  if(!G) return '';
+  const u = unit||56, S=G.S, ink='#1B2A3A', sw=(0.05*u).toFixed(2);
+  const X = v => (v*u).toFixed(1);
+  const shape = (n, inset, fill) => { const x=n.x+inset, y=n.y+inset, s=S-2*inset;
+    if(n.sex==='F') return `<circle cx="${X(x+s/2)}" cy="${X(y+s/2)}" r="${X(s/2)}" fill="${fill}" stroke="${ink}" stroke-width="${sw}"/>`;
+    if(n.sex==='U') return `<polygon points="${X(x+s/2)},${X(y)} ${X(x+s)},${X(y+s/2)} ${X(x+s/2)},${X(y+s)} ${X(x)},${X(y+s/2)}" fill="${fill}" stroke="${ink}" stroke-width="${sw}"/>`;
+    return `<rect x="${X(x)}" y="${X(y)}" width="${X(s)}" height="${X(s)}" fill="${fill}" stroke="${ink}" stroke-width="${sw}"/>`; };
+  const esc = t => String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  let out = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${X(G.w)} ${X(G.h)}" width="${X(G.w)}" height="${X(G.h)}" font-family="Arial, Helvetica, sans-serif"><rect width="100%" height="100%" fill="#ffffff"/>`;
+  G.lines.forEach(l=>{ out += `<line x1="${X(l.x1)}" y1="${X(l.y1)}" x2="${X(l.x2)}" y2="${X(l.y2)}" stroke="${ink}" stroke-width="${sw}"${l.dash?` stroke-dasharray="${(0.16*u).toFixed(1)} ${(0.12*u).toFixed(1)}"`:''}/>`; });
+  G.nodes.forEach(n=>{
+    out += shape(n, 0, n.fill ? ink : '#ffffff');
+    if(n.pt) out += shape(n, 0.13, 'none');
+    if(n.dead) out += `<line x1="${X(n.x-0.12)}" y1="${X(n.y-0.12)}" x2="${X(n.x+S+0.12)}" y2="${X(n.y+S+0.12)}" stroke="${ink}" stroke-width="${sw}"/><line x1="${X(n.x+S+0.12)}" y1="${X(n.y-0.12)}" x2="${X(n.x-0.12)}" y2="${X(n.y+S+0.12)}" stroke="${ink}" stroke-width="${sw}"/>`;
+    if(n.age) out += `<text x="${X(n.x+S/2)}" y="${X(n.y+S/2+0.13)}" font-size="${X(0.36)}" font-weight="700" text-anchor="middle" fill="${n.fill?'#ffffff':ink}">${esc(genoLabel(n.age,4))}</text>`;
+    const lp = genoLabelPos(n, S);
+    out += `<text x="${X(lp.x)}" y="${X(lp.y1)}" font-size="${X(0.29)}" font-weight="${n.pt?700:400}" text-anchor="${lp.anchor}" fill="${ink}">${esc(genoLabel(n.name,13))}</text>`;
+    if(n.cond) out += `<text x="${X(lp.x)}" y="${X(lp.y2)}" font-size="${X(0.25)}" font-style="italic" text-anchor="${lp.anchor}" fill="#4A5A6B">${esc(genoLabel(n.cond,15))}</text>`;
+  });
+  return out + '</svg>';
+}
+/* Differential diagnoses as text (the table, or an older free-text entry) */
+function caseDifferential(d){
+  if(str(d.differential)) return str(d.differential);
+  // the working diagnosis is usually the first row of the table; it is not a rule-out
+  const n = t => str(t).toLowerCase().replace(/[^a-z0-9]+/g,' ').trim(), work = n(d.primaryDx);
+  return (d.ddx||[]).map(r=>str(r[0])).filter(x=>x && !(work && (work===n(x) || work.startsWith(n(x)+' ')))).join('\n');
+}
+/* The newer field types as plain text, for notes and simple displays */
+function extText(f, d){
+  const v = d[f.id];
+  switch(f.t){
+    case 'lines': return (Array.isArray(v)?v:[]).map(str).filter(Boolean).join('\n');
+    case 'grid': return f.rows.flatMap(r=>f.cols.map(c=>{ const t=str((v||{})[r+'|'+c]); return t ? r+', '+c.toLowerCase()+': '+t : ''; })).filter(Boolean).join('\n');
+    case 'family': return famMembers(d).map(memberLine).join('\n');
+    case 'labs': return labsDone(d).map(x=>x.panel.name+': '+(x.text || x.rows.map(labLine).join('; '))).join('\n');
+  }
+  return '';
+}
+const REFERENCES_DEFAULT = [
+  'American Psychiatric Association. Diagnostic and Statistical Manual of Mental Disorders. 5th Ed, Text Revision. American Psychiatric Association Publishing; 2022.',
+  "Sadock BJ, Sadock VA, Ruiz P. Kaplan & Sadock's Comprehensive Textbook of Psychiatry. 10th Ed. Wolters Kluwer; 2017."
+];
 if (typeof module !== 'undefined') module.exports = { SECTIONS, REMINDERS, isFilled, sectionStarted, draftMSE, str, lc, quoted, endDot };
 
 /* ---------- Progress note structure (SOAP). Field ids match the case template where the meaning is the same. ---------- */
@@ -613,7 +905,8 @@ const SAFETY_CHIPS = ['Suicidal ideation','Homicidal / violent ideation','NSSI']
 /* Build a new progress note from a case or an earlier progress note */
 function progressFromSource(src, srcKind, now, author){
   const d = { datetime: now.toLocaleString('en-US',{dateStyle:'medium',timeStyle:'short'}), author: author || str(src.author) || str(src.interviewer) || '' };
-  ['patient','mrn','agesex','location','attending','primaryDx','differential','otherDx'].forEach(k=>{ if(str(src[k])) d[k]=src[k]; });
+  ['patient','mrn','agesex','location','attending','primaryDx','otherDx'].forEach(k=>{ if(str(src[k])) d[k]=src[k]; });
+  const dd = caseDifferential(src); if(dd) d.differential = dd;
   d.admitDate = srcKind==='case' ? str(src.datetime).replace(/,?\s*\d{1,2}:\d{2}.*$/,'') : str(src.admitDate);
   const ad = parseLooseDate(d.admitDate);
   if(ad){ const today=new Date(now.getFullYear(),now.getMonth(),now.getDate()); const n=Math.round((today-ad)/86400000)+1; if(n>=1 && n<1000) d.hday=String(n); }
@@ -711,7 +1004,9 @@ function dischargeFromSources(caseD, pns, now, author){
     const rf = c.riskForm && str(c.riskForm['Overall rationale']);
     if(r||rf) d.admitRisk = [r&&r+'.', rf].filter(Boolean).join(' ');
     const mse = str(c.mseNarr) || draftMSE(c); if(mse) d.admitMSE = mse;
-    const dx = [str(c.primaryDx), str(c.differential)&&'Rule out: '+str(c.differential)].filter(Boolean).join('\n'); if(dx) d.admitDx = dx;
+    const dx = [str(c.admitImp) || str(c.primaryDx), caseDifferential(c) && 'Rule out: '+caseDifferential(c).split('\n').join('; ')].filter(Boolean).join('\n'); if(dx) d.admitDx = dx;
+    if(str(c.course)) d.course = c.course;
+    const lab = extText({t:'labs', id:'labPanels'}, c); if(lab) d.keyResults = lab;
     if(str(c.safetyPlan)) d.safetyPlan = c.safetyPlan;
     if(str(c.medhx)) d.medicalDx = c.medhx;
   }
@@ -953,13 +1248,13 @@ function abstractFromSources(dc, cs, pn, now, last){
       .filter(([,v])=>str(v)).map(([k,v])=>k+': '+str(v));
     if(past.length) d.pastHx = past.join('\n');
     const v = cs.vitals||{}; const vit = Object.keys(v).filter(k=>str(v[k])).map(k=>k+' '+str(v[k])).join(', ');
-    d.peAdmit = [vit && 'Vital signs: '+vit+'.', str(cs.neuro)].filter(Boolean).join('\n');
+    d.peAdmit = [vit && 'Vital signs: '+vit+'.', str(cs.peGen), str(cs.neuro) && 'Neurological examination: '+str(cs.neuro)].filter(Boolean).join('\n');
     const L = cs.labs||{}; const lab = Object.keys(L).filter(k=>str(L[k])).map(k=>k+': '+str(L[k])).join('; ');
-    const labsCase = [lab, str(cs.imaging)].filter(Boolean).join('\n');
+    const labsCase = [extText({t:'labs', id:'labPanels'}, cs), lab, str(cs.imaging)].filter(Boolean).join('\n');
     d.labs = first(dc&&dc.keyResults, labsCase);
   } else if(dc) d.labs = str(dc.keyResults);
   d.mseAdmit = first(dc&&dc.admitMSE, cs&&cs.mseNarr, cs&&draftMSE(cs));
-  d.admitDx = first(dc&&dc.admitDx, cs&&cs.primaryDx);
+  d.admitDx = first(dc&&dc.admitDx, cs&&cs.admitImp, cs&&cs.primaryDx);
   d.finalDx = first(dc&&dc.finalDx, pn&&pn.primaryDx, cs&&cs.primaryDx);
   d.otherDx = dc ? [str(dc.otherDx), str(dc.medicalDx)].filter(Boolean).join('\n') : first(pn&&pn.otherDx, cs&&cs.otherDx);
   if(dc){
@@ -969,6 +1264,7 @@ function abstractFromSources(dc, cs, pn, now, last){
     d.disposition = [dc.dispoTo, str(dc.dispoTo__d)].filter(Boolean).join(': ');
     d.followup = (dc.fuTable||[]).filter(r=>r.some(x=>str(x))).map(r=>r.map(str).filter(Boolean).join(', ')).join('\n');
   }
+  if(!str(d.course) && cs && str(cs.course)) d.course = str(cs.course);
   const medRows = (t => (t||[]).filter(r=>r.some(x=>str(x))))(dc ? dc.dcMeds : pn ? pn.meds : null);
   d.dischargeMeds = medRows.map(r=>[r[0]||'', r[1]||'', dc ? (r[3]||'') : '']);
   d.resName = first(dc&&dc.author, pn&&pn.author, cs&&cs.interviewer);
@@ -1225,6 +1521,17 @@ function safetyParts(d){
 }
 if (typeof module !== 'undefined') module.exports = { SP_SECTIONS, safetyFromSources, safetyParts, DEFAULT_HOTLINES, SP_TEXT, spSwapDefaults };
 
+/* ---------- Hospital case presentation protocol: letterhead (change here for another institution) ---------- */
+const PROTOCOL_HEAD = {
+  lines: [
+    { t:'Department of Health' }, { t:'Central Luzon Center for Health Development' },
+    { t:'MARIVELES MENTAL WELLNESS AND GENERAL HOSPITAL', b:true }, { t:'P. Monroe St. Poblacion, Mariveles, Bataan 2105' },
+    { t:'Psychiatry and Public Mental Health Residency Training Program', b:true }
+  ],
+  logoLeft: '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',
+  logoRight: 'iVBORw0KGgoAAAANSUhEUgAAALIAAACyCAMAAADRVGVaAAAC/VBMVEWj7V6ipJ7f7JtYpSSn4S2X2I+isCFrnlVo3GOkk1oOmRokwmdj0i1uqYOKclMnewnhzE85OkCCeRzNrqMMHyM4bGBgRjm36sHAlmTGvNTizT79/fwGplELFwENmU8IBwEEJgHJtnvS2E/Kt4nU2G1WVFAqlVXZ5E4uiFHR2DIDNgVQSkrk6FDZ5DEnJwLOxpDl5221uIzY42sUiUwvtkopplHW14rl6DALpTgKs1PJylDLyW+Jh4gOp2Qxl2U3ODQveky0qXUqJyfu6/AERg4wNQIImTdjWFMjGgK5tXbS2RPq9E+1xJEspWaHhXfZ5Rbm5orIqnhQZlG0qodOxUxHh1TIrIb3+NhzeHDLxqdKlWjk6BhLRzZNd1IRm2TX5IlQVjdrZ2fp8y/s9GtHllQOtGQ2RTc0xExIukxRxTZ0hnMxiWXGyjIPWCoLhziPlIwHVhXj2k7i3G0RZzEutjo2ZkhOiWdJSAJVWAfq6dUYeUY4V0Ti2Y8vRgYnpzSzuE4JSCYyVzMtiDdxdwjT1q1MujVu1jVT1E5nZVVt10sNeDhnaAZvlXApZzMtdTe2yWtqyTLMuaji2zKmqE9MpWuRlzKJ2DJTemRMqFdyeCy4yE+xyKSz1ZLt9IxjSlGJiTK4uKay121YWWJYZmSOl3OM2E211k/o5aorlzZLZTZlW2RstWqM50s7SUNSZAiIiA+Ul08qtGszwzlDOApCOzd5h4NodlRvhzBtyE2XpjXY83F1loSumW2lpTLnyJTj164jBwCRlRG8yS/JzBUzUwdRdzJ3hA134kuP5DXZ1stUcwtUtmhwpGuFeXOWt4qttTIRZBYwpRVsu0yJh06RplGUp4+M12+1064QsjsnGikyemZFO0ROijFLkzhnaC9vhlBvxXCLfI2mqxPjuonk29ISOiocaEgUlhR8e4OPtXSM5my61C2w4nPTysMshhEomhFhXAVkVDx4lTKZpnmPuFKQxTePyGy45YjU4rPe8TjX90zj2Bvo8xwYiWkRwlConctFAAAA/3RSTlP///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////9L/mXUAAA9uUlEQVR42uW9B3gb17UtrDg9ue2997/3F+PMORwMpnEwGAAEQAIiCIoABTaRYpFIip2URJEUJVK9d1tdVrMt24p773FvcVzi9N57T256z81N7r3fW3sAVlG27OTm3Xz/SOzAzJp99ll77X3KzLv8b+6Y91e8VkXF3wbkpX+7Vq74m3SM/1KQKy7mDUtn+PDS/2JWBrC2Dj51sPwH51+ef/nlW/Bv6dK/iH/M+8t0saV2HqC9+Vx52/5oNKoo+NQdrXogk78Bth+QK/6LWBlwcGzepTjaiKMkGqLRQFSxZCcRTTiyURMKyaHQK7Zr8fl/gY4478/04B4yoP3O87Ila5Zs+I1MNMqZzZlmPGdnmVNjvVjzSU2ukWUnFD3nGvzP5cB5f47vdsC4mV1OYjwuy4ZlMTZuySzxvK3IGv7Z2+NyJh7PPNfAbNyPISuyLIc2oU2mUG/561g5f5kPM8Yzp0Ny3JKtTZYVG5HPbuKKzBoCXNFk2S9nq2RHVhSeUBqY7PcbsvOgVWPEFWUzfKTjjXvIvDfsv5w/FHIMTR6zYprMZMNwnEeyjzh2d1UWfmH7/QrLMkVRMnY0oViGv0ZOMK75Yf6QEs3g/R/+q/lyRQ5wz9JoIgSr2fFYtaXZco2hxXmAxXd0Bxj6nwLI0WiCNaAPsoys+atxC2227NcydlwJNSjd6LM3/dWsjB73EOAkNrEdhmbH/X1+mSmG3x/KJEIs8dk2QO5WNI3t/0OUncgUOIpia/76GAs8z0c0hTGHfB0ugxtvfQPe8fohwzqnQbq4dAP6k8ZClqFpQtbgI/ADWbD9jAkmXlGI+0SoCp1RFn6/32J2IGvJDTwbjcubNScOMgRnr/nefzZk4LgupGlKRtl0WumO75MdJmua/NRTmvygnHXiFn6Q5TGZfokPOG7cZgLfaCKk7LNlhQVYd1TI8iZmR2FqgN7ynwcZTYgY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'
+};
+
 /* ---------- Minimal, dependency-free .docx writer ---------- */
 const DocxGen = (() => {
   const W = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"';
@@ -1235,7 +1542,7 @@ const DocxGen = (() => {
   const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,'');
   // run: {text, b, i, color, sz}
   function run(r){
-    const pr = (r.b?'<w:b/>':'')+(r.i?'<w:i/>':'')+(r.color?`<w:color w:val="${r.color}"/>`:'')+(r.sz?`<w:sz w:val="${r.sz}"/><w:szCs w:val="${r.sz}"/>`:'');
+    const pr = (r.b?'<w:b/>':'')+(r.i?'<w:i/>':'')+(r.color?`<w:color w:val="${r.color}"/>`:'')+(r.sz?`<w:sz w:val="${r.sz}"/><w:szCs w:val="${r.sz}"/>`:'')+(r.u?'<w:u w:val="single"/>':'');
     const lines = String(r.text).split(/\r?\n/);
     return lines.map((ln,k)=>`<w:r>${pr?`<w:rPr>${pr}</w:rPr>`:''}${k?'<w:br/>':''}<w:t xml:space="preserve">${esc(ln)}</w:t></w:r>`).join('');
   }
@@ -1256,6 +1563,24 @@ const DocxGen = (() => {
       rows.map(r=>`<w:tr>${r.header?'<w:trPr><w:tblHeader/></w:trPr>':''}${r.cells.map((c,i)=>cell(widths[i], c.paras, c.fill)).join('')}</w:tr>`).join('')+`</w:tbl>`;
   }
   const spacer = () => para({after:60, runs:[]});
+  const W_IMG = W+' xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"';
+  const EMU = 914400;
+  function imageRun(rid, wIn, hIn, id, name){
+    const cx=Math.round(wIn*EMU), cy=Math.round(hIn*EMU);
+    return `<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy}"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:docPr id="${id}" name="${esc(name)}"/><wp:cNvGraphicFramePr><a:graphicFrameLocks noChangeAspect="1"/></wp:cNvGraphicFramePr>`+
+      `<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="${id}" name="${esc(name)}"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${rid}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>`+
+      `<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`;
+  }
+  // A picture floating beside the text (the letterhead logos), positioned from the column and paragraph like the hospital's file
+  function anchorRun(rid, sizeIn, xEmu, yEmu, id, name){
+    const c=Math.round(sizeIn*EMU);
+    return `<w:r><w:drawing><wp:anchor distT="0" distB="0" distL="114300" distR="114300" simplePos="0" relativeHeight="${id}" behindDoc="0" locked="0" layoutInCell="1" allowOverlap="1"><wp:simplePos x="0" y="0"/><wp:positionH relativeFrom="column"><wp:posOffset>${xEmu}</wp:posOffset></wp:positionH><wp:positionV relativeFrom="paragraph"><wp:posOffset>${yEmu}</wp:posOffset></wp:positionV><wp:extent cx="${c}" cy="${c}"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:wrapNone/><wp:docPr id="${id}" name="${esc(name)}"/><wp:cNvGraphicFramePr><a:graphicFrameLocks noChangeAspect="1"/></wp:cNvGraphicFramePr>`+
+      `<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="${id}" name="${esc(name)}"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${rid}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>`+
+      `<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${c}" cy="${c}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:anchor></w:drawing></w:r>`;
+  }
+  // Genogram size on the page: half an inch per symbol, at most maxW wide and 7 inches tall
+  const genoSize = (g, maxW) => { let w=g.wIn*0.5, h=g.hIn*0.5; const k=Math.min(1, maxW/w, 7/h); return { w:w*k, h:h*k }; };
+  const b64bytes = s => { const bin=atob(s); const u=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); return u; };
 
   /* Turn one field's value into cell paragraphs (or null when empty) */
   function valueParas(f, d){
@@ -1276,6 +1601,7 @@ const DocxGen = (() => {
         const runs=[]; f.p.forEach(([k])=>{ if(v[k]) { if(runs.length) runs.push({text:';  '}); runs.push({text:k+': '}); runs.push({text:v[k], b:true}); } });
         return [{runs}];
       }
+      case 'lines': return v.map(str).filter(Boolean).map((t,i)=>({runs:[{text:(i+1)+'. '+t}], after:20}));
       case 'parts': {
         const items = f.p.filter(k=>str(v[k]));
         if(f.long) return items.map(k=>({runs:[{text:k+': ', b:true},{text:str(v[k])}], after:40}));
@@ -1286,7 +1612,36 @@ const DocxGen = (() => {
     return null;
   }
 
-  function buildDocument(d, kind){
+  /* Tables for the newer field types in the app-format export */
+  const headRow = cols => ({header:true, cells:cols.map(h=>({fill:C.thead, paras:[{runs:[{text:h,b:true,sz:18}]}]}))});
+  const plainCell = (t, extra) => ({paras:[{runs:[{text:str(t), ...(extra||{})}]}]});
+  function famTable(d){
+    const cols=['Name','Relationship','Age','Status','Condition / illness','Description'], widths=[1500,1750,700,1950,1700,3056];
+    const rows=[headRow(cols)];
+    famMembers(d).forEach(m=>{ const ri=relInfo(m.rel);
+      const rel = str(m.rel) + (!ri.sex && m.sex ? ' ('+m.sex+')' : '');
+      const st = [m.status||'Living', m.psych && 'psychiatric condition', m.withPt && 'lives with patient'].filter(Boolean).join('; ');
+      rows.push({cells:[plainCell(m.name), plainCell(rel), plainCell(m.age), plainCell(st), plainCell(m.cond), plainCell(m.desc)]}); });
+    return table(widths, rows);
+  }
+  function labTable(d){
+    const cols=['Panel','Test','Result','Normal range'], widths=[2300,2600,2700,3056];
+    const rows=[headRow(cols)];
+    labsDone(d).forEach(x=>{
+      if(x.text) rows.push({cells:[plainCell(x.panel.name), plainCell(''), plainCell(x.text), plainCell('')]});
+      else x.rows.forEach(r=>rows.push({cells:[plainCell(x.panel.name), plainCell(r.test), plainCell(r.value+(r.flag?' ('+r.flag+')':''), r.flag?{b:true, color:'C00000'}:null), plainCell(r.range)]}));
+    });
+    return table(widths, rows);
+  }
+  function gridTable(f, d){
+    const v=d[f.id]||{}, w0=1700, w=Math.floor((TEXT_W-w0)/f.cols.length), widths=[w0, ...f.cols.map((_,i)=> i<f.cols.length-1 ? w : TEXT_W-w0-w*(f.cols.length-1))];
+    const rows=[headRow(['', ...f.cols])];
+    f.rows.forEach(r=>rows.push({cells:[{fill:C.label, paras:[{runs:[{text:r, b:true}]}]}, ...f.cols.map(c=>plainCell(v[r+'|'+c]))]}));
+    return table(widths, rows);
+  }
+
+  function buildDocument(d, kind, ex){
+    ex = ex || {};
     const sch = SCHEMAS[kind||'case'];
     const body=[];
     body.push(para({style:'Title', runs:[{text:sch.title}]}));
@@ -1306,6 +1661,16 @@ const DocxGen = (() => {
       let kv=[]; let any=false;
       const flush = () => { if(kv.length){ body.push(table([LABEL_W,VALUE_W], kv)); body.push(spacer()); kv=[]; } };
       s.fields.forEach(f=>{
+        if((f.t==='family' || f.t==='labs' || f.t==='grid') && isFilled(f,d)){
+          flush(); any=true;
+          body.push(para({keepNext:true, after:60, runs:[{text:f.label, b:true, sz:20}]}));
+          body.push(f.t==='family' ? famTable(d) : f.t==='labs' ? labTable(d) : gridTable(f,d)); body.push(spacer());
+          if(f.t==='family' && ex.geno){ const z=genoSize(ex.geno, 6.2);
+            body.push(para({keepNext:true, before:120, after:60, runs:[{text:'Genogram', b:true, sz:20}]}));
+            body.push(`<w:p><w:pPr><w:keepNext/><w:jc w:val="center"/></w:pPr>${imageRun('rIdGeno', z.w, z.h, 101, 'Genogram')}</w:p>`);
+            body.push(para({align:'center', after:120, runs:[{text:GENO_LEGEND, i:true, color:C.grey, sz:16}]})); }
+          return;
+        }
         if(f.t==='table'){
           const rows = (d[f.id]||[]).filter(r=>r.some(c=>str(c)));
           if(!rows.length) return;
@@ -1326,7 +1691,7 @@ const DocxGen = (() => {
       if(!any) body.push(para({after:120, runs:[{text:'Not documented.', i:true, color:C.grey}]}));
     });
     const sect = `<w:sectPr><w:footerReference w:type="default" r:id="rId2"/><w:pgSz w:w="${PAGE_W}" w:h="15840"/><w:pgMar w:top="864" w:right="${MAR}" w:bottom="864" w:left="${MAR}" w:header="432" w:footer="432" w:gutter="0"/></w:sectPr>`;
-    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document ${W}><w:body>${body.join('')}${sect}</w:body></w:document>`;
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document ${W_IMG}><w:body>${body.join('')}${sect}</w:body></w:document>`;
   }
 
   const STYLES = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles ${W}>
@@ -1345,6 +1710,262 @@ const DocxGen = (() => {
   const RELS = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`;
   const DOCRELS = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/></Relationships>`;
 
+  /* ---- Case presentation protocol in the hospital's format (A4, Arial 12, underlined headings) ---- */
+  const PW = 11909, PH = 16834, PML = 1440, PTW = PW - 2*PML;   // A4; text width 9029
+  function buildProtocol(d, ex){
+    ex = ex || {};
+    const SZ = 24, B = [], nums = [];
+    const v = k => str(d[k]);
+    // one paragraph: runs [{text,b,i,u,color,sz}], options: align, ind:{left,firstLine,hanging}, before, after, keepNext, num:{id}
+    const P = (runs, o={}) => {
+      const ind = o.ind ? `<w:ind${o.ind.left!=null?` w:left="${o.ind.left}"`:''}${o.ind.firstLine!=null?` w:firstLine="${o.ind.firstLine}"`:''}${o.ind.hanging!=null?` w:hanging="${o.ind.hanging}"`:''}/>` : '';
+      const ppr = (o.keepNext?'<w:keepNext/>':'')+(o.num?`<w:numPr><w:ilvl w:val="0"/><w:numId w:val="${o.num}"/></w:numPr>`:'')+
+        `<w:spacing w:before="${o.before||0}" w:after="${o.after||0}" w:line="259" w:lineRule="auto"/>`+ind+(o.align?`<w:jc w:val="${o.align}"/>`:'');
+      return `<w:p><w:pPr>${ppr}</w:pPr>${runs.filter(r=>r && r.text!=null && r.text!=='').map(r=>run({sz:SZ, ...r})).join('')}</w:p>`;
+    };
+    const T = (t, o) => ({ text:t, ...(o||{}) });
+    const H = t => B.push(P([T(t+':', {b:true, u:true})], { before:240, keepNext:true }));
+    const sub = t => B.push(P([T(t, {u:true})], { before:120, keepNext:true }));
+    // narrative: one paragraph per line, justified, first line indented
+    const N = (text, o={}) => { str(text).split(/\n+/).map(x=>x.trim()).filter(Boolean).forEach(line=>B.push(P([T(line, o.run)], { align:o.align||'both', ind: o.ind || { firstLine:720 } }))); };
+    const labelled = (label, text) => { if(str(text)) B.push(P([T(label+' ', {b:true}), T(str(text))], { align:'both', ind:{ left:720 } })); };
+    const bullets = (items, o={}) => items.map(str).filter(Boolean).forEach(t=>B.push(P(o.bold ? [T(t,{b:true})] : [T(t)], { num:1, ind:{ left:720, hanging:360 }, align:'both' })));
+    const numbered = items => { const list=items.map(str).filter(Boolean); if(!list.length) return; const id = 2 + nums.length; nums.push(id); list.forEach(t=>B.push(P([T(t)], { num:id, ind:{ left:720, hanging:360 } }))); };
+    const radioTxt = k => [d[k], str(d[k+'__d'])].filter(Boolean).join('. ');
+    const partsTxt = (k, keys) => { const o=d[k]||{}; return (keys||Object.keys(o)).filter(x=>str(o[x])).map(x=>x+': '+str(o[x])).join('; '); };
+    // tables: rows of cells { paras (xml), fill, w } with black single borders
+    const tbl = (widths, rows, o={}) => {
+      const bd = o.noBorder ? `<w:tblBorders>${['top','left','bottom','right','insideH','insideV'].map(b=>`<w:${b} w:val="nil"/>`).join('')}</w:tblBorders>`
+                            : `<w:tblBorders>${['top','left','bottom','right','insideH','insideV'].map(b=>`<w:${b} w:val="single" w:sz="4" w:space="0" w:color="000000"/>`).join('')}</w:tblBorders>`;
+      const total = widths.reduce((a,b)=>a+b,0);
+      return `<w:tbl><w:tblPr><w:tblW w:w="${total}" w:type="dxa"/>${o.center?'<w:jc w:val="center"/>':''}${bd}<w:tblLayout w:type="fixed"/><w:tblCellMar><w:top w:w="40" w:type="dxa"/><w:left w:w="100" w:type="dxa"/><w:bottom w:w="40" w:type="dxa"/><w:right w:w="100" w:type="dxa"/></w:tblCellMar></w:tblPr>`+
+        `<w:tblGrid>${widths.map(w=>`<w:gridCol w:w="${w}"/>`).join('')}</w:tblGrid>`+
+        rows.map(r=>`<w:tr>${r.header?'<w:trPr><w:tblHeader/></w:trPr>':''}${r.cells.map((c,i)=>`<w:tc><w:tcPr><w:tcW w:w="${widths[i]}" w:type="dxa"/>${c.fill?`<w:shd w:val="clear" w:color="auto" w:fill="${c.fill}"/>`:''}${c.vc?'<w:vAlign w:val="center"/>':''}</w:tcPr>${c.paras || P([])}</w:tc>`).join('')}</w:tr>`).join('')+`</w:tbl>`;
+    };
+    const cellBullets = (items, sz) => { const list=items.map(str).filter(Boolean); return list.length ? list.map(t=>P([T(t,{sz:sz||SZ})], { num:1, ind:{ left:360, hanging:270 } })).join('') : P([T('',{})]); };
+    const splitItems = t => str(t).split(/\n+|;\s*/).map(x=>x.trim().replace(/^[-•*]\s*/,'')).filter(Boolean);
+
+    // Letterhead: logo, institution, logo
+    const LH = PROTOCOL_HEAD;
+    LH.lines.forEach((l,i)=>{
+      let xml = P([T(l.t, { b:l.b, sz:l.sz||22 })], { align:'center' });
+      if(i===0) xml = xml.replace('</w:pPr>', '</w:pPr>'+anchorRun('rIdLogoL', 0.73, -104773, 50165, 201, 'Logo left')+anchorRun('rIdLogoR', 0.81, 5132070, -10793, 202, 'Logo right'));
+      B.push(xml);
+    });
+    B.push(P([T('CASE PRESENTATION PROTOCOL', { b:true, u:true })], { align:'center', before:240 }));
+    const title = v('caseTitle') || (v('primaryDx') ? 'A case of '+lc(v('primaryDx').split('\n')[0]) : '');
+    if(title) B.push(P([T('“'+title.replace(/^["“]|["”]$/g,'')+'”', { b:true, i:true })], { align:'center' }));
+    B.push(P([T('Prepared by: '+(v('preparedBy')||v('interviewer')))], { align:'center' }));
+    B.push(P([T('Supervised by: '+v('supervisedBy'))], { align:'center' }));
+
+    H('OBJECTIVES'); numbered(d.objectives||[]);
+
+    H('IDENTIFYING DATA');
+    if(v('idsummary')) N(v('idsummary'));
+    else {
+      const as = splitAgeSex(d.agesex), age = as.age ? as.age+'-year-old' : '', sex = (as.sex||'').toLowerCase();
+      const bits = [[age, sex].filter(Boolean).join(' '), lc(v('marital')), lc(v('occupation'))].filter(Boolean);
+      const who = v('patient') ? (typeof CaseSlides!=='undefined' ? CaseSlides.deidentify(d,'initials').label : v('patient')) : 'The patient';
+      const t = who + (bits.length?', a '+bits.join(', '):'') + (v('livingwith')?', living with '+lc(v('livingwith')):'') + (v('referred')?', referred by '+lc(v('referred')):'');
+      if(bits.length || v('livingwith') || v('referred')) N(endDot(t));
+    }
+
+    H('CHIEF COMPLAINT'); if(v('cc')) N(quoted(v('cc')));
+
+    H('SOURCES OF INFORMATION');
+    if(v('informant') || d.reliability) N(endDot((v('informant')||'Patient') + (d.reliability ? ' with '+d.reliability+' reliability' : '') + (str(d.reliability__d) ? '. '+str(d.reliability__d) : '')));
+    N(v('otherSources'));
+
+    H('PREMORBID PERSONALITY'); N(v('premorbid'));
+
+    H('HISTORY OF PRESENT ILLNESS');
+    B.push(P([T('ONSET OF ILLNESS: '), T(v('onset'))], { ind:{ firstLine:720 }, align:'both' }));
+    N(v('hpi'));
+    const assoc = partsTxt('assoc', ['Sleep','Mood','Interests','Relationships','Functioning']); if(assoc) N('Associated changes: '+assoc+'.');
+    N(v('timeline'));
+    if((d.rosChecks||[]).length || v('rosDetails')){ H('PSYCHIATRIC REVIEW OF SYSTEMS'); if((d.rosChecks||[]).length) N('(+) '+d.rosChecks.join(', ')); N(v('rosDetails')); }
+
+    H('PAST PSYCHIATRIC HISTORY');
+    bullets([ v('priorDx') && 'Prior diagnoses: '+v('priorDx'),
+      ...(d.episodes||[]).filter(r=>r.some(c=>str(c))).map(r=>r.map(str).filter(Boolean).join(' – ')),
+      v('hosp') && 'Hospitalizations / ECT: '+v('hosp'), v('psychotherapy') && 'Psychotherapy: '+v('psychotherapy'), v('pastMeds') && 'Past medication trials: '+v('pastMeds') ]);
+    if((d.safetyChecks||[]).length || v('pastAttempts') || v('protective') || v('otherSafety')){
+      H('SAFETY AND LETHALITY HISTORY');
+      bullets([ (d.safetyChecks||[]).length && '(+) '+d.safetyChecks.join(', '), v('pastAttempts') && 'Past attempts: '+v('pastAttempts'), v('protective') && 'Protective factors: '+v('protective'), v('otherSafety') && 'Other concerns: '+v('otherSafety') ]);
+    }
+
+    H('PAST MEDICAL HISTORY');
+    N(v('medhx'), { ind:{ left:720 } }); labelled('Allergies:', v('allergies')); labelled('OTC / herbal / supplements:', v('otc'));
+
+    H('OBGYN HISTORY');
+    const male = (d.mensNA||[]).length && (d.obNA||[]).length;
+    if(male) B.push(P([T('Not applicable.')], { ind:{ left:720 } }));
+    else {
+      const gp = d.obGP||{}; const gpt = (str(gp.G)?'G'+str(gp.G):'') + (str(gp.P)?'P'+str(gp.P):'');
+      const line = t => { if(str(t)) B.push(P([T(t)], { ind:{ left:720 } })); };
+      line([gpt, d.pregnant==='Yes' && 'currently pregnant'].filter(Boolean).join(', '));
+      line(v('lmp') && 'LMP: '+v('lmp'));
+      const men = [v('menarche') && 'Menarche at '+v('menarche'), v('cycle') && 'interval: '+v('cycle'), v('mensDur') && 'duration: '+v('mensDur'), v('mensAmt') && 'amount: '+v('mensAmt'), v('mensSx') && 'symptoms: '+v('mensSx')].filter(Boolean);
+      if(men.length) line('Menstruation: '+men.join('; '));
+      line(radioTxt('cycleMood') && 'Cycle-related mood or symptom changes: '+radioTxt('cycleMood'));
+      line(v('obComp') && 'Pregnancy complications: '+v('obComp'));
+      line((d.postpartum||[]).length && (d.postpartum.join(', ')+(v('ppOnset')?'; onset of mood symptoms: '+v('ppOnset'):'')));
+      line(v('contra') && 'Contraception: '+v('contra')+(d.contraUse?' (used consistently: '+d.contraUse.toLowerCase()+')':''));
+      line(d.meno && 'Menopausal status: '+radioTxt('meno'));
+    }
+
+    H('SUBSTANCE HISTORY');
+    bullets([ (d.subChecks||[]).length && 'Substances / behaviors: '+d.subChecks.join(', '),
+      ...(d.subTable||[]).filter(r=>r.some(c=>str(c))).map(r=>r.map(str).filter(Boolean).join(' – ')),
+      (d.cage||[]).length && 'CAGE '+d.cage.length+'/4 ('+d.cage.join(', ')+')', (d.raps4||[]).length && 'RAPS4 '+d.raps4.length+'/4 ('+d.raps4.join(', ')+')' ]);
+
+    H('FAMILY HISTORY');
+    if((d.famChecks||[]).length) B.push(P([T('(+) '+d.famChecks.join(', '))], { ind:{ left:720 } }));
+    N(v('famhx'));
+
+    H('FAMILY GENOGRAM');
+    if(ex.geno){ const z=genoSize(ex.geno, 6.1);
+      B.push(`<w:p><w:pPr><w:keepNext/><w:spacing w:before="120" w:after="60"/><w:jc w:val="center"/></w:pPr>${imageRun('rIdGeno', z.w, z.h, 101, 'Genogram')}</w:p>`);
+      B.push(P([T(GENO_LEGEND, { i:true, sz:18, color:'595959' })], { align:'center' })); }
+
+    H('FAMILY PROFILE');
+    famMembers(d).forEach(m=>{
+      const role = relInfo(m.rel).role, rel = str(m.rel).toLowerCase();
+      const what = role==='other' ? (/household/i.test(m.rel) ? 'a household member' : 'a relative') : "the patient's "+rel;
+      const bits = [str(m.age) && (/^\d+$/.test(str(m.age)) ? str(m.age)+' years old' : str(m.age)), m.status==='Deceased' && 'deceased', str(m.cond) && 'with '+lc(str(m.cond)), m.withPt && 'living with the patient'].filter(Boolean);
+      const lead = ' is '+what+(bits.length?', '+bits.join(', '):'')+'.';
+      B.push(P([T(str(m.name)||'(no name)', { b:true }), T(lead+(str(m.desc)?' '+str(m.desc):''))], { num:1, ind:{ left:720, hanging:360 }, align:'both' }));
+    });
+
+    H('ANAMNESIS');
+    sub('INFANCY & EARLY CHILDHOOD'); N([v('anaInfancy'), v('prenatal') && 'Prenatal / birth / developmental problems: '+v('prenatal'), v('childhood')].filter(Boolean).join('\n'));
+    sub('MIDDLE CHILDHOOD and LATE CHILDHOOD'); N(v('anaChild'));
+    sub('ADOLESCENCE'); N(v('anaAdol'));
+    sub('ADULTHOOD'); N([v('anaAdult'), v('eduwork') && 'Education / work: '+v('eduwork'), v('relationships') && 'Relationships / family: '+v('relationships')].filter(Boolean).join('\n'));
+    const inline = (label, text) => B.push(P([T(label, { i:true, u:true }), T(' – '+str(text))], { before:120, ind:{ left:720 }, align:'both' }));
+    inline('Current psychosocial situation', v('living'));
+    inline('Religion/Spirituality', v('religion'));
+    const SEXF = SECTIONS.find(x=>x.id==='soc').fields.filter(f=>/^sex/.test(f.id) && f.id!=='sexual' && isFilled(f,d));
+    const sexText = [...SEXF.map(f=>f.label.replace(/\?$/,'')+': '+(f.t==='radio' ? radioTxt(f.id) : v(f.id))), v('sexual')].filter(Boolean).join('; ');
+    inline('Sexual History', sexText);
+    inline('Legal History', v('legal'));
+    if(v('trauma')) inline('Trauma / abuse', v('trauma'));
+
+    H('REVIEW OF SYSTEMS'); N(v('rosMed'));
+
+    H('PHYSICAL EXAMINATION');
+    const vit = d.vitals||{}, vk = ['BP','HR','RR','Temp','SpO₂','Weight','Height','BMI'].filter(k=>str(vit[k]));
+    B.push(P(vk.length ? vk.flatMap((k,i)=>[T((i?'     ':'')+k+': ', { b:true }), T(str(vit[k]))]) : [T('BP: ')], {}));
+    N(v('peGen')); if(v('deferred')) N('Not performed: '+v('deferred'));
+
+    H('NEUROLOGICAL EXAMINATION'); N(v('neuro'));
+
+    H('MENTAL STATUS EXAMINATION'); N(v('mseNarr') || draftMSE(d));
+
+    H('ADMITTING IMPRESSION');
+    v('admitImp').split('\n').map(x=>x.trim()).filter(Boolean).forEach(t=>B.push(P([T(t, { b:true })], { align:'center', before:60 })));
+
+    H('COURSE IN THE WARDS AND DURING FOLLOW UP'); N(v('course'));
+    const labs = labsDone(d);
+    if(labs.length){
+      // three columns of panels, as in the hospital's format
+      const COLS = [['cbc','renal','lft'], ['lytes','meta','hepa','preg'], ['ua','ecg','cxr','pcr','thyroid']];
+      const cols = COLS.map(ids => labs.filter(x=>ids.includes(x.panel.id)));
+      labs.filter(x=>!COLS.flat().includes(x.panel.id)).forEach(x=>{ const c=cols.reduce((a,b)=> b.length<a.length ? b : a); c.push(x); });
+      const LS = 19;
+      const cellX = list => list.map((x,k)=>
+        P([T(x.panel.name, { u:true, sz:LS })], { align:'center', before:k?160:0 }) +
+        (x.text ? x.text.split('\n').filter(Boolean).map(t=>P([T(t, { sz:LS })], { align:'center' })).join('')
+                : x.rows.map(r=>P([T(r.test+' – '+r.value+(r.range?' ('+r.range+')':''), { sz:LS, b:!!r.flag, color:r.flag?'FF0000':undefined })], { align:'center' })).join(''))
+      ).join('') || P([]);
+      B.push(P([], { before:120 }));
+      const w = Math.floor(PTW/3);
+      B.push(tbl([w, w, PTW-2*w], [{ cells: cols.map(c=>({ paras:cellX(c) })) }]));
+    }
+    if(d.labs && Object.values(d.labs).some(x=>str(x))) N('Laboratory results: '+partsTxt('labs')+'.');
+    labelled('Imaging / other tests:', v('imaging')); labelled('Collateral:', v('collateral'));
+
+    H('SALIENT FEATURES');
+    { const w=Math.floor(PTW/2);
+      B.push(tbl([w, PTW-w], [
+        { header:true, cells:[{ fill:'FFE599', paras:P([T('PERTINENT POSITIVES')], { align:'center' }) }, { fill:'FFE599', paras:P([T('PERTINENT NEGATIVES')], { align:'center' }) }] },
+        { cells:[{ paras:cellBullets(d.positives||[]) }, { paras:cellBullets(d.negatives||[]) }] } ])); }
+
+    H('DIFFERENTIALS');
+    { const rows = (d.ddx||[]).filter(r=>r.some(c=>str(c))); const w0=2300, w=Math.floor((PTW-w0)/2);
+      const body = (rows.length ? rows : [['','',''],['','','']]).map(r=>({ cells:[{ paras:P([T(str(r[0]), { b:true })], {}), vc:true }, { paras:cellBullets(splitItems(r[1])) }, { paras:cellBullets(splitItems(r[2])) }] }));
+      B.push(tbl([w0, w, PTW-w0-w], [{ header:true, cells:[{ paras:P([]) }, { fill:'385623', paras:P([T('More Likely', { b:true, color:'FFFFFF' })], { align:'center' }) }, { fill:'C00000', paras:P([T('Less Likely', { b:true, color:'FFFFFF' })], { align:'center' }) }] }, ...body]));
+      if(v('differential')) N('Other differentials / rule-outs: '+v('differential')); }
+
+    H('WORKING DIAGNOSIS');
+    v('primaryDx').split('\n').map(x=>x.trim()).filter(Boolean).forEach(t=>B.push(P([T(t, { b:true })], { align:'center', before:60 })));
+    if(v('otherDx')) N('Other diagnoses / comorbidities: '+v('otherDx'));
+
+    H('BIOPSYCHOSOCIAL FORMULATION');
+    { const f = { rows:['Predisposing','Precipitating','Perpetuating','Protective'], cols:['Biological','Psychological','Socio-cultural','Spiritual'] }, g = d.bps||{};
+      const w0=1750, w=Math.floor((PTW-w0)/4), widths=[w0, w, w, w, PTW-w0-3*w];
+      B.push(tbl(widths, [{ header:true, cells:[{ paras:P([]) }, ...f.cols.map(c=>({ paras:P([T(c, { sz:22 })], {}) }))] },
+        ...f.rows.map(r=>({ cells:[{ paras:P([T(r, { sz:22 })], {}) }, ...f.cols.map(c=>({ paras: str(g[r+'|'+c]) ? str(g[r+'|'+c]).split('\n').filter(Boolean).map(t=>P([T(t, { sz:20 })], {})).join('') : P([]) }))] }))]));
+      if(v('integrated')) B.push(P([], { before:120 }));
+      N(v('integrated'));
+      [['bio','Biological'],['psych','Psychological'],['social','Social']].forEach(([k,l])=>{ if(v(k)) N(l+': '+v(k)); }); }
+
+    if(d.suicideRisk || d.violenceRisk || d.loc || (d.riskForm && Object.values(d.riskForm).some(x=>str(x)))){
+      H('RISK ASSESSMENT');
+      bullets([ d.suicideRisk && 'Suicide risk: '+d.suicideRisk, d.violenceRisk && 'Violence risk: '+d.violenceRisk,
+        ...['Acute risk factors','Chronic risk factors','Protective factors','Overall rationale'].filter(k=>str((d.riskForm||{})[k])).map(k=>k+': '+str(d.riskForm[k])),
+        d.loc && 'Recommended level of care: '+d.loc ]);
+    }
+
+    H('PROGNOSIS');
+    if(d.progRating) B.push(P([T(d.progRating, { b:true })], { ind:{ firstLine:720 } }));
+    N(v('prognosis'));
+
+    H('GOALS OF MANAGEMENT');
+    { const w=Math.floor(PTW/3);
+      B.push(tbl([w, w, PTW-2*w], [
+        { header:true, cells:['Immediate Goal','Short-Term Goal','Long-Term Goal'].map(t=>({ paras:P([T(t, { b:true })], { align:'center' }) })) },
+        { cells:[d.goalsImm, d.goalsShort, d.goalsLong].map(x=>({ paras:cellBullets(x||[]) })) } ])); }
+    const ul = t => B.push(P([T(t, { u:true })], { before:200, keepNext:true }));
+    ul('Current Medications:');
+    (d.meds||[]).filter(r=>str(r[0])).forEach(r=>B.push(P([T([str(r[0]), str(r[1])].filter(Boolean).join(' '))], {})));
+    ul('Further Plans:'); str(d.furtherPlans).split('\n').filter(x=>x.trim()).forEach(t=>B.push(P([T(t.trim())], {})));
+    ul('Psychosocial Intervention:');
+    (d.psychosocial||[]).forEach(t=>B.push(P([T(t)], {})));
+    str(d.psychosocialNotes).split('\n').filter(x=>x.trim()).forEach(t=>B.push(P([T(t.trim())], {})));
+    const pt = (d.planTable||[]).filter(r=>r.some(c=>str(c)));
+    if(pt.length){ ul('Plan by Domain:'); const cs=['Domain','Plan / intervention','Dose / frequency / timing','Monitoring / follow-up'], w=Math.floor(PTW/4);
+      B.push(tbl([w,w,w,PTW-3*w], [{ header:true, cells:cs.map(c=>({ paras:P([T(c, { b:true, sz:20 })], {}) })) }, ...pt.map(r=>({ cells:cs.map((_,i)=>({ paras:P([T(str(r[i]), { sz:20 })], {}) })) }))])); }
+    if(v('safetyPlan')){ ul('Safety Plan:'); str(d.safetyPlan).split('\n').filter(x=>x.trim()).forEach(t=>B.push(P([T(t.trim())], {}))); }
+    if(v('followup')){ ul('Follow-up:'); str(d.followup).split('\n').filter(x=>x.trim()).forEach(t=>B.push(P([T(t.trim())], {}))); }
+
+    H('DISCUSSION'); N(v('discussion'));
+
+    H('REFERENCES'); numbered(Array.isArray(d.refs) ? d.refs : REFERENCES_DEFAULT);
+
+    const sect = `<w:sectPr><w:footerReference w:type="default" r:id="rId2"/><w:pgSz w:w="${PW}" w:h="${PH}"/><w:pgMar w:top="900" w:right="${PML}" w:bottom="1350" w:left="${PML}" w:header="706" w:footer="424" w:gutter="0"/></w:sectPr>`;
+    return { xml: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document ${W_IMG}><w:body>${B.join('')}${sect}</w:body></w:document>`, nums };
+  }
+  // Bullets (list 1) and a fresh 1, 2, 3 numbering for each numbered list
+  function numberingXML(nums){
+    const lvl = (fmt, text, font) => `<w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="${fmt}"/><w:lvlText w:val="${text}"/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="720" w:hanging="360"/></w:pPr>${font?`<w:rPr><w:rFonts w:ascii="${font}" w:hAnsi="${font}" w:hint="default"/></w:rPr>`:''}</w:lvl>`;
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:numbering ${W}>`+
+      `<w:abstractNum w:abstractNumId="0"><w:multiLevelType w:val="singleLevel"/>${lvl('bullet','','Symbol')}</w:abstractNum>`+
+      `<w:abstractNum w:abstractNumId="1"><w:multiLevelType w:val="singleLevel"/>${lvl('decimal','%1.','')}</w:abstractNum>`+
+      `<w:num w:numId="1"><w:abstractNumId w:val="0"/></w:num>`+
+      nums.map(n=>`<w:num w:numId="${n}"><w:abstractNumId w:val="1"/><w:lvlOverride w:ilvl="0"><w:startOverride w:val="1"/></w:lvlOverride></w:num>`).join('')+
+      `</w:numbering>`;
+  }
+  const STYLES_P = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles ${W}>
+<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:eastAsia="Arial" w:cs="Arial"/><w:sz w:val="24"/><w:szCs w:val="24"/><w:lang w:val="en-PH"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="0" w:line="259" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults>
+<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style>
+</w:styles>`;
+  const FOOTER_P = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:ftr ${W}><w:p><w:pPr><w:jc w:val="right"/></w:pPr>`+
+    `<w:r><w:rPr><w:color w:val="808080"/><w:sz w:val="18"/></w:rPr><w:t xml:space="preserve">Page </w:t></w:r>`+
+    `<w:fldSimple w:instr=" PAGE "><w:r><w:rPr><w:color w:val="808080"/><w:sz w:val="18"/></w:rPr><w:t>1</w:t></w:r></w:fldSimple>`+
+    `<w:r><w:rPr><w:color w:val="808080"/><w:sz w:val="18"/></w:rPr><w:t xml:space="preserve"> | </w:t></w:r>`+
+    `<w:fldSimple w:instr=" NUMPAGES "><w:r><w:rPr><w:color w:val="808080"/><w:sz w:val="18"/></w:rPr><w:t>1</w:t></w:r></w:fldSimple></w:p></w:ftr>`;
+
   /* ---- ZIP (stored, no compression) ---- */
   const CRC_T = (()=>{ const t=new Uint32Array(256); for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c = c&1 ? 0xEDB88320^(c>>>1) : c>>>1; t[n]=c>>>0; } return t; })();
   const crc32 = b => { let c=0xFFFFFFFF; for(let i=0;i<b.length;i++) c = CRC_T[(c^b[i])&0xFF]^(c>>>8); return (c^0xFFFFFFFF)>>>0; };
@@ -1354,7 +1975,7 @@ const DocxGen = (() => {
     const ddate = ((now.getFullYear()-1980)<<9)|((now.getMonth()+1)<<5)|now.getDate();
     const chunks=[], central=[]; let off=0;
     for(const [name, text] of files){
-      const nb=enc.encode(name), db=enc.encode(text), crc=crc32(db);
+      const nb=enc.encode(name), db=typeof text==='string' ? enc.encode(text) : text, crc=crc32(db);
       const h=new DataView(new ArrayBuffer(30));
       h.setUint32(0,0x04034b50,true); h.setUint16(4,20,true); h.setUint16(6,0x0800,true); h.setUint16(8,0,true);
       h.setUint16(10,dtime,true); h.setUint16(12,ddate,true); h.setUint32(14,crc,true); h.setUint32(18,db.length,true); h.setUint32(22,db.length,true);
@@ -1518,13 +2139,30 @@ const DocxGen = (() => {
     t=t.replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&amp;/g,'&').replace(/\s+/g,'');
     let h=0x811c9dc5; for(let i=0;i<t.length;i++){ h^=t.charCodeAt(i); h=Math.imul(h,0x01000193)>>>0; } return h.toString(16);
   }
-  function customProps(kind, d, docXml){
+  function customProps(kind, d, docXml, layout){
     const json = JSON.stringify(d), chunks=[]; for(let i=0;i<json.length;i+=240) chunks.push(json.slice(i,i+240));
     const prop = (pid,name,val)=>`<property fmtid="{D5CDD505-2E9C-101B-9397-08002B2CF9AE}" pid="${pid}" name="${name}"><vt:lpwstr>${esc(val)}</vt:lpwstr></property>`;
     return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/custom-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">`+
-      prop(2,'CaseAppKind',kind)+prop(3,'CaseAppPrint',textPrint(docXml))+chunks.map((c,i)=>prop(4+i,'CaseAppData'+String(i).padStart(3,'0'),c)).join('')+`</Properties>`;
+      prop(2,'CaseAppKind',kind)+prop(3,'CaseAppPrint',textPrint(docXml))+(layout?prop(9999,'CaseAppLayout',layout):'')+chunks.map((c,i)=>prop(4+i,'CaseAppData'+String(i).padStart(3,'0'),c)).join('')+`</Properties>`;
   }
-  function build(d, kind){
+  function build(d, kind, ex){
+    ex = ex || {};
+    if((kind||'case')==='case'){
+      const protocol = ex.layout==='protocol';
+      const built = protocol ? buildProtocol(d, ex) : { xml: buildDocument(d, 'case', ex), nums:[] };
+      const doc = built.xml, files = [];
+      const imgs = [];
+      if(ex.geno) imgs.push(['rIdGeno','media/genogram.png', ex.geno.bytes]);
+      if(protocol){ imgs.push(['rIdLogoL','media/logo-left.png', b64bytes(PROTOCOL_HEAD.logoLeft)]); imgs.push(['rIdLogoR','media/logo-right.png', b64bytes(PROTOCOL_HEAD.logoRight)]); }
+      const ct = CT.replace('<Default Extension="xml" ContentType="application/xml"/>','<Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/>')
+        .replace('</Types>','<Override PartName="/docProps/custom.xml" ContentType="application/vnd.openxmlformats-officedocument.custom-properties+xml"/>'+(protocol?'<Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/>':'')+'</Types>');
+      const rels = RELS.replace('</Relationships>','<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/custom-properties" Target="docProps/custom.xml"/></Relationships>');
+      const docRels = DOCRELS.replace('</Relationships>', imgs.map(([id,t])=>`<Relationship Id="${id}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="${t}"/>`).join('')+(protocol?'<Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/>':'')+'</Relationships>');
+      files.push(['[Content_Types].xml',ct],['_rels/.rels',rels],['word/_rels/document.xml.rels',docRels],['word/document.xml',doc],['word/styles.xml',protocol?STYLES_P:STYLES],['word/footer1.xml',protocol?FOOTER_P:FOOTER],['docProps/custom.xml',customProps('case',d,doc,protocol?'protocol':'form')]);
+      if(protocol) files.push(['word/numbering.xml', numberingXML(built.nums)]);
+      imgs.forEach(([,t,bytes])=>files.push(['word/'+t, bytes]));
+      return zip(files);
+    }
     if(kind==='mc' || kind==='ca' || kind==='ho' || kind==='sp'){
       const doc = kind==='mc' ? buildCertificate(d) : kind==='ca' ? buildAbstract(d) : kind==='ho' ? buildHandover(d) : buildSafetyPlan(d);
       const ct = CT.replace('</Types>','<Override PartName="/docProps/custom.xml" ContentType="application/vnd.openxmlformats-officedocument.custom-properties+xml"/></Types>');
@@ -1611,6 +2249,7 @@ const DocxImport = (() => {
         const m=splitKeys(text, f.p.map(x=>x[0])), o={};
         f.p.forEach(([k,opts])=>{ if(m[k]){ const v=pick(opts,m[k]); if(v) o[k]=v; else miss.push(label+', '+k+': '+m[k]); } });
         d[f.id]=o; return; }
+      case 'lines': d[f.id] = text.split('\n').map(x=>x.replace(/^\s*\d+\.\s*/,'').trim()).filter(Boolean); return;
       case 'parts': {
         const m=splitKeys(text, f.p), o={}; f.p.forEach(k=>{ if(m[k]) o[k]=m[k]; });
         if(!Object.keys(o).length && text.trim()) miss.push(label+': '+text.trim());
@@ -1629,7 +2268,7 @@ const DocxImport = (() => {
     let edited = false;
     try{ const docXml = await readPart(buf, 'word/document.xml'); edited = !!props.CaseAppPrint && DocxGen.textPrint(docXml)!==props.CaseAppPrint; }catch(e){}
     splitLegacyPatient(data); (data.rows||[]).forEach(splitLegacyPatient);
-    return { kind:props.CaseAppKind, data, filled:Object.keys(data).length, missed:[], edited };
+    return { kind:props.CaseAppKind, layout:props.CaseAppLayout||'', data, filled:Object.keys(data).length, missed:[], edited };
   }
   /* Handover: read the printed table (it may have been typed into in Word); the hidden copy supplies what the table doesn't show */
   async function handoverFrom(buf, emb){
@@ -1670,32 +2309,65 @@ const DocxImport = (() => {
     const buf = await file.arrayBuffer();
     const emb = await embedded(buf);
     if(emb && emb.kind==='ho') return await handoverFrom(buf, emb);
+    if(emb && emb.kind==='case' && emb.edited && emb.layout==='form'){
+      const seen = await readVisible(buf);
+      if(seen && seen.kind==='case') return { kind:'case', data:{ ...emb.data, ...seen.data }, filled:seen.filled, missed:seen.missed, edited:false };
+    }
     if(emb) return emb;
+    return await readVisible(buf);
+  }
+  async function readVisible(buf){
     const xml = await readPart(buf, 'word/document.xml');
     const doc = new DOMParser().parseFromString(xml, 'application/xml');
     const body = doc.getElementsByTagNameNS(NS,'body')[0]; if(!body) throw new Error('not-docx');
     const firstText = Array.from(doc.getElementsByTagNameNS(NS,'p')).slice(0,8).map(paraText).join(' ');
     if(/^\s*on-call handover/i.test(firstText)){ const r=await handoverFrom(buf, null); if(r) return r; }
-    if(/medical certificate|clinical abstract|my safety plan/i.test(firstText)) throw new Error('letter-stripped');
+    if(/medical certificate|clinical abstract|my safety plan|case presentation protocol/i.test(firstText)) throw new Error('letter-stripped');
     const kind = /discharge summary/i.test(firstText) ? 'dc' : /progress note/i.test(firstText) ? 'pn' : 'case';
     const SECS = SCHEMAS[kind].sections;
     const d={}, miss=[]; let sec=null, filled=0;
     const tableFields=[]; SECS.forEach(s=>s.fields.forEach(f=>{ if(f.t==='table') tableFields.push(f); }));
     const findField = label => {
       const L=norm(label); if(!L) return null;
-      if(sec){ const f=sec.fields.find(f=>f.t!=='table' && f.t!=='sub' && norm(f.label)===L); if(f) return f; }
+      const ok = f => f.t!=='table' && f.t!=='sub' && (norm(f.label)===L || (f.alias||[]).some(a=>norm(a)===L));
+      if(sec){ const f=sec.fields.find(ok); if(f) return f; }
       for(const s of SECS){ const f=s.fields.find(f=>f.t!=='table' && f.t!=='sub' && norm(f.label)===L); if(f) return f; }
+      for(const s of SECS){ const f=s.fields.find(ok); if(f) return f; }
       return null;
     };
     const handleP = p => {
-      const t=paraText(p).trim(); const m=t.match(/^(A|\d{1,2}[A-G]?)\.\s+(.+)$/); if(!m) return;
-      const s=SECS.find(s=>s.num===m[1]);
+      const t=paraText(p).trim(); const m=t.match(/^(A|B|\d{1,2}[A-G]?)\.\s+(.+)$/); if(!m) return;
+      // Sections were renumbered to follow the hospital's format, so match the title first
+      const byTitle = SECS.find(s=>norm(s.title)===norm(m[2]));
+      if(byTitle){ sec=byTitle; return; }
+      if(kind==='case' && SECS.some(s=>s.group && norm(s.group)===norm(m[2]))) return;
+      const s = kind==='case' ? null : SECS.find(s=>s.num===m[1]);
       const ps=p.getElementsByTagNameNS(NS,'pStyle')[0]; const style=ps ? (ps.getAttributeNS(NS,'val')||ps.getAttribute('w:val')||'') : '';
       if(s && (/heading/i.test(style) || norm(m[2]).startsWith(norm(s.title).slice(0,8)))) sec=s;
       else if(!s && /^\d+$/.test(m[1]) && t.length<60) sec=null;
     };
     const handleTbl = tbl => {
       const rows=rowsOf(tbl).map(cellsOf); if(!rows.length) return;
+      const head = rows[0].map(norm);
+      if(kind==='case' && head[0]==='name' && head[1]==='relationship'){
+        d.family = rows.slice(1).filter(r=>r.some(c=>c.trim())).map(r=>{
+          const relRaw=(r[1]||'').trim(), sx=relRaw.match(/\((Male|Female)\)\s*$/i), rel=relRaw.replace(/\s*\((Male|Female)\)\s*$/i,'');
+          const st=norm(r[3]||''); const m={ name:(r[0]||'').trim(), rel, age:(r[2]||'').trim(), status: /deceased/.test(st)?'Deceased':'Living', cond:(r[4]||'').trim(), desc:(r[5]||'').trim() };
+          if(/psychiatric/.test(st)) m.psych=true; if(/lives with/.test(st)) m.withPt=true; if(sx) m.sex=sx[1][0].toUpperCase()+sx[1].slice(1).toLowerCase();
+          return m; });
+        filled++; return;
+      }
+      if(kind==='case' && head[0]==='panel' && head[1]==='test'){
+        const L={};
+        rows.slice(1).forEach(r=>{ const p=LAB_PANELS.find(x=>norm(x.name)===norm(r[0])); if(!p) return;
+          if(p.text){ L[p.id]=(r[2]||'').trim(); return; }
+          if(!Array.isArray(L[p.id])) L[p.id]=(p.tests||[]).map(([t,rg])=>[t,'',rg]);
+          const val=(r[2]||'').replace(/\s*\((H|L)\)\s*$/,'').trim(), i=L[p.id].findIndex(x=>norm(x[0])===norm(r[1]));
+          if(i>=0){ L[p.id][i][1]=val; if((r[3]||'').trim()) L[p.id][i][2]=(r[3]||'').trim(); } else L[p.id].push([(r[1]||'').trim(), val, (r[3]||'').trim()]); });
+        d.labPanels=L; filled++; return;
+      }
+      const gf = kind==='case' && SECS.flatMap(s=>s.fields).find(f=>f.t==='grid' && rows[0].length===f.cols.length+1 && f.cols.every((c,i)=>norm(c)===head[i+1]));
+      if(gf){ const g={}; rows.slice(1).forEach(r=>{ const rl=gf.rows.find(x=>norm(x)===norm(r[0])); if(rl) gf.cols.forEach((c,i)=>{ if((r[i+1]||'').trim()) g[rl+'|'+c]=r[i+1].trim(); }); }); d[gf.id]=g; filled++; return; }
       const tf=tableFields.find(f=>norm(rows[0][0])===norm(f.c[0]) && rows[0].length===f.c.length);
       if(tf){
         const data=rows.slice(1).map(r=>tf.c.map((_,i)=>r[i]||'')).filter(r=>r.some(c=>c.trim()));
@@ -1723,7 +2395,7 @@ const DocxImport = (() => {
 /* ---------- App ---------- */
 (function(){
   const KEY='psyCaseApp.v1';
-  const VERSION='October 17, 2026';
+  const VERSION='October 23, 2026';
   const $ = (s,el=document)=>el.querySelector(s);
   const h = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   const FIELDS = {}; Object.keys(SCHEMAS).forEach(k=>FIELDS[k]={});
@@ -1832,7 +2504,7 @@ const DocxImport = (() => {
   }
   function newCase(){
     const id=newId();
-    store.cases[id] = {id, kind:'case', created:Date.now(), updated:Date.now(), data:{ datetime:when(Date.now()), interviewer:store.last.interviewer||'', attending:store.last.attending||'' }};
+    store.cases[id] = {id, kind:'case', created:Date.now(), updated:Date.now(), data:{ datetime:when(Date.now()), interviewer:store.last.interviewer||'', attending:store.last.attending||'', preparedBy:store.last.interviewer||'', supervisedBy:store.last.supervisedBy||'' }};
     persist(); openRec(id);
   }
 
@@ -2169,22 +2841,77 @@ const DocxImport = (() => {
     document.querySelectorAll('#rail [data-sec]').forEach(b=>{ const on=sectionStarted(SECS()[+b.dataset.sec],d); const dot=b.querySelector('.dot'); if(!dot) return; dot.classList.toggle('on',on); dot.setAttribute('aria-label',on?'started':'not started'); });
   }
 
+  /* ----- editors for the case presentation format ----- */
+  const sameNotes = rec => Object.values(store.cases).filter(c=>c.kind==='pn' && samePt(c.data, rec.data)).map(c=>c.data);
+  const famOpt = (list, v) => list.map(o=>`<option value="${h(o)}"${o===v?' selected':''}>${h(o||'Choose…')}</option>`).join('');
+  function familyHTML(f, d){
+    const list = Array.isArray(d.family) ? d.family : (d.family = []);
+    const rels = ['', ...FAMILY_RELS.map(r=>r.rel)];
+    return `<div class="field"><span class="lab" id="l-${f.id}">${h(f.label)}</span>
+      <span class="hint">Initials are enough. "Description" is what the family profile says about the person.</span>
+      <div class="fam">${list.map((m,i)=>{ const ri=relInfo(m.rel), needSex=!ri.sex;
+        return `<section class="famcard" aria-label="${h(m.name||'Family member '+(i+1))}">
+          <div class="famrow">
+            <label class="w2">Name<input type="text" data-fam="${i}" data-fk="name" value="${h(m.name)}" autocomplete="off"></label>
+            <label class="w2">Relationship to patient<select data-fam="${i}" data-fk="rel">${famOpt(rels, m.rel||'')}</select></label>
+            <label class="w1">Age<input type="text" inputmode="numeric" data-fam="${i}" data-fk="age" value="${h(m.age)}" autocomplete="off"></label>
+            ${needSex?`<label class="w1">Sex<select data-fam="${i}" data-fk="sex">${famOpt(['','Male','Female'], m.sex||'')}</select></label>`:''}
+          </div>
+          <div class="famrow">
+            <div class="seg sm" role="group" aria-label="Living or deceased">${['Living','Deceased'].map(o=>`<button data-famset="${i}" data-fk="status" data-o="${o}" aria-pressed="${(m.status||'Living')===o}">${o}</button>`).join('')}</div>
+            <button class="chip" data-famtog="${i}" data-fk="psych" aria-pressed="${!!m.psych}">Psychiatric condition</button>
+            <button class="chip" data-famtog="${i}" data-fk="withPt" aria-pressed="${!!m.withPt}">Lives with patient</button>
+          </div>
+          <div class="famrow">
+            <label class="w2">Condition / illness<input type="text" data-fam="${i}" data-fk="cond" value="${h(m.cond)}" placeholder="For example: MDD, alcohol use, hypertension" autocomplete="off"></label>
+          </div>
+          <label class="full">Description<textarea data-fam="${i}" data-fk="desc" placeholder="For example: a 62-year-old tricycle driver who drinks daily; distant from the patient.">${h(m.desc)}</textarea></label>
+          <div class="tbl-actions"><button class="btn quiet danger" data-famdel="${i}">Remove</button></div>
+        </section>`; }).join('')}</div>
+      <div class="tools"><button class="btn" data-famadd="1">Add family member</button></div>
+      <div class="geno-wrap" id="geno">${genoBox(d)}</div></div>`;
+  }
+  function genoBox(d){
+    const G = genogramLayout(d);
+    if(!G) return '<p class="hint">The genogram appears here once you add family members.</p>';
+    return `<p class="lab">Genogram</p><div class="geno">${genogramSVG(G, 46)}</div><p class="hint">${h(GENO_LEGEND)}</p>${G.left.length?`<p class="hint">Not drawn (listed in the family profile only): ${h(G.left.join(', '))}. Paternal and maternal relatives are drawn only when the father or mother is added.</p>`:''}`;
+  }
+  function labsHTML(f, d){
+    return `<div class="field"><span class="lab" id="l-${f.id}">${h(f.label)}</span><span class="hint">Type the results you have; empty tests are left out. Ranges can be changed.</span>
+      <div class="labs">${LAB_PANELS.map(p=>{
+        if(p.text) return `<section class="labcard"><h4>${h(p.name)}</h4><textarea data-labtext="${p.id}" aria-label="${h(p.name)}">${h((d.labPanels||{})[p.id])}</textarea></section>`;
+        const rows = labRows(d,p);
+        return `<section class="labcard"><h4>${h(p.name)}</h4><div class="labgrid"><span>Test</span><span>Result</span><span>Normal range</span><span></span>
+          ${rows.map((r,i)=>{ const fl=labFlag(r[1],r[2]);
+            return `<input type="text" data-lab="${p.id}" data-lr="${i}" data-lc="0" value="${h(r[0])}" aria-label="Test" autocomplete="off"><input type="text" data-lab="${p.id}" data-lr="${i}" data-lc="1" value="${h(r[1])}" aria-label="${h((r[0]||'Test')+' result')}" autocomplete="off"><input type="text" data-lab="${p.id}" data-lr="${i}" data-lc="2" value="${h(r[2])}" aria-label="${h((r[0]||'Test')+' normal range')}" autocomplete="off"><span class="flag ${fl?'on':''}" id="lf-${p.id}-${i}">${fl==='H'?'High':fl==='L'?'Low':''}</span>`; }).join('')}
+          </div><div class="tbl-actions"><button class="btn quiet" data-labadd="${p.id}">Add test</button></div></section>`; }).join('')}</div></div>`;
+  }
+  function gridHTML(f, d){
+    const v = d[f.id] || {};
+    return `<div class="field"><span class="lab" id="l-${f.id}">${h(f.label)}</span><div class="tbl"><table class="gridtbl"><thead><tr><th></th>${f.cols.map(c=>`<th scope="col">${h(c)}</th>`).join('')}</tr></thead><tbody>
+      ${f.rows.map(r=>`<tr><th scope="row">${h(r)}</th>${f.cols.map(c=>`<td><textarea data-grid="${f.id}" data-gk="${h(r+'|'+c)}" aria-label="${h(r+', '+c)}">${h(v[r+'|'+c])}</textarea></td>`).join('')}</tr>`).join('')}</tbody></table></div></div>`;
+  }
+
   function fieldHTML(f, d, rec){
+    if(f.legacy && !isFilled(f,d)) return '';
     const prevV = f.prev && rec.prev && rec.prev[f.prev];
     const lab = `<span class="lab" id="l-${f.id}">${h(f.label)}</span>${f.hint?`<span class="hint">${h(f.hint)}</span>`:''}${prevV?`<span class="hint prev">Last documented: <strong>${h(prevV)}</strong></span>`:''}`;
     const v = d[f.id];
     switch(f.t){
       case 'sub': return `<h3 class="subhead ${f.small?'small':''}" id="l-${f.id}">${h(f.label)}</h3>`;
       case 'text': return `<div class="field">${lab}<input type="text" data-f="${f.id}" aria-labelledby="l-${f.id}" value="${h(v)}" autocomplete="off"></div>`;
-      case 'area': return `<div class="field">${lab}<textarea class="${f.big?'big':''}" data-f="${f.id}" aria-labelledby="l-${f.id}">${h(v)}</textarea>${f.tool==='course' && rec.courseNotes && rec.courseNotes.length?`<div class="tools"><button class="btn" id="draftCourse">Draft from ${rec.courseNotes.length===1?'1 progress note':rec.courseNotes.length+' progress notes'}</button></div>`:''}${f.tool==='lastMSE' && str(rec.lastMSE)?`<div class="tools"><button class="btn" id="insLastMSE">Insert last progress-note MSE</button></div>`:''}${f.mseTools?`<div class="tools"><button class="btn" id="draft">${h(typeof f.mseTools==='string'?f.mseTools:'Draft from 11A–11F')}</button><button class="btn" id="copy">Copy paragraph</button></div>`:''}</div>`;
+      case 'area': return `<div class="field">${lab}<textarea class="${f.big?'big':''}" data-f="${f.id}" aria-labelledby="l-${f.id}">${h(v)}</textarea>${f.tool==='course' && rec.courseNotes && rec.courseNotes.length?`<div class="tools"><button class="btn" id="draftCourse">Draft from ${rec.courseNotes.length===1?'1 progress note':rec.courseNotes.length+' progress notes'}</button></div>`:''}${f.tool==='lastMSE' && str(rec.lastMSE)?`<div class="tools"><button class="btn" id="insLastMSE">Insert last progress-note MSE</button></div>`:''}${f.tool==='caseCourse'?(n=>n?`<div class="tools"><button class="btn" id="draftCaseCourse">Draft from ${n===1?'1 progress note':n+' progress notes'}</button></div>`:'<span class="hint">Progress notes for this patient on this iPad can be drafted into this box.</span>')(sameNotes(rec).length):''}${f.mseTools?`<div class="tools"><button class="btn" id="draft">${h(typeof f.mseTools==='string'?f.mseTools:'Draft from 18A–18F')}</button><button class="btn" id="copy">Copy paragraph</button></div>`:''}</div>`;
       case 'checks': { const sel=v||[]; return `<div class="field" role="group" aria-labelledby="l-${f.id}">${lab}<div class="chips">${f.o.map(o=>`<button class="chip" data-chk="${f.id}" data-o="${h(o)}" aria-pressed="${sel.includes(o)}">${h(o)}</button>`).join('')}</div>${f.score?`<div class="score" id="sc-${f.id}">${sel.length}/${f.o.length} positive</div>`:''}</div>`; }
       case 'radio': return `<div class="field" role="group" aria-labelledby="l-${f.id}">${lab}<div class="seg">${f.o.map(o=>`<button data-rad="${f.id}" data-o="${h(o)}" aria-pressed="${v===o}">${h(o)}</button>`).join('')}</div>${f.detail?`<div class="detail"><input type="text" data-f="${f.id}__d" placeholder="${h(f.detail)}" aria-label="${h(f.label+': '+f.detail)}" value="${h(d[f.id+'__d'])}"></div>`:''}</div>`;
       case 'radios': { const o=v||{}; return `<div class="field">${lab}<div class="radios">${f.p.map(([k,opts])=>`<div class="row" role="group" aria-label="${h(k)}"><span>${h(k)}</span><div class="seg">${opts.map(x=>`<button data-rads="${f.id}" data-k="${h(k)}" data-o="${h(x)}" aria-pressed="${o[k]===x}">${h(x)}</button>`).join('')}</div></div>`).join('')}</div></div>`; }
       case 'parts': { const o=v||{}; return `<div class="field">${lab}<div class="grid ${f.long?'long':''} ${f.inline?'inline':''}">${f.p.map(k=>`<label>${h(k)}${f.long?`<textarea data-f="${f.id}" data-k="${h(k)}">${h(o[k])}</textarea>`:`<input type="text" data-f="${f.id}" data-k="${h(k)}" value="${h(o[k])}" autocomplete="off">`}</label>`).join('')}</div></div>`; }
       case 'patients': return patientsHTML(d);
+      case 'family': return familyHTML(f, d);
+      case 'labs': return labsHTML(f, d);
+      case 'grid': return gridHTML(f, d);
       case 'lines': {
-        const arr = Array.isArray(v) ? v : []; while(arr.length<(f.n||3)) arr.push(''); d[f.id]=arr;
-        return `<div class="field">${lab}<div class="lines">${arr.map((x,i)=>`<div class="ln"><span>${i+1}.</span><input type="text" data-f="${f.id}" data-li="${i}" value="${h(x)}" aria-label="${h(f.label+', line '+(i+1))}" autocomplete="off"></div>`).join('')}</div><div class="tbl-actions"><button class="btn quiet" data-addline="${f.id}">Add line</button></div></div>`;
+        const arr = Array.isArray(v) ? v : (f.defaults ? REFERENCES_DEFAULT.slice() : []); while(arr.length<(f.n||3)) arr.push(''); d[f.id]=arr;
+        return `<div class="field">${lab}<div class="lines">${arr.map((x,i)=>`<div class="ln"><span>${i+1}.</span>${f.defaults?`<textarea class="lnarea" data-f="${f.id}" data-li="${i}" aria-label="${h(f.label+', line '+(i+1))}">${h(x)}</textarea>`:`<input type="text" data-f="${f.id}" data-li="${i}" value="${h(x)}" aria-label="${h(f.label+', line '+(i+1))}" autocomplete="off">`}</div>`).join('')}</div><div class="tbl-actions"><button class="btn quiet" data-addline="${f.id}">Add line</button></div></div>`;
       }
       case 'table': {
         let rows = (v && v.length) ? v : [];
@@ -2234,6 +2961,12 @@ const DocxImport = (() => {
       const ta=$('[data-f="course"]'); if(str(ta.value) && !confirm('Replace the current hospital course with a new draft?')) return;
       ta.value=t; setVal('course',null,t); grow(ta); toast('Draft added. Edit it into a narrative.');
     };
+    const dcc=$('#draftCaseCourse'); if(dcc) dcc.onclick=()=>{
+      const notes = sameNotes(rec).sort((a,b)=>hdNum(a)-hdNum(b)).map(p=>({ hday:str(p.hday), date:str(p.datetime).replace(/,?\s*\d{1,2}:\d{2}.*$/,''), changes:str(p.changes), assessment:str(p.assessment), risk:p.suicideRisk||'', dispo:p.dispo||'' }));
+      const t = draftCourse(notes).replace(/^Hospital day /gm,'HD'); if(!t){ toast('Those progress notes have no assessment or plan changes to draft from.'); return; }
+      const ta=$('[data-f="course"]'); if(str(ta.value) && !confirm('Replace the current course in the wards with a new draft?')) return;
+      ta.value=t; setVal('course',null,t); grow(ta); toast('Draft added. Edit it into a narrative.');
+    };
     const im=$('#insLastMSE'); if(im) im.onclick=()=>{
       const ta=$('[data-f="dcMSE"]'); if(str(ta.value) && !confirm('Replace the current text with the last progress-note MSE?')) return;
       ta.value=rec.lastMSE; setVal('dcMSE',null,rec.lastMSE); grow(ta); toast('Inserted. Update it to today\'s findings, including SI and HI.');
@@ -2250,6 +2983,8 @@ const DocxImport = (() => {
     document.querySelectorAll('#main textarea').forEach(grow);
   }
 
+  let genoTimer=null;
+  function refreshGeno(){ clearTimeout(genoTimer); genoTimer=setTimeout(()=>{ const g=$('#geno'); if(g && cur) g.innerHTML=genoBox(D()); }, 250); }
   function grow(ta){ ta.style.height='auto'; ta.style.height=(ta.scrollHeight+2)+'px'; }
   function touch(){ R().updated=Date.now(); updateRailDots(); queueSave(); }
   function setVal(id, k, val){
@@ -2259,6 +2994,7 @@ const DocxImport = (() => {
     if(id==='interviewer'||id==='author') store.last.interviewer=val;
     if(id==='attending') store.last.attending=val;
     if(id==='unit') store.last.unit=val;
+    if(id==='supervisedBy') store.last.supervisedBy=val;
     if(id==='fromRes') store.last.interviewer=val;
     if(['mc','ca','sp'].includes(R().kind)){
       if(['instName','instDept','instAddress','resTitle','attTitle'].includes(id)) store.last[id]=val;
@@ -2281,6 +3017,22 @@ const DocxImport = (() => {
       const fit=$('#fit'); if(fit){ const n=handoverPages(D()); fit.className='fit'+(n>1?' over':''); fit.textContent=n===1?'Fits on one printed page.':'About '+n+' printed pages. Shorten entries or split the list to fit one page.'; }
       touch(); return;
     }
+    if(cur && el.dataset && el.dataset.fam!=null){
+      if(el.tagName==='TEXTAREA') grow(el);
+      const d=D(), m=d.family[+el.dataset.fam], k=el.dataset.fk; m[k]=el.value;
+      if(k==='rel'){ renderSection(); touch(); return; }
+      if(k==='name'){ const c=el.closest('.famcard'); if(c) c.setAttribute('aria-label', el.value||'Family member'); }
+      refreshGeno(); touch(); return;
+    }
+    if(cur && el.dataset && el.dataset.lab){
+      const d=D(), p=LAB_PANELS.find(x=>x.id===el.dataset.lab); d.labPanels=d.labPanels||{};
+      if(!Array.isArray(d.labPanels[p.id])) d.labPanels[p.id]=labRows(d,p).map(r=>r.slice());
+      const r=d.labPanels[p.id][+el.dataset.lr]; r[+el.dataset.lc]=el.value;
+      const fl=labFlag(r[1],r[2]), b=$('#lf-'+p.id+'-'+el.dataset.lr); if(b){ b.textContent = fl==='H'?'High':fl==='L'?'Low':''; b.classList.toggle('on', !!fl); }
+      touch(); return;
+    }
+    if(cur && el.dataset && el.dataset.labtext){ if(el.tagName==='TEXTAREA') grow(el); const d=D(); d.labPanels=d.labPanels||{}; d.labPanels[el.dataset.labtext]=el.value; touch(); return; }
+    if(cur && el.dataset && el.dataset.grid){ grow(el); const d=D(); d[el.dataset.grid]=d[el.dataset.grid]||{}; d[el.dataset.grid][el.dataset.gk]=el.value; touch(); return; }
     if(!cur || !el.dataset || !el.dataset.f) return;
     if(el.tagName==='TEXTAREA') grow(el);
     const id=el.dataset.f;
@@ -2297,10 +3049,15 @@ const DocxImport = (() => {
       b.setAttribute('aria-pressed', i<0); const sc=$('#sc-'+id); if(sc) sc.textContent=`${d[id].length}/${f.o.length} positive`; touch(); }
     else if(b.dataset.rad){ const id=b.dataset.rad, o=b.dataset.o; const was=d[id]; d[id] = d[id]===o ? null : o;
       if(R().kind==='sp' && id==='lang'){ if(!d.lang) d.lang='English'; if(d.lang!==(was||'English')){ spSwapDefaults(d, d.lang); store.last.spLang=d.lang; } b.parentNode.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed', x.dataset.o===d.lang)); touch(); return; }
-      b.parentNode.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed', x.dataset.o===d[id])); touch(); }
+      b.parentNode.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed', x.dataset.o===d[id])); if(id==='parentsRel'||id==='ptRel') refreshGeno(); touch(); }
     else if(b.dataset.rads){ const id=b.dataset.rads, k=b.dataset.k, o=b.dataset.o; d[id]=d[id]||{};
       if(d[id][k]===o) delete d[id][k]; else d[id][k]=o;
       b.parentNode.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed', d[id][k]===x.dataset.o)); touch(); }
+    else if(b.dataset.famadd){ (d.family=Array.isArray(d.family)?d.family:[]).push({name:'',rel:'',age:'',status:'Living'}); touch(); renderSection(); const cs=document.querySelectorAll('.famcard'); if(cs.length){ const q=cs[cs.length-1].querySelector('input'); if(q) q.focus(); } }
+    else if(b.dataset.famdel!=null){ const i=+b.dataset.famdel, m=d.family[i]; if((str(m.name)||str(m.desc)) && !confirm('Remove '+(str(m.name)||'this family member')+'?')) return; d.family.splice(i,1); touch(); renderSection(); }
+    else if(b.dataset.famtog!=null){ const m=d.family[+b.dataset.famtog], k=b.dataset.fk; m[k]=!m[k]; b.setAttribute('aria-pressed', !!m[k]); refreshGeno(); touch(); }
+    else if(b.dataset.famset!=null){ const m=d.family[+b.dataset.famset]; m[b.dataset.fk]=b.dataset.o; b.parentNode.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed', x===b)); refreshGeno(); touch(); }
+    else if(b.dataset.labadd){ const p=LAB_PANELS.find(x=>x.id===b.dataset.labadd); d.labPanels=d.labPanels||{}; if(!Array.isArray(d.labPanels[p.id])) d.labPanels[p.id]=labRows(d,p).map(r=>r.slice()); d.labPanels[p.id].push(['','','']); touch(); renderSection(); }
     else if(b.dataset.addline){ d[b.dataset.addline].push(''); touch(); renderSection(); const ins=document.querySelectorAll(`[data-f="${b.dataset.addline}"]`); if(ins.length) ins[ins.length-1].focus(); }
     else if(b.dataset.rowdel!=null){ const i=+b.dataset.rowdel, r=d.rows[i]; if(!confirm('Remove '+(str(r.patient)||'this patient')+' from the handover sheet?')) return; d.rows.splice(i,1); touch(); renderSection(); }
     else if(b.dataset.addrow){ const f=F[b.dataset.addrow]; d[f.id].push(f.c.map(()=>'')); touch(); renderSection(); }
@@ -2308,7 +3065,46 @@ const DocxImport = (() => {
       if(last.some(c=>str(c)) && !confirm('The last row has text in it. Remove it?')) return; d[f.id].pop(); touch(); renderSection(); }
   });
 
-  async function exportDocx(){
+  /* The genogram as a PNG picture for Word: { bytes, w, h, wIn, hIn } (wIn/hIn in symbol units) */
+  async function genogramPNG(d){
+    const G = genogramLayout(d); if(!G) return null;
+    const unit = 80, svg = genogramSVG(G, unit);
+    const img = new Image();
+    await new Promise((res, rej)=>{ img.onload=res; img.onerror=rej; img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg); });
+    const c = document.createElement('canvas'); c.width=Math.round(G.w*unit); c.height=Math.round(G.h*unit);
+    const g = c.getContext('2d'); g.fillStyle='#ffffff'; g.fillRect(0,0,c.width,c.height); g.drawImage(img, 0, 0, c.width, c.height);
+    const blob = await new Promise(r=>c.toBlob(r, 'image/png'));
+    return { bytes:new Uint8Array(await blob.arrayBuffer()), w:c.width, h:c.height, wIn:G.w, hIn:G.h };
+  }
+  function exportDocx(){
+    const rec=R();
+    if(rec.kind!=='case') return exportFile();
+    persist();
+    const last = store.last.caseLayout==='form' ? 'form' : 'protocol';
+    sheet(`<h3>Export Word file</h3>
+      <ul class="pick">
+        <li><button data-lay="protocol"><strong>Case presentation protocol</strong><span>The hospital's format, with the letterhead, for printing and case conferences.${last==='protocol'?' Last used.':''}</span></button></li>
+        <li><button data-lay="form"><strong>Case form (app format)</strong><span>Every field in labeled tables. Best for checking entries and for editing in Word before opening the file in the app again.${last==='form'?' Last used.':''}</span></button></li>
+      </ul>
+      <p class="small">Both files can be opened in this app again with Open Word file.</p>
+      <div class="tools"><button class="btn quiet" data-close>Cancel</button></div>`,
+    (s2, close)=>{
+      s2.querySelector('[data-close]').onclick=close;
+      s2.querySelectorAll('[data-lay]').forEach(b=>b.onclick=async ()=>{
+        const lay=b.dataset.lay; store.last.caseLayout=lay; persist();
+        s2.querySelectorAll('[data-lay]').forEach(x=>x.disabled=true); b.querySelector('strong').textContent='Creating…';
+        let geno=null; try{ geno = await genogramPNG(D()); }catch(e){ geno=null; }
+        const bytes = DocxGen.build(D(), 'case', { layout:lay, geno });
+        const d=D(), base=(str(d.patient)||'Patient').replace(/[^\w\- ]+/g,' ').trim().replace(/\s+/g,'_').slice(0,50) || 'Patient';
+        const name = `${base}_${lay==='protocol'?'Case_Protocol':'Case'}_${new Date().toISOString().slice(0,10)}.docx`;
+        // Sharing needs a fresh tap on the iPad, so the file waits for one
+        s2.querySelector('.sheet').innerHTML = `<h3>Word file ready</h3><p>${h(name)}</p><div class="tools"><button class="btn primary" id="wshare">Share</button><button class="btn quiet" data-close>Done</button></div>`;
+        s2.querySelector('[data-close]').onclick=close;
+        const sh=s2.querySelector('#wshare'); sh.onclick=()=>saveFile(bytes, name, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'Word file created: '+name); sh.focus();
+      });
+    });
+  }
+  async function exportFile(){
     persist();
     const rec=R(), d=D();
     const bytes = DocxGen.build(d, rec.kind);
@@ -2349,8 +3145,8 @@ const DocxImport = (() => {
       pdf: { label:'PDF', go:'Create PDF', hint:'Ready to present or send; it cannot be edited. Speaker notes are not included, and the text cannot be selected.' },
       key: { label:'Keynote', go:'Create for Keynote', hint:'Keynote turns the slides into a Keynote presentation on this iPad. After you tap Share, choose Keynote (tap More if you do not see it). Keynote may swap fonts it does not have.' } };
     const initials = CaseSlides.deidentify(d,'initials').label;
-    const title = str(rec.presTitle) || str(d.primaryDx).split(/\n/)[0].slice(0,90) || 'Case presentation';
-    const presenter = str(d.interviewer) || str(store.last.interviewer);
+    const title = str(rec.presTitle) || str(d.caseTitle) || str(d.primaryDx).split(/\n/)[0].slice(0,90) || 'Case presentation';
+    const presenter = str(d.preparedBy) || str(d.interviewer) || str(store.last.interviewer);
     const modes = [['initials','Initials ('+initials+')'],['alias','“Patient A”'],['full','Full name']];
     sheet(`<h3>Case presentation</h3>
       <p class="small">Makes slides from this case, in the order of the case file. Slides show the entries in short blocks; the full text you typed goes into the speaker notes.</p>

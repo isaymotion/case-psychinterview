@@ -120,6 +120,7 @@ function drawText(g, paras, box, inset, anchor, def, theme){
 function path(g, geom, x, y, w, h, adj){
   g.beginPath();
   if(geom==='ellipse'){ g.ellipse((x+w/2)*PX, (y+h/2)*PX, w/2*PX, h/2*PX, 0, 0, Math.PI*2); return; }
+  if(geom==='diamond'){ g.moveTo((x+w/2)*PX, y*PX); g.lineTo((x+w)*PX, (y+h/2)*PX); g.lineTo((x+w/2)*PX, (y+h)*PX); g.lineTo(x*PX, (y+h/2)*PX); g.closePath(); return; }
   if(geom==='roundRect'){
     const r = Math.min(w,h) * (adj!=null ? adj/100000 : 0.16667) * PX, X=x*PX, Y=y*PX, W=w*PX, H=h*PX;
     g.moveTo(X+r, Y); g.lineTo(X+W-r, Y); g.arcTo(X+W, Y, X+W, Y+r, r); g.lineTo(X+W, Y+H-r); g.arcTo(X+W, Y+H, X+W-r, Y+H, r);
@@ -128,6 +129,11 @@ function path(g, geom, x, y, w, h, adj){
   g.rect(x*PX, y*PX, w*PX, h*PX);
 }
 function drawShape(g, o, theme){
+  if(o.geom==='line'){   // a straight line from corner to corner of its box (flipV: bottom-left to top-right)
+    g.beginPath(); g.moveTo(o.x*PX, (o.flipV ? o.y+o.h : o.y)*PX); g.lineTo((o.x+o.w)*PX, (o.flipV ? o.y : o.y+o.h)*PX);
+    g.strokeStyle = color(o.line||'tx1', theme); g.lineWidth = Math.max(1, (o.lineW||0.014)*PX); g.setLineDash(o.dash ? [0.07*PX, 0.05*PX] : []); g.stroke(); g.setLineDash([]);
+    return;
+  }
   if(o.fill || o.line){
     path(g, o.geom, o.x, o.y, o.w, o.h, o.adj);
     if(o.fill){ g.fillStyle = color(o.fill, theme); g.fill(); }
