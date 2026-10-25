@@ -493,9 +493,9 @@ function measure(b, w){
       return { h: Math.max(...b.items.map(it=>0.22+LH(LABEL)+0.06+parasHeight(textParas(it.text,BODY), cw-0.3)+0.04)), cw };
     }
     case 'chips': {
-      const ph=LH(z(12))+0.16, gapc=0.1; let x=0, lines=1;
+      const ph=LH(z(14))+0.18, gapc=0.12; let x=0, lines=1;
       b.items.forEach(t=>{ const cw=Math.min(w, chipW(t)); if(x>0 && x+cw>w){ lines++; x=0; } x+=cw+gapc; });
-      return { h: LH(LABEL)+0.08 + lines*ph + (lines-1)*0.1, ph };
+      return { h: LH(LABEL)+0.08 + lines*ph + (lines-1)*0.12, ph };
     }
     case 'stats': {
       const n=b.items.length, tw=Math.min(2.7,(w-GAP*(n-1))/n), hasSub=b.items.some(i=>i.sub);
@@ -521,7 +521,7 @@ function measure(b, w){
   }
   return { h:0 };
 }
-const chipW = t => Math.max(0.7, String(t).length*z(12)/72*0.6 + 0.4);
+const chipW = t => Math.max(0.7, String(t).length*z(14)/72*0.6 + 0.45);
 const rowH = (cells, cols, pt, bold) => Math.max(...cells.map((c,i)=>lineCount(c||' ', cols[i]-0.2, pt)*LH(pt)*(bold?1.04:1)))+0.14;
 const cellH = (paras, w) => parasHeight(paras, w-0.2)+0.14;
 function colWidths(b, w){
@@ -590,10 +590,10 @@ function draw(ctx, b, x, y, w, toneIdx, sectionTone){
       const t=b.tone||tone(0);
       ctx.shape({ x, y, w, h:LH(LABEL)+0.04, paras:[{runs:[{t:b.label, sz:LABEL, b:true, color:PAL.free}]}], inset:[0,0,0,0], name:b.label });
       let cx=0, cy=y+LH(LABEL)+0.08;
-      b.items.forEach(s=>{ const cw=Math.min(w, chipW(s)); if(cx>0 && cx+cw>w){ cx=0; cy+=m.ph+0.1; }
+      b.items.forEach(s=>{ const cw=Math.min(w, chipW(s)); if(cx>0 && cx+cw>w){ cx=0; cy+=m.ph+0.12; }
         ctx.shape({ x:x+cx, y:cy, w:cw, h:m.ph, geom:'roundRect', adj:50000, fill:PAL.card(t), line:PAL.chipLine(t), lineW:0.01, anchor:'ctr', inset:[0.1,0.02,0.1,0.02],
-          paras:[{runs:[{t:s, sz:z(12), color:PAL.text}], align:'ctr'}], name:s });
-        cx+=cw+0.1; });
+          paras:[{runs:[{t:s, sz:z(14), color:PAL.text}], align:'ctr'}], name:s });
+        cx+=cw+0.12; });
       break;
     }
     case 'stats': {
