@@ -504,6 +504,10 @@ function measure(b, w){
       const cols=colWidths(b, w), head=rowH(b.cols, cols, 12.5, true), rows=b.rows.map(r=>rowH(r, cols, b.pt||13));
       return { h: (b.label?LH(LABEL)+0.08:0) + head + rows.reduce((a,x)=>a+x,0), cols, head, rowsH:rows };
     }
+    case 'timeline': {
+      const statLines = b.stats ? lineCount(b.stats, w-0.4, 14) : 0;
+      return { h: 2.75 + statLines*LH(14) + 0.2 };
+    }
     case 'genogram': {
       const G=b.G, sc=Math.min((w-0.4)/G.w, (GENO_MAXH-0.55)/G.h, 0.62);
       return { h: G.h*sc + 0.25 + 0.35, sc };
@@ -604,6 +608,35 @@ function draw(ctx, b, x, y, w, toneIdx, sectionTone){
       const rows=[{ h:m.head, cells:b.cols.map(c=>[{runs:[{t:c, sz:12.5, b:true, color:PAL.headText}]}]), fill:b.cols.map(()=>PAL.head(t)) }];
       b.rows.forEach((r,ri)=>rows.push({ h:m.rowsH[ri], cells:r.map(c=>[{runs:[{t:c||'', sz:b.pt||13, color:PAL.text}]}]), fill:r.map(()=> PAL.row(ri,t)) }));
       ctx.table({ x, y:yy, cols:m.cols, rows, name:b.label||'Table' });
+      break;
+    }
+    case 'timeline': {
+      // Admissions on a time axis: dot color = medication status, ring = violence (dashed: threats or destructive; solid: assault)
+      const ink=PAL.text, adm=b.adm, pad=0.55, ax=y+1.25, x0=x+pad, x1=x+w-pad;
+      const tm = d => { const r=/^(\d{4})(?:-(\d{1,2}))?/.exec(String(d||'').trim()); return r ? Number(r[1])*12 + (r[2] ? Number(r[2])-1 : 6) : null; };
+      const pts = adm.map(a=>({ a, t:tm(a.date) })).filter(p=>p.t!=null).sort((p,q)=>p.t-q.t);
+      ctx.shape({ x, y, w, h:m.h, geom:'roundRect', adj:3500, fill:PAL.card(tone(0)), name:'Hospitalization timeline' });
+      if(pts.length){
+        const t0=pts[0].t, span=Math.max(pts[pts.length-1].t-t0, 12), X = t => x0 + (t-t0)/span*(x1-x0);
+        ctx.shape({ x:x0-0.2, y:ax, w:(x1-x0)+0.4, h:0, geom:'line', line:ink, lineW:0.03, name:'Axis' });
+        for(let yr=Math.ceil(t0/12); yr*12<=t0+span; yr++){
+          const tx=X(yr*12); ctx.shape({ x:tx, y:ax+0.08, w:0, h:0.14, geom:'line', line:ink, lineW:0.014, name:'Tick' });
+          ctx.shape({ x:tx-0.4, y:ax+0.24, w:0.8, h:0.28, inset:[0,0,0,0], paras:[{runs:[{t:String(yr), sz:11, color:ink}], align:'ctr'}], name:'Year' });
+        }
+        const COL={ off:'C8364B', partial:'D99A1E', adherent:'2E7D4F', unknown:'8A96A3' }, D=0.32, R=0.5;
+        pts.forEach((p,i)=>{
+          const cx=X(p.t), a=p.a, v=a.viol && a.viol!=='none';
+          if(v) ctx.shape({ x:cx-R/2, y:ax-R/2, w:R, h:R, geom:'ellipse', line:ink, lineW:a.viol==='assault'?0.035:0.025, dash:a.viol!=='assault', name:'Violence' });
+          ctx.shape({ x:cx-D/2, y:ax-D/2, w:D, h:D, geom:'ellipse', fill:COL[a.meds]||COL.unknown, name:'Admission '+(a.n||i+1) });
+          ctx.shape({ x:cx-0.35, y:ax-(i%2?0.62:0.86), w:0.7, h:0.26, inset:[0,0,0,0], paras:[{runs:[{t:String(a.n||i+1), sz:12, b:true, color:ink}], align:'ctr'}], name:'Number' });
+        });
+        const leg=[['C8364B','Stopped medication'],['D99A1E','Partial'],['2E7D4F','Adherent']];
+        let lx=x+0.35; const ly=ax+0.72;
+        leg.forEach(([c,t])=>{ ctx.shape({ x:lx, y:ly+0.06, w:0.16, h:0.16, geom:'ellipse', fill:c, name:'Key' }); ctx.shape({ x:lx+0.22, y:ly, w:1.9, h:0.28, inset:[0,0,0,0], paras:[{runs:[{t, sz:11, color:ink}]}], name:'Key label' }); lx+=0.42+t.length*0.095; });
+        ctx.shape({ x:lx, y:ly+0.03, w:0.22, h:0.22, geom:'ellipse', line:ink, lineW:0.02, dash:true, name:'Key' });
+        ctx.shape({ x:lx+0.28, y:ly, w:4.2, h:0.28, inset:[0,0,0,0], paras:[{runs:[{t:'Violence (dashed: threats or destructive; solid: assault)', sz:11, color:ink}]}], name:'Key label' });
+      }
+      if(b.stats) ctx.shape({ x:x+0.2, y:ax+1.15, w:w-0.4, h:m.h-(ax+1.15-y)-0.1, inset:[0,0,0,0], paras:[{runs:[{t:b.stats, sz:14, b:true, color:ink}]}], name:'Summary' });
       break;
     }
     case 'genogram': {
@@ -729,6 +762,11 @@ function plan(data, opts){
       }
       if(id==='cc' && S(d.cc) && S(d.cc).length<=260 && opts.quoteLayout){ slides.push({ kind:'quote', title:quoteIt(S(d.cc)), sub:'Chief complaint, in the patient’s own words', notes:'' }); return; }
       slides.push({ kind:'content', title:s.title, blocks:sectionBlocks(s,d), notes:sectionNotes(s,d), risk:!!s.risk });
+      if(id==='pph' && d.admChart && Array.isArray(d.admChart.adm) && d.admChart.adm.some(a=>a && a.date)){
+        const A=d.admChart.adm;
+        slides.push({ kind:'content', title:'Hospitalization timeline', blocks:[{type:'timeline', adm:A, stats:S(d.admChart.stats)}],
+          notes:[S(d.admChart.stats)].concat(A.map((a,i)=>'Admission '+(a.n||i+1)+(a.date?' ('+a.date+')':'')+(a.trigger?': '+a.trigger:'')+(a.medsLabel?'. Medicines: '+a.medsLabel:'')+(a.violLabel?'. '+a.violLabel:'')+(a.subs?'. Substances: '+a.subs:''))).filter(Boolean).join('\n') });
+      }
     });
     slides.slice(at).forEach(x=>{ x.part=pi; });
   });

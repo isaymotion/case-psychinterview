@@ -2947,6 +2947,7 @@ const DocxImport = (() => {
       ${rec.kind==='sp'?refsHTML(s,rec):''}
       ${s.preview?(rec.kind==='ca'?abstractPreviewHTML(d):rec.kind==='ho'?handoverPreviewHTML(d):rec.kind==='sp'?safetyPreviewHTML(d):previewHTML(d)):''}
       ${s.morning?morningHTML(rec):''}
+      ${s.id==='pph' && d.admChart && Array.isArray(d.admChart.adm) && d.admChart.adm.length ? `<div class="carry"><div><strong>Hospitalization timeline slide.</strong> ${d.admChart.adm.length} admissions sent from the DSM-5-TR Study Companion; drawn as its own slide after Past Psychiatric History. ${h(d.admChart.stats||'')} Send again from the DSM app to update it.</div><button class="btn" id="rmChart">Remove</button></div>` : ''}
       <div class="${s.risk?'risky':''}">${s.fields.map(f=>fieldHTML(f,d,rec)).join('')}</div>
       <div class="pager">
         ${prev?`<button class="btn" id="prev">‹ ${h(prev.num)} ${h(prev.title)}</button>`:'<span></span>'}
@@ -2955,6 +2956,7 @@ const DocxImport = (() => {
     const go = i => { secIdx=i; renderRail(); renderSection(); window.scrollTo(0,0); };
     if(prev) $('#prev').onclick=()=>go(secIdx-1);
     if(next) $('#next').onclick=()=>go(secIdx+1); else { $('#done').onclick=exportDocx; if($('#donePres')) $('#donePres').onclick=presentationSheet; }
+    const rc=$('#rmChart'); if(rc) rc.onclick=()=>{ if(confirm('Remove the hospitalization timeline slide? You can send it again from the DSM app.')){ delete d.admChart; touch(); renderSection(); } };
     const cm=$('#copymse'); if(cm) cm.onclick=()=>{
       const L=rec.lastMSE, touched=Object.keys(L).some(k=>{ const x=d[k]; return Array.isArray(x)?x.length:!!x; });
       if(touched && !confirm('Replace your current 3A–3C selections with the last MSE?')) return;
@@ -3398,6 +3400,8 @@ const DocxImport = (() => {
     const d=rec.data, filled=[], added=[], skipped=[];
     const fields=Object.assign({}, item.fields);
     if(typeof item.notes==='string' && item.notes.trim()) fields.discNotes=item.notes;
+    // The admissions chart is derived data: the newest one sent replaces the old (drawn as its own slide after Past Psychiatric History)
+    if(item.chart && Array.isArray(item.chart.adm)){ d.admChart={ adm:item.chart.adm.slice(0,60).map(a=>({ n:Number(a.n)||0, date:String(a.date||'').slice(0,10), meds:['off','partial','adherent','unknown'].includes(a.meds)?a.meds:'unknown', viol:['none','threats','destructive','assault'].includes(a.viol)?a.viol:'none', medsLabel:String(a.medsLabel||'').slice(0,40), violLabel:String(a.violLabel||'').slice(0,40), trigger:String(a.trigger||'').slice(0,200), subs:String(a.subs||'').slice(0,100) })), stats:String(item.chart.stats||'').slice(0,600) }; filled.push('Hospitalization timeline slide'); }
     Object.keys(fields).forEach(id=>{
       const f=FIELDS.case[id];
       if(!f || f.legacy){ skipped.push(id); return; }

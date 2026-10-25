@@ -137,7 +137,7 @@ function drawShape(g, o, theme){
   if(o.fill || o.line){
     path(g, o.geom, o.x, o.y, o.w, o.h, o.adj);
     if(o.fill){ g.fillStyle = color(o.fill, theme); g.fill(); }
-    if(o.line){ g.strokeStyle = color(o.line, theme); g.lineWidth = Math.max(1, (o.lineW||0.014)*PX); g.stroke(); }
+    if(o.line){ g.strokeStyle = color(o.line, theme); g.lineWidth = Math.max(1, (o.lineW||0.014)*PX); g.setLineDash(o.dash ? [0.07*PX, 0.05*PX] : []); g.stroke(); g.setLineDash([]); }
   }
   if(o.paras) drawText(g, o.paras, o, o.inset || [0.14,0.1,0.14,0.1], o.anchor || 't', { sz:14, fam:FAM.body, color:'tx1', align:'l', lnSpc:1 }, theme);
 }
