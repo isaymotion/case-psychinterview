@@ -557,13 +557,20 @@ function colWidths(b, w){
 }
 function textParas(text, pt, opt={}){
   const lines=String(text).split(/\n+/).map(s=>s.trim()).filter(Boolean);
-  const bullet = !opt.plain && lines.length>1 && lines.every(l=>l.length<260);
+  const bullet = !opt.plain && lines.length>1 && lines.every(l=>l.length<260) && !lines.every(l=>/^\d+[.)]\s/.test(l));
   return lines.map(l=>({ runs:[{t:l.replace(/^[-•*]\s*/,''), sz:pt, color:opt.color||PAL.text, i:opt.i}], bullet, after: bullet?3:6 }));
 }
 
 // Split a text block so the first part fits in maxH; returns [head, rest] or null
 function splitText(b, w, maxH){
   const sents=[]; String(b.text).split(/\n+/).forEach((par,pi)=>{ (par.match(/[^.!?]+[.!?]+["”’)]*\s*|[^.!?]+$/g)||[par]).forEach((s,si)=>sents.push({s:s.trim(), br: si===0 && pi>0})); });
+  // a numbered list (references, discussion points) splits between items, never inside one
+  { const pars=String(b.text).split(/\n+/).map(x=>x.trim()).filter(Boolean);
+    if(pars.length>1 && pars.every(x=>/^\d+[.)]\s/.test(x))){ sents.length=0; pars.forEach((x,i)=>sents.push({s:x, br:i>0})); } }
+  // keep list numbers like "3." with the sentence that follows them
+  for(let i=sents.length-2;i>=0;i--) if(/^\d+[.)]$/.test(sents[i].s)){ sents[i+1]={s:sents[i].s+' '+sents[i+1].s, br:sents[i].br}; sents.splice(i,1); }
+  // keep list numbers like "3." with the sentence that follows them
+  for(let i=sents.length-2;i>=0;i--) if(/^\d+[.)]$/.test(sents[i].s)){ sents[i+1]={s:sents[i].s+' '+sents[i+1].s, br:sents[i].br}; sents.splice(i,1); }
   if(sents.length<2) return null;
   let best=0;
   for(let k=1;k<sents.length;k++){
