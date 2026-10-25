@@ -3087,7 +3087,7 @@ const DocxImport = (() => {
   }
   async function slidesFor(rec, P){
     const T = CaseSlides.TEMPLATES, t = T.find(x=>x.id===P.tpl) || T[0];
-    const out = await CaseSlides.generate(rec.data, { template: await templateBytes(t), templateCfg:t, title:P.title, presenter:P.presenter, patientAs:P.mode, dividers:P.dividers, notes:P.notes, include:P.include });
+    const out = await CaseSlides.generate(rec.data, { template: await templateBytes(t), templateCfg:t, title:P.title, presenter:P.presenter, patientAs:P.mode, dividers:P.dividers, notes:P.notes, textScale: P.size==='large' ? 1.3 : 1, include:P.include });
     const base = String(out.label).replace(/\./g,'').replace(/[^\w\- ]+/g,' ').trim().replace(/\s+/g,'_').slice(0,40) || 'Patient';
     return { bytes: out.bytes, name: `${base}_Case_presentation_${today()}.pptx`, out };
   }
@@ -3263,7 +3263,7 @@ const DocxImport = (() => {
     if(!avail.length){ toast('Nothing to present yet. Fill in the case first.'); return; }
     const P = store.last.pres || {}, T = CaseSlides.TEMPLATES;
     const st = { tpl: T.some(t=>t.id===P.tpl) ? P.tpl : T[0].id, mode: ['initials','alias','full'].includes(P.mode) ? P.mode : 'initials',
-      dividers: P.dividers!==false, notes: P.notes!==false, include: new Set(avail.map(s=>s.id)), fmt: ['pptx','pdf','key'].concat(gReady()?['gslides']:[]).includes(P.fmt) ? P.fmt : 'pptx' };
+      dividers: P.dividers!==false, notes: P.notes!==false, size: P.size==='large' ? 'large' : 'normal', include: new Set(avail.map(s=>s.id)), fmt: ['pptx','pdf','key'].concat(gReady()?['gslides']:[]).includes(P.fmt) ? P.fmt : 'pptx' };
     const FMT = {
       pptx:{ label:'PowerPoint', go:'Create PowerPoint', hint:'Opens in PowerPoint, Keynote, or Google Slides, where you can edit it.' },
       pdf: { label:'PDF', go:'Create PDF', hint:'Ready to present or send; it cannot be edited. Speaker notes are not included, and the text cannot be selected.' },
@@ -3277,6 +3277,7 @@ const DocxImport = (() => {
       <p class="small">Makes slides from this case, in the order of the case file. Slides show the entries in short blocks; the full text you typed goes into the speaker notes.</p>
       <div class="field"><span class="lab" id="l-pf">Save as</span><span class="hint" id="pfhint">${h(FMT[st.fmt].hint)}</span><div class="seg" role="group" aria-labelledby="l-pf">${Object.entries(FMT).map(([k,f])=>`<button data-pf="${k}" aria-pressed="${k===st.fmt}">${h(f.label)}</button>`).join('')}</div></div>
       <div class="field"><span class="lab" id="l-pt">Slide design</span><span class="hint" id="pthint">${h((T.find(t=>t.id===st.tpl)||{}).note||'')}</span><div class="seg" role="group" aria-labelledby="l-pt">${T.map(t=>`<button data-pt="${h(t.id)}" aria-pressed="${t.id===st.tpl}">${h(t.name)}</button>`).join('')}</div></div>
+      <div class="field"><span class="lab" id="l-pz">Text size</span><span class="hint">Large makes reading text about 30% bigger for a big room; long sections continue on extra slides.</span><div class="seg" role="group" aria-labelledby="l-pz"><button data-pz="normal" aria-pressed="${st.size==='normal'}">Normal</button><button data-pz="large" aria-pressed="${st.size==='large'}">Large</button></div></div>
       <div class="field"><label class="lab" for="ptitle">Title</label><input type="text" id="ptitle" value="${h(title)}" autocomplete="off"></div>
       <div class="field"><label class="lab" for="ppres">Presenter</label><input type="text" id="ppres" value="${h(presenter)}" autocomplete="off"></div>
       <div class="field"><span class="lab" id="l-pm">Show the patient as</span><span class="hint">The name and MRN are replaced everywhere in the slides and notes. Read the slides before presenting: names of relatives or places typed into the text are not changed.</span>
@@ -3292,6 +3293,7 @@ const DocxImport = (() => {
       s.addEventListener('click', e=>{
         const b=e.target.closest('button'); if(!b) return;
         if(b.dataset.pt){ st.tpl=b.dataset.pt; s.querySelectorAll('[data-pt]').forEach(x=>x.setAttribute('aria-pressed', x===b)); s.querySelector('#pthint').textContent=(T.find(t=>t.id===st.tpl)||{}).note||''; }
+        else if(b.dataset.pz){ st.size=b.dataset.pz; s.querySelectorAll('[data-pz]').forEach(x=>x.setAttribute('aria-pressed', x===b)); }
         else if(b.dataset.pm){ st.mode=b.dataset.pm; s.querySelectorAll('[data-pm]').forEach(x=>x.setAttribute('aria-pressed', x===b)); s.querySelector('#pmwarn').hidden = st.mode!=='full'; }
         else if(b.dataset.ps){ const id=b.dataset.ps, on=!st.include.has(id); on?st.include.add(id):st.include.delete(id); b.setAttribute('aria-pressed', on); }
         else if(b.dataset.px){ const k=b.dataset.px; st[k]=!st[k]; b.setAttribute('aria-pressed', st[k]); }
@@ -3302,13 +3304,13 @@ const DocxImport = (() => {
         if(!st.include.size){ toast('Choose at least one section.'); return; }
         const t=T.find(x=>x.id===st.tpl), ttl=str(s.querySelector('#ptitle').value)||'Case presentation', pres=str(s.querySelector('#ppres').value);
         rec.presTitle = ttl===title && !str(rec.presTitle) ? '' : ttl;
-        store.last.pres = { tpl:st.tpl, mode:st.mode, dividers:st.dividers, notes:st.notes, fmt:st.fmt }; persist();
+        store.last.pres = { tpl:st.tpl, mode:st.mode, dividers:st.dividers, notes:st.notes, size:st.size, fmt:st.fmt }; persist();
         const fmt=st.fmt;
-        if(fmt==='gslides'){ close(); gStart({ rec:cur, what:'slides', pres:{ tpl:st.tpl, mode:st.mode, dividers:st.dividers, notes:st.notes, title:ttl, presenter:pres, include:avail.map(x=>x.id).filter(id=>st.include.has(id)) } }); return; }
+        if(fmt==='gslides'){ close(); gStart({ rec:cur, what:'slides', pres:{ tpl:st.tpl, mode:st.mode, dividers:st.dividers, notes:st.notes, size:st.size, title:ttl, presenter:pres, include:avail.map(x=>x.id).filter(id=>st.include.has(id)) } }); return; }
         go.disabled=true; go.textContent='Creating…';
         try{
           const out = await CaseSlides.generate(D(), { template: await templateBytes(t), templateCfg:t, title:ttl, presenter:pres, patientAs:st.mode,
-            dividers:st.dividers, notes:st.notes, include:avail.map(x=>x.id).filter(id=>st.include.has(id)) });
+            dividers:st.dividers, notes:st.notes, textScale: st.size==='large' ? 1.3 : 1, include:avail.map(x=>x.id).filter(id=>st.include.has(id)) });
           const base = String(out.label).replace(/\./g,'').replace(/[^\w\- ]+/g,' ').trim().replace(/\s+/g,'_').slice(0,40) || 'Patient';
           const stem = `${base}_Case_presentation_${new Date().toISOString().slice(0,10)}`;
           let file;

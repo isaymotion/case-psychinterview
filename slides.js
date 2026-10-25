@@ -380,7 +380,9 @@ function usePalette(cfg){
   RISK = cfg.riskTone || 'accent1'; MSE_TONE = TONES[0];
   CHAR_EM = cfg.charEm || 0.5;
 }
-const BODY=14, LABEL=12.5;
+// Text size: FS scales the reading text (1 = Normal, 1.3 = Large); set per deck in generate()
+let FS=1, BODY=14, LABEL=12.5;
+const z = n => Math.round(n*FS*10)/10;
 
 const asList = v => Array.isArray(v) ? v.filter(x=>S(x)) : [];
 const firstLetter = t => (String(t).match(/[A-Za-z0-9]/)||['•'])[0].toUpperCase();
@@ -483,7 +485,7 @@ function measure(b, w){
       return { h: rows.reduce((a,x)=>a+x,0)+GAP*(rows.length-1), cols, cw, rows };
     }
     case 'text': {
-      const pt = b.feature ? 18 : BODY;
+      const pt = b.feature ? z(18) : BODY;
       return { h: 0.22 + (b.label?LH(LABEL)+0.06:0) + parasHeight(textParas(b.text, pt, {plain:b.plain}), w-0.3) + 0.04, pt };
     }
     case 'cards': {
@@ -491,7 +493,7 @@ function measure(b, w){
       return { h: Math.max(...b.items.map(it=>0.22+LH(LABEL)+0.06+parasHeight(textParas(it.text,BODY), cw-0.3)+0.04)), cw };
     }
     case 'chips': {
-      const ph=0.36, gapc=0.1; let x=0, lines=1;
+      const ph=LH(z(12))+0.16, gapc=0.1; let x=0, lines=1;
       b.items.forEach(t=>{ const cw=Math.min(w, chipW(t)); if(x>0 && x+cw>w){ lines++; x=0; } x+=cw+gapc; });
       return { h: LH(LABEL)+0.08 + lines*ph + (lines-1)*0.1, ph };
     }
@@ -501,7 +503,7 @@ function measure(b, w){
       return { h: 1.12 + subH, tw };
     }
     case 'table': {
-      const cols=colWidths(b, w), head=rowH(b.cols, cols, 12.5, true), rows=b.rows.map(r=>rowH(r, cols, b.pt||13));
+      const cols=colWidths(b, w), head=rowH(b.cols, cols, z(12.5), true), rows=b.rows.map(r=>rowH(r, cols, b.pt||z(13)));
       return { h: (b.label?LH(LABEL)+0.08:0) + head + rows.reduce((a,x)=>a+x,0), cols, head, rowsH:rows };
     }
     case 'timeline': {
@@ -513,13 +515,13 @@ function measure(b, w){
       return { h: G.h*sc + 0.25 + 0.35, sc };
     }
     case 'mse': {
-      const cols=[2.55, w-2.55], rows=b.rows.map(r=>Math.max(rowH([r.label],[cols[0]],13,true), cellH(r.paras, cols[1])));
+      const cols=[2.55, w-2.55], rows=b.rows.map(r=>Math.max(rowH([r.label],[cols[0]],z(13),true), cellH(r.paras, cols[1])));
       return { h: rows.reduce((a,x)=>a+x,0), cols, rowsH:rows };
     }
   }
   return { h:0 };
 }
-const chipW = t => Math.max(0.7, String(t).length*12/72*0.52 + 0.36);
+const chipW = t => Math.max(0.7, String(t).length*z(12)/72*0.55 + 0.36);
 const rowH = (cells, cols, pt, bold) => Math.max(...cells.map((c,i)=>lineCount(c||' ', cols[i]-0.2, pt)*LH(pt)*(bold?1.04:1)))+0.14;
 const cellH = (paras, w) => parasHeight(paras, w-0.2)+0.14;
 function colWidths(b, w){
@@ -590,7 +592,7 @@ function draw(ctx, b, x, y, w, toneIdx, sectionTone){
       let cx=0, cy=y+LH(LABEL)+0.08;
       b.items.forEach(s=>{ const cw=Math.min(w, chipW(s)); if(cx>0 && cx+cw>w){ cx=0; cy+=m.ph+0.1; }
         ctx.shape({ x:x+cx, y:cy, w:cw, h:m.ph, geom:'roundRect', adj:50000, fill:PAL.card(t), line:PAL.chipLine(t), lineW:0.01, anchor:'ctr', inset:[0.1,0.02,0.1,0.02],
-          paras:[{runs:[{t:s, sz:12, color:PAL.text}], align:'ctr'}], name:s });
+          paras:[{runs:[{t:s, sz:z(12), color:PAL.text}], align:'ctr'}], name:s });
         cx+=cw+0.1; });
       break;
     }
@@ -605,8 +607,8 @@ function draw(ctx, b, x, y, w, toneIdx, sectionTone){
     case 'table': {
       let yy=y; const t=b.tone||tone(0);
       if(b.label){ ctx.shape({ x, y, w, h:LH(LABEL)+0.04, paras:[{runs:[{t:b.label, sz:LABEL, b:true, color:PAL.free}]}], inset:[0,0,0,0], name:b.label }); yy+=LH(LABEL)+0.08; }
-      const rows=[{ h:m.head, cells:b.cols.map(c=>[{runs:[{t:c, sz:12.5, b:true, color:PAL.headText}]}]), fill:b.cols.map(()=>PAL.head(t)) }];
-      b.rows.forEach((r,ri)=>rows.push({ h:m.rowsH[ri], cells:r.map(c=>[{runs:[{t:c||'', sz:b.pt||13, color:PAL.text}]}]), fill:r.map(()=> PAL.row(ri,t)) }));
+      const rows=[{ h:m.head, cells:b.cols.map(c=>[{runs:[{t:c, sz:z(12.5), b:true, color:PAL.headText}]}]), fill:b.cols.map(()=>PAL.head(t)) }];
+      b.rows.forEach((r,ri)=>rows.push({ h:m.rowsH[ri], cells:r.map(c=>[{runs:[{t:c||'', sz:b.pt||z(13), color:PAL.text}]}]), fill:r.map(()=> PAL.row(ri,t)) }));
       ctx.table({ x, y:yy, cols:m.cols, rows, name:b.label||'Table' });
       break;
     }
@@ -661,7 +663,7 @@ function draw(ctx, b, x, y, w, toneIdx, sectionTone){
       break;
     }
     case 'mse': {
-      const rows=b.rows.map((r,ri)=>({ h:m.rowsH[ri], cells:[[{runs:[{t:r.label, sz:13, b:true, color:PAL.label(r.risk?RISK:MSE_TONE)}]}], r.paras], fill:[PAL.card(r.risk?RISK:MSE_TONE), PAL.row(0)] }));
+      const rows=b.rows.map((r,ri)=>({ h:m.rowsH[ri], cells:[[{runs:[{t:r.label, sz:z(13), b:true, color:PAL.label(r.risk?RISK:MSE_TONE)}]}], r.paras], fill:[PAL.card(r.risk?RISK:MSE_TONE), PAL.row(0)] }));
       ctx.table({ x, y, cols:m.cols, rows, name:'Mental status examination' });
       break;
     }
@@ -697,8 +699,8 @@ function mseRows(d, secs){
     label: s.title, risk: !!s.risk,
     paras: s.fields.filter(f=>filled(f,d)).map(f=>{
       const t=fieldText(f,d);
-      if(f.t==='checks' || f.t==='area') return { runs:[{t, sz:13, color:PAL.text}], after:2 };
-      return { runs:[{t:f.label+': ', sz:13, b:true, color:PAL.text},{t, sz:13, color:PAL.text}], after:2 };
+      if(f.t==='checks' || f.t==='area') return { runs:[{t, sz:z(13), color:PAL.text}], after:2 };
+      return { runs:[{t:f.label+': ', sz:z(13), b:true, color:PAL.text},{t, sz:z(13), color:PAL.text}], after:2 };
     })
   }));
 }
@@ -788,7 +790,7 @@ function paginate(tpl, slides){
       if(sp && room>0.9){ page.placed.push({b:sp[0], y}); queue.unshift(sp[1]); flush(); continue; }
       if(page.placed.length){ queue.unshift(b); flush(); continue; }
       // Too big for an empty slide and cannot be split: place it anyway (smaller text for tables)
-      if(b.type==='table' && !b.pt){ queue.unshift({...b, pt:11}); continue; }
+      if(b.type==='table' && !b.pt){ queue.unshift({...b, pt:z(11)}); continue; }
       page.placed.push({b, y}); y+=h+GAP;
     }
     if(page.placed.length || !n) out.push(page);
@@ -962,8 +964,9 @@ function assemble(tpl, rendered, meta){
   return zip(files);
 }
 
-/* Public: build the .pptx bytes. opts: { template (ArrayBuffer), templateCfg, title, presenter, patientAs, dividers, notes, include, date } */
+/* Public: build the .pptx bytes. opts: { template (ArrayBuffer), templateCfg, title, presenter, patientAs, dividers, notes, include, date, textScale (1 = Normal, 1.3 = Large) } */
 async function generate(data, opts){
+  FS = Math.min(1.6, Math.max(0.8, Number(opts.textScale)||1)); BODY = z(14); LABEL = z(12.5);
   usePalette(opts.templateCfg || {});
   const tpl = await loadTemplate(opts.template, opts.templateCfg);
   GENO_MAXH = tpl.area.h;
