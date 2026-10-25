@@ -524,12 +524,35 @@ function measure(b, w){
 const chipW = t => Math.max(0.7, String(t).length*z(14)/72*0.6 + 0.45);
 const rowH = (cells, cols, pt, bold) => Math.max(...cells.map((c,i)=>lineCount(c||' ', cols[i]-0.2, pt)*LH(pt)*(bold?1.04:1)))+0.14;
 const cellH = (paras, w) => parasHeight(paras, w-0.2)+0.14;
+const COLW_CACHE=new Map();
 function colWidths(b, w){
   const n=b.cols.length; if(!n) return [];
   // wider columns for longer text, within limits
-  const len=b.cols.map((c,i)=>Math.max(c.length, ...b.rows.map(r=>Math.min(160,(r[i]||'').length)))+12);
-  const tot=len.reduce((a,x)=>a+x,0);
-  let ws=len.map(l=>Math.max(1.4, w*l/tot)); const s=ws.reduce((a,x)=>a+x,0); ws=ws.map(x=>x*w/s);
+  const len=b.cols.map((c,i)=>Math.max(c.length, ...b.rows.map(r=>Math.min(160,(r[i]||'').length)))+4);
+  // each column is at least as wide as its longest word, so words never break mid-word
+  const pt=b.pt||z(13), longest=(t,p,em)=>Math.max(0,...String(t||'').split(/\s+/).map(x=>x.length*p/72*em));
+  const minW=b.cols.map((c,i)=>Math.max(1.0, longest(c,z(12.5),0.6), ...b.rows.map(r=>longest(r[i],pt,0.56)))+0.26);
+  const minSum=minW.reduce((a,x)=>a+x,0);
+  if(minSum>=w) return minW.map(x=>x*w/minSum);
+  // hand out the spare width to whichever column shortens the table most per inch;
+  // once nothing shortens it, share the rest by text length
+  const key=JSON.stringify([b.cols,b.rows,w,pt,FS]); if(COLW_CACHE.has(key)) return COLW_CACHE.get(key).slice();
+  const tableH = ws => rowH(b.cols, ws, z(12.5), true) + b.rows.reduce((a,r)=>a+rowH(r, ws, pt),0);
+  const totLen=len.reduce((a,x)=>a+x,0), ws=minW.slice(), step=0.05;
+  let spare=w-minSum, cur=tableH(ws);
+  while(spare>step/2){
+    let best=-1, bestK=0, bestS=0;
+    for(let i=0;i<n;i++){
+      for(let k=1; k*step<=spare+1e-6 && k<=60; k++){
+        ws[i]+=k*step; const h=tableH(ws); ws[i]-=k*step;
+        if(h<cur-1e-6){ const s=(cur-h)/(k*step); if(s>bestS){ bestS=s; best=i; bestK=k; } break; }
+      }
+    }
+    if(best<0) break;
+    ws[best]+=bestK*step; spare-=bestK*step; cur=tableH(ws);
+  }
+  if(spare>0) for(let i=0;i<n;i++) ws[i]+=spare*len[i]/totLen;
+  COLW_CACHE.set(key, ws.slice());
   return ws;
 }
 function textParas(text, pt, opt={}){
@@ -548,14 +571,14 @@ function splitText(b, w, maxH){
     if(measure({...b, text:t}, w).h<=maxH) best=k; else break;
   }
   if(!best) return null;
-  return [{...b, text:join(sents.slice(0,best))}, {...b, text:join(sents.slice(best)), label: b.label ? b.label+' (cont.)' : b.label}];
+  return [{...b, text:join(sents.slice(0,best))}, {...b, text:join(sents.slice(best)), label: b.label ? b.label.replace(/ \(cont\.\)$/,'')+' (cont.)' : b.label}];
   function join(list){ return list.map((x,i)=>(i&&x.br?'\n':i?' ':'')+x.s).join(''); }
 }
 function splitRows(b, w, maxH, key){
   const m=measure(b,w); let used=(key==='mse'?0:(b.label?LH(LABEL)+0.08:0)+m.head), k=0;
   while(k<b.rows.length && used+m.rowsH[k]<=maxH){ used+=m.rowsH[k]; k++; }
   if(k===0 || k===b.rows.length) return null;
-  return [{...b, rows:b.rows.slice(0,k)}, {...b, rows:b.rows.slice(k), label: b.label ? b.label+' (cont.)' : b.label}];
+  return [{...b, rows:b.rows.slice(0,k)}, {...b, rows:b.rows.slice(k), label: b.label ? b.label.replace(/ \(cont\.\)$/,'')+' (cont.)' : b.label}];
 }
 
 /* Draw one block at (x,y) with width w */
