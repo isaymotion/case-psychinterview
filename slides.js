@@ -632,7 +632,7 @@ function draw(ctx, b, x, y, w, toneIdx, sectionTone){
           ctx.shape({ x:cx-D/2, y:ax-D/2, w:D, h:D, geom:'ellipse', fill:COL[a.meds]||COL.unknown, name:'Admission '+(a.n||i+1) });
           ctx.shape({ x:cx-0.35, y:ax-(i%2?0.62:0.86), w:0.7, h:0.26, inset:[0,0,0,0], paras:[{runs:[{t:String(a.n||i+1), sz:12, b:true, color:ink}], align:'ctr'}], name:'Number' });
         });
-        const leg=[['C8364B','Stopped medication'],['D99A1E','Partial'],['2E7D4F','Adherent']];
+        const leg=[['C8364B','Stopped medication'],['D99A1E','Partial'],['2E7D4F','Adherent']].concat((b.adm||[]).some(a=>a && (a.meds||'unknown')==='unknown') ? [['8A96A3','Not documented']] : []);
         let lx=x+0.35; const ly=ax+0.72;
         leg.forEach(([c,t])=>{ ctx.shape({ x:lx, y:ly+0.06, w:0.16, h:0.16, geom:'ellipse', fill:c, name:'Key' }); ctx.shape({ x:lx+0.22, y:ly, w:1.9, h:0.28, inset:[0,0,0,0], paras:[{runs:[{t, sz:11, color:ink}]}], name:'Key label' }); lx+=0.42+t.length*0.095; });
         ctx.shape({ x:lx, y:ly+0.03, w:0.22, h:0.22, geom:'ellipse', line:ink, lineW:0.02, dash:true, name:'Key' });
