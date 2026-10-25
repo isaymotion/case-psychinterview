@@ -559,6 +559,7 @@ const SECTIONS = [
   ]},
   { id:'disc', num:'29', title:'Discussion & references', fields:[
     {t:'area', id:'discussion', label:'Discussion', hint:'Literature on the case: diagnosis, differentials, management, and how this case compares.', big:true},
+    {t:'area', id:'discNotes', label:'Anticipated questions (speaker notes only)', hint:'Questions the consultants may ask, with your answers. Kept in the speaker notes of the Discussion slide; not printed in the Word file.', notesOnly:true},
     {t:'lines', id:'refs', label:'References', n:2, defaults:true}
   ]}
 ];
@@ -1666,6 +1667,7 @@ const DocxGen = (() => {
       let kv=[]; let any=false;
       const flush = () => { if(kv.length){ body.push(table([LABEL_W,VALUE_W], kv)); body.push(spacer()); kv=[]; } };
       s.fields.forEach(f=>{
+        if(f.notesOnly) return;
         if((f.t==='family' || f.t==='labs' || f.t==='grid') && isFilled(f,d)){
           flush(); any=true;
           body.push(para({keepNext:true, after:60, runs:[{text:f.label, b:true, sz:20}]}));
@@ -2400,7 +2402,7 @@ const DocxImport = (() => {
 /* ---------- App ---------- */
 (function(){
   const KEY='psyCaseApp.v1';
-  const VERSION='October 23, 2026';
+  const VERSION='October 25, 2026';
   const $ = (s,el=document)=>el.querySelector(s);
   const h = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   const FIELDS = {}; Object.keys(SCHEMAS).forEach(k=>FIELDS[k]={});
@@ -3334,11 +3336,116 @@ const DocxImport = (() => {
       (s,close)=>{ s.querySelector('[data-close]').onclick=close; });
   }
 
+
+  /* ----- inbox: case material sent from the DSM-5-TR Study Companion (same origin, isaymotion.github.io).
+     The other app writes an array of { from, title, fields:{fieldId:value}, notes } to localStorage "psyCaseApp.inbox".
+     Merging never overwrites: empty fields are filled, text is appended, table rows and list items are added. ----- */
+  const INBOX='psyCaseApp.inbox';
+  let inboxOpen=false;
+  function readInbox(){ try{ const v=JSON.parse(localStorage.getItem(INBOX)||'[]'); return Array.isArray(v) ? v.filter(x=>x && x.fields && typeof x.fields==='object') : []; }catch(e){ return []; } }
+  function clearInbox(){ try{ localStorage.removeItem(INBOX); }catch(e){} }
+  const blankS = v => !str(v);
+  function mergeField(d, f, v){
+    const id=f.id;
+    switch(f.t){
+      case 'text': case 'radio':
+        if(typeof v!=='string' || !v.trim()) return 0;
+        if(f.t==='radio' && f.o && !f.o.includes(v)) return 0;
+        if(blankS(d[id])){ d[id]=v; return 1; } return 0;
+      case 'area': {
+        if(typeof v!=='string' || !v.trim()) return 0;
+        const cur=str(d[id]);
+        if(!cur){ d[id]=v; return 1; }
+        if(cur.includes(v.trim())) return 0;
+        d[id]=cur+'\n\n'+v; return 2; }
+      case 'lines': {
+        if(!Array.isArray(v)) return 0;
+        let cur = Array.isArray(d[id]) ? d[id].filter(x=>str(x)) : (id==='refs' && typeof REFERENCES_DEFAULT!=='undefined' ? REFERENCES_DEFAULT.slice() : []);
+        const add=v.filter(x=>typeof x==='string' && x.trim() && !cur.some(c=>str(c).toLowerCase()===x.trim().toLowerCase()));
+        if(!add.length) return 0;
+        const was=cur.length; d[id]=cur.concat(add); return was ? 2 : 1; }
+      case 'checks': {
+        if(!Array.isArray(v)) return 0;
+        const cur=Array.isArray(d[id]) ? d[id] : [];
+        const add=v.filter(x=>(!f.o || f.o.includes(x)) && !cur.includes(x));
+        if(!add.length) return 0;
+        d[id]=cur.concat(add); return cur.length ? 2 : 1; }
+      case 'table': {
+        if(!Array.isArray(v)) return 0;
+        const n=(f.c||[]).length||4;
+        const cur=(Array.isArray(d[id]) ? d[id] : []).filter(r=>Array.isArray(r) && r.some(c=>str(c)));
+        const key=r=>r.map(c=>str(c).toLowerCase()).join('|');
+        const have=new Set(cur.map(key));
+        const add=v.filter(r=>Array.isArray(r)).map(r=>Array.from({length:n},(_,i)=>String(r[i]==null?'':r[i]))).filter(r=>r.some(c=>c.trim()) && !have.has(key(r)));
+        if(!add.length) return 0;
+        d[id]=cur.concat(add); return cur.length ? 2 : 1; }
+      case 'parts': case 'radios': case 'grid': {
+        if(!v || typeof v!=='object' || Array.isArray(v)) return 0;
+        const cur=(d[id] && typeof d[id]==='object' && !Array.isArray(d[id])) ? d[id] : {};
+        let r=0;
+        Object.keys(v).forEach(k=>{
+          const val=v[k]; if(typeof val!=='string' || !val.trim()) return;
+          if(f.t==='parts' && f.p && !f.p.includes(k)) return;
+          if(f.t==='grid' && !(f.rows||[]).includes(k.split('|')[0])) return;
+          if(blankS(cur[k])){ cur[k]=val; r=Math.max(r,1); }
+          else if(f.t!=='radios' && !str(cur[k]).includes(val.trim())){ cur[k]=str(cur[k])+'\n'+val; r=2; }
+        });
+        d[id]=cur; return r; }
+    }
+    return 0;
+  }
+  function mergeInbox(rec, item){
+    const d=rec.data, filled=[], added=[], skipped=[];
+    const fields=Object.assign({}, item.fields);
+    if(typeof item.notes==='string' && item.notes.trim()) fields.discNotes=item.notes;
+    Object.keys(fields).forEach(id=>{
+      const f=FIELDS.case[id];
+      if(!f || f.legacy){ skipped.push(id); return; }
+      const r=mergeField(d, f, fields[id]);
+      if(r===1) filled.push(f.label); else if(r===2) added.push(f.label);
+    });
+    rec.updated=Date.now();
+    return {filled, added, skipped};
+  }
+  function checkInbox(){
+    if(inboxOpen) return;
+    const items=readInbox(); if(!items.length) return;
+    const item=items[items.length-1];
+    const n=Object.keys(item.fields).length;
+    const list=Object.values(store.cases).filter(c=>c.kind==='case').sort((a,b)=>b.updated-a.updated);
+    inboxOpen=true;
+    sheet(`<h3>Case material from the DSM-5-TR Study Companion</h3>
+      <p>${h(item.title||'')}${item.title?'. ':''}${n} protocol field${n===1?'':'s'} are ready: hospitalization history, substance history, diagnosis, differentials, formulation, risk, prognosis, goals, plans, discussion and references, depending on what was sent.</p>
+      <p><strong>Choose the case to add it to.</strong> Nothing you have typed is overwritten: empty fields are filled, text is added below yours, and table rows are added.</p>
+      ${list.length?`<ul class="pick">${list.map(c=>`<li><button data-into="${c.id}"><strong>${h(recTitle(c))}</strong><span>${h(recKind(c))}. Edited ${h(when(c.updated))}</span></button></li>`).join('')}</ul>`:''}
+      <div class="tools"><button class="btn primary" data-newcase>Add to a new case</button><button class="btn" data-later>Not now</button><button class="btn quiet danger" data-discard>Discard</button></div>`,
+    (s,close)=>{
+      const done=()=>{ inboxOpen=false; close(); };
+      const apply=id=>{
+        const rec=store.cases[id]; if(!rec) return;
+        const res=mergeInbox(rec, item);
+        persist(); clearInbox(); done(); openRec(id);
+        sheet(`<h3>Added to this case</h3>
+          ${res.filled.length?`<p><strong>Filled:</strong> ${h(res.filled.join(', '))}.</p>`:''}
+          ${res.added.length?`<p><strong>Added below what you had typed:</strong> ${h(res.added.join(', '))}.</p>`:''}
+          ${!res.filled.length && !res.added.length?'<p>Everything sent was already in this case.</p>':''}
+          <p>Review each section, trim what you will not present, then build the slides with <strong>Presentation</strong>. Anticipated questions are in the Discussion section and go to the speaker notes.</p>
+          <div class="tools"><button class="btn primary" data-ok>OK</button></div>`, (s2,c2)=>{ s2.querySelector('[data-ok]').onclick=c2; });
+      };
+      s.querySelectorAll('[data-into]').forEach(b=>b.onclick=()=>apply(b.dataset.into));
+      s.querySelector('[data-newcase]').onclick=()=>{ newCase(); apply(cur); };
+      s.querySelector('[data-later]').onclick=done;
+      s.querySelector('[data-discard]').onclick=()=>{ if(confirm('Discard the material sent from the DSM-5-TR Study Companion?')){ clearInbox(); done(); } };
+      s.onclick=e=>{ if(e.target===s) done(); };
+    });
+  }
+  window.addEventListener('storage', e=>{ if(e.key===INBOX && e.newValue) checkInbox(); });
   window.addEventListener('pagehide', ()=>{ if(cur) persist(); });
   setTimeout(()=>{ if(gReady()) gResume(); }, 0);
   document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='hidden' && cur) persist(); });
   if('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(()=>{});
   renderHome();
+  checkInbox();
 })();
 
 </script>

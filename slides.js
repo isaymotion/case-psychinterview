@@ -722,7 +722,7 @@ function plan(data, opts){
         return;
       }
       if(id==='disc'){
-        if(S(d.discussion)) slides.push({ kind:'content', title:'Discussion', blocks:[{type:'text', label:'', text:S(d.discussion)}], notes:'' });
+        if(S(d.discussion)) slides.push({ kind:'content', title:'Discussion', blocks:[{type:'text', label:'', text:S(d.discussion)}], notes:S(d.discNotes) });
         const refs = asList(Array.isArray(d.refs) ? d.refs : (typeof REFERENCES_DEFAULT!=='undefined' ? REFERENCES_DEFAULT : []));
         if(refs.length) slides.push({ kind:'content', title:'References', blocks:[{type:'text', label:'', text:refs.map((t,i)=>(i+1)+'. '+t).join('\n'), plain:true}], notes:'' });
         return;
