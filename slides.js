@@ -521,7 +521,7 @@ function measure(b, w){
   }
   return { h:0 };
 }
-const chipW = t => Math.max(0.7, String(t).length*z(12)/72*0.55 + 0.36);
+const chipW = t => Math.max(0.7, String(t).length*z(12)/72*0.6 + 0.4);
 const rowH = (cells, cols, pt, bold) => Math.max(...cells.map((c,i)=>lineCount(c||' ', cols[i]-0.2, pt)*LH(pt)*(bold?1.04:1)))+0.14;
 const cellH = (paras, w) => parasHeight(paras, w-0.2)+0.14;
 function colWidths(b, w){
