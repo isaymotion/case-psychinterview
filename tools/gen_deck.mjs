@@ -1,0 +1,23 @@
+import { createRequire } from 'module';
+const { chromium } = createRequire(import.meta.url)('playwright');
+import fs from 'fs';
+const [,, CASE='case.json', SECS='sections.json', OUT='deck_raw.pptx', PRESENTER='', DATE=''] = process.argv;
+const data = JSON.parse(fs.readFileSync(CASE,'utf8'));
+const extraSecs = fs.existsSync(SECS) ? JSON.parse(fs.readFileSync(SECS,'utf8')) : [];
+const b = await chromium.launch(); const p = await b.newPage();
+p.on('console', m=>{ if(m.type()==='error') console.log('CONSOLE', m.text()); });
+await p.goto('http://localhost:8770/case-psychinterview/'); await p.waitForTimeout(1500);
+const out = await p.evaluate(async (arg)=>{
+  const data = arg.data;
+  const cfg = CaseSlides.TEMPLATES.find(t=>t.id==='unicorn');
+  const tpl = await (await fetch(cfg.file)).arrayBuffer();
+  const secs = SECTIONS.slice(); const di = secs.findIndex(x=>x.id==='disc');
+  const extra = arg.extra;
+  secs.splice(di+1, 0, ...extra);
+  const r = await CaseSlides.generate(data, { sections: secs, template:tpl, templateCfg:cfg, title:data.caseTitle, presenter: arg.presenter || data.preparedBy, patientAs:'full', textScale:1.3, include: CaseSlides.availableSections(data, secs).map(x=>x.id).filter(id=>id!=='obgyn'), dividers:true, notes:true, date: arg.date ? new Date(arg.date) : new Date() });
+  let s=''; const u=r.bytes; for(let i=0;i<u.length;i+=32768) s+=String.fromCharCode.apply(null,u.subarray(i,i+32768));
+  return { b64:btoa(s), count:r.count };
+}, {data, extra: extraSecs, presenter: PRESENTER, date: DATE});
+fs.writeFileSync(OUT, Buffer.from(out.b64,'base64'));
+console.log('slides', out.count);
+await b.close();
