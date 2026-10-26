@@ -191,7 +191,7 @@ textarea.big{min-height:180px}
 .dot{width:9px;height:9px;border-radius:50%;border:1.5px solid var(--line)}
 .dot.on{background:var(--blue);border-color:var(--blue)}
 .risk .dot.on{background:var(--risk);border-color:var(--risk)}
-.main{padding:26px 34px 80px;max-width:900px;width:100%}
+.main{padding:26px 34px 80px;max-width:900px;width:100%;min-width:0}
 .sec-head{margin-bottom:22px;padding-bottom:14px;border-bottom:2px solid var(--blue)}
 .sec-head.risk{border-bottom-color:var(--risk)}
 .sec-head .kicker{font-size:14px;color:var(--ink-3);margin:0 0 2px}
@@ -265,6 +265,29 @@ select:focus{border-color:var(--blue);outline:none;box-shadow:0 0 0 3px color-mi
 .gridtbl th[scope=row]{background:var(--wash);font-size:14px;width:16%;text-align:left;padding:8px 10px;vertical-align:top;color:var(--ink)}
 .gridtbl textarea{border:0;border-radius:0;min-height:64px;padding:10px;font-size:16px;background:transparent}
 .gridtbl td{border-left:1px solid var(--line)}
+/* formulation builder */
+.fb-tools{margin:6px 0 4px}
+.fb-msg{font-size:14px;color:var(--ink-3);margin:0 0 10px}
+.fb-sugs{display:flex;flex-direction:column;gap:6px;padding:0 6px 8px}
+.chip.fb-chip{display:block;width:100%;text-align:left;border-style:dashed;border-color:var(--blue);background:var(--wash);border-radius:10px;padding:7px 10px;min-height:44px;font-size:14px;line-height:1.3;white-space:normal}
+.chip.fb-chip::before{content:"+ ";font-weight:700;color:var(--blue)}
+.chip.fb-chip small{display:block;font-size:12px;color:var(--ink-3);margin-top:2px}
+.fb-ddx{margin-top:14px;background:var(--wash);border:1px solid var(--line);border-radius:10px;padding:10px 14px 12px;font-size:15px;color:var(--ink-2)}
+.fb-ddx-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.fb-ddx h4{margin:0;font-size:14px;font-weight:600;color:var(--ink);letter-spacing:.01em}
+.fb-ddx .btn.quiet{padding:6px 4px;min-height:44px;font-size:15px}
+.fb-ddx ul{list-style:none;margin:4px 0 0;padding:0}
+.fb-ddx li{padding:8px 0;border-top:1px solid var(--line)}
+.fb-ddx li:first-child{border-top:0}
+.fb-ddx li strong{display:block;color:var(--ink)}
+.fb-ddx li span{display:block;font-size:14px}
+.fb-ddx li em{font-style:normal;font-weight:600;color:var(--ink-3)}
+.fb-ddx .hint{margin:4px 0 0;font-size:14px;color:var(--ink-3)}
+.fb-ask{margin:10px 0 0;flex-wrap:wrap}
+.fb-ask .tools{margin:0}
+.fb-gen{display:block;font-size:13.5px;color:var(--ink-3);margin:6px 0 0}
+.fb-gen[hidden],.fb-tools [hidden]{display:none}
+@media (max-width:600px){ .fb-ask{display:block} .fb-ask .tools{margin-top:10px} }
 .lnarea{min-height:52px}
 .ln{align-items:flex-start}.ln span{padding-top:12px}
 @media (max-width:700px){ .labs{grid-template-columns:1fr} }
@@ -527,8 +550,8 @@ const SECTIONS = [
     {t:'area', id:'otherDx', label:'Other diagnoses / comorbidities', alias:['Other relevant diagnoses']}
   ]},
   { id:'form', num:'25', title:'Biopsychosocial formulation', note:'Integrate biological, psychological, socio-cultural, and spiritual factors; interpretation belongs here rather than in the MSE.', fields:[
-    {t:'grid', id:'bps', label:'Formulation grid', rows:['Predisposing','Precipitating','Perpetuating','Protective'], cols:['Biological','Psychological','Socio-cultural','Spiritual']},
-    {t:'area', id:'integrated', label:'Integrated formulation (narrative)', big:true, alias:['Integrated formulation']},
+    {t:'grid', id:'bps', label:'Formulation grid', builder:true, rows:['Predisposing','Precipitating','Perpetuating','Protective'], cols:['Biological','Psychological','Socio-cultural','Spiritual']},
+    {t:'area', id:'integrated', label:'Integrated formulation (narrative)', big:true, alias:['Integrated formulation'], formTools:true},
     {t:'area', id:'bio', label:'Biological (older entry)', legacy:true, alias:['Biological']},
     {t:'area', id:'psych', label:'Psychological (older entry)', legacy:true, alias:['Psychological']},
     {t:'area', id:'social', label:'Social (older entry)', legacy:true, alias:['Social']}
@@ -613,6 +636,149 @@ function draftMSE(d){
   const orient = parts('orient'), mem = parts('memory'), att = parts('attention'), ex = parts('exec');
   add('Sensorium/cognition/insight/judgment', [j(d.cogChecks), orient&&'orientation: '+orient, att&&'attention: '+att, mem&&'memory: '+mem, ex&&ex, d.testResults, ins, jud]);
   return segs.join(' ');
+}
+
+/* =====================================================================================
+   FORMULATION BUILDER (section 25) — SUGGESTION MAP
+   "Suggest from this case" reads ONLY this table to decide what to offer and where.
+   Retune placement here; the code below it does not need to change.
+     from   a field id from SECTIONS (its text is split into sentences), or a function d => [strings]
+            for checks, radios, tables and the family list
+     row    'Predisposing' | 'Precipitating' | 'Perpetuating' | 'Protective'
+     col    'Biological' | 'Psychological' | 'Socio-cultural' | 'Spiritual', or 'auto'
+            ('auto' = decided per sentence by FORMULATION_DOMAINS, falling back to Psychological)
+     match  optional RegExp: only sentences containing it are offered (use it for long narratives)
+     label  optional (text, d) => short chip label; default = the text cut to about 60 characters
+     src    the source shown under each chip
+   ===================================================================================== */
+const FX = {
+  stress: /\b(lost|loss|death|died|passed away|separat|broke up|break-?up|fired|laid off|retrench|terminat|conflict|argu|quarrel|fight|debt|evict|bull(y|ied)|abus|assault|raped?|accident|stress|pressure|exam|failed|deadline|moved|migrat|ofw|abroad|infidel|affair|cheat|gave birth|delivered|disaster|typhoon|flood)\w*/i,
+  nonadh: /\b(stopp?ed (taking )?(his|her|their)? ?(med|pill|drug|tablet)|non-?adheren|poor(ly)? adheren|ran out|missed (his |her )?doses?|discontinued (his |her )?(med|treatment)|did not take (his|her) med|refused (his |her )?med|not taking (his|her) med)\w*/i,
+  subst: /\b(alcohol|drank|drinks?|drinking|drunk|beer|gin|liquor|shabu|methamphetamine|cannabis|marijuana|weed|solvent|rugby|cocaine|ecstasy|inhalant|intoxicat|binge|substance)\w*/i,
+  medill: /\b(fever|infection|seizure|head injury|head trauma|hypertens|diabet|thyroid|stroke|surgery|operation|illness|disease|pain|postpartum|pregnan|insomnia|not sleeping|sleepless)\w*/i,
+  ongoing: /\b(still|continu|ongoing|persist|chronic|unemploy|jobless|no work|without work|walang trabaho|living alone|isolat|stigma|ashamed|hiya|tsismis|gossip|financial|debt|conflict|argu|quarrel)\w*/i,
+  strength: /\b(support|close to|helps?|cares? for|accompan|visits|employ|works? as|working|graduat|finished|skilled|resilien|cop(e|es|ed) well|good (relationship|response|insight|rapport)|respond|improv|remission|motivat|willing|adheren|complian|hobb|talent)\w*/i,
+  faith: /\b(god|church|parish|faith|pray|mass|bible|pastor|priest|iglesia|mosque|choir|ministry|devot|spiritu|religio|worship|novena)\w*/i,
+  faithHurt: /\b(guilt|punish|sin|lost (his |her )?faith|stopped (attending|going to church)|anger at god|curse|kulam|barang|possess|demon|aswang)\w*/i,
+  adverse: /\b(bull(y|ied)|abus|neglect|separat|abandon|left (him|her|them)|died|death|witness|violen|strict|punish|beat|maltreat|shy|withdrawn|temper|tantrum|anxious|clingy)\w*/i,
+  famEnv: /\b(parents?|father|mother|siblings?|eldest|youngest|only child|grandparent|lola|lolo|raised by|ofw|abroad|annul|separat|poor|poverty|income|farmer|fisher|vendor|tricycle)\w*/i,
+  perinatal: /\b(prematur|preterm|cesarean|caesarean|forceps|asphyx|cyano|nicu|incubat|delay|seizure|febrile|low birth|jaundice|complicat|prolonged labou?r|home delivery|hilot)\w*/i,
+  edu: /\b(educat|graduat|college|high school|elementary|vocational|undergrad|stopped school|dropped out|tesda|unemploy|income|poor|poverty)\w*/i,
+  recent: /\b(recent|recently|last (week|month)|weeks? (ago|prior)|days? (ago|prior)|months? prior|prior to (admission|consult))\w*/i,
+  refuse: /\b(refus|unwilling|reluctant|ambivalen|denies (the )?need|does not want|ayaw)\w*/i,
+  engage: /\b(willing|motivat|agree|accept|engag|adheren|complian|asked for help|sought help)\w*/i,
+  response: /\b(respond|improv|remission|good response|well controlled|stable on)\w*/i,
+  maladapt: /\b(avoid|suppress|bottle|keeps? (it|things|feelings) to (him|her)self|withdraw|drinks? when|isolat|perfectionis|rigid)\w*/i,
+  stigma: /\b(stigma|ashamed|hiya|tsismis|gossip|ridicul|labell?ed)\w*/i
+};
+/* Small readers for the non-text fields */
+const fxCol = (d, id, ci, prefix) => (Array.isArray(d[id]) ? d[id] : []).filter(r=>Array.isArray(r) && str(r[ci])).map(r=>(prefix?prefix(r):'')+str(r[ci]));
+const fxFamily = d => famMembers(d).filter(m=>m.psych || str(m.cond)).map(m=>str(m.rel||'Relative')+(str(m.cond)?': '+str(m.cond):' with a psychiatric condition'));
+const fxSubRows = d => (Array.isArray(d.subTable) ? d.subTable : []).filter(r=>Array.isArray(r) && str(r[0])).map(r=>str(r[0])+(str(r[1])?' use, '+lc(str(r[1])):' use'));
+const fxRadio = (id, map) => d => { const v=d[id], t=map[v]; return t ? [t+(str(d[id+'__d'])?' ('+str(d[id+'__d'])+')':'')] : []; };
+const fxEmployed = d => { const o=str(d.occupation); return o && !/\b(none\b|unemploy|jobless|n\/?a\b|no work|walang|laid off|stopped working)/i.test(o) ? ['Employed ('+o+')'] : []; };
+const fxUnemployed = d => { const o=str(d.occupation); return /\b(none\b|unemploy|jobless|no work|walang|laid off|stopped working)/i.test(o) ? [/^unemploy/i.test(o) ? o : 'Unemployed ('+o+')'] : []; };
+
+const FORMULATION_MAP = [
+  // ----- Predisposing -----
+  { from:'famhx',      row:'Predisposing', col:'Biological',     src:'Family psychiatric history' },
+  { from:fxFamily,     row:'Predisposing', col:'Biological',     src:'Family profile & genogram' },
+  { from:'prenatal',   row:'Predisposing', col:'Biological',     src:'Prenatal / birth / developmental problems' },
+  { from:'anaInfancy', row:'Predisposing', col:'Biological',     src:'Infancy & early childhood', match:FX.perinatal },
+  { from:'medhx',      row:'Predisposing', col:'Biological',     src:'Medical / surgical history' },
+  { from:fxSubRows,    row:'Predisposing', col:'Biological',     src:'Substance history (use details)' },
+  { from:'anaAdol',    row:'Predisposing', col:'Biological',     src:'Adolescence', match:FX.subst },
+  { from:'premorbid',  row:'Predisposing', col:'Psychological',  src:'Premorbid personality' },
+  { from:'trauma',     row:'Predisposing', col:'Psychological',  src:'Trauma / abuse' },
+  { from:'anaInfancy', row:'Predisposing', col:'Psychological',  src:'Infancy & early childhood', match:/\b(temperament|colicky|irritable|shy|clingy|attach|caregiver)\w*/i },
+  { from:'anaChild',   row:'Predisposing', col:'Psychological',  src:'Middle & late childhood', match:FX.adverse },
+  { from:'anaAdol',    row:'Predisposing', col:'Psychological',  src:'Adolescence', match:FX.adverse },
+  { from:'childhood',  row:'Predisposing', col:'Psychological',  src:'Childhood / development (older entry)' },
+  { from:'anaChild',   row:'Predisposing', col:'Socio-cultural', src:'Middle & late childhood', match:FX.famEnv },
+  { from:'anaInfancy', row:'Predisposing', col:'Socio-cultural', src:'Infancy & early childhood', match:/\b(grandparent|lola|lolo|raised by|ofw|abroad|separat|poor|poverty)\w*/i },
+  { from:'anaAdult',   row:'Predisposing', col:'Socio-cultural', src:'Adulthood', match:FX.edu },
+  { from:'eduwork',    row:'Predisposing', col:'Socio-cultural', src:'Education / work (older entry)' },
+  { from:'relationships', row:'Predisposing', col:'Socio-cultural', src:'Relationships / family (older entry)' },
+  { from:fxRadio('parentsRel', { 'Separated':'Parents separated', 'Annulled / divorced':'Parents annulled / divorced' }), row:'Predisposing', col:'Socio-cultural', src:"Parents' relationship" },
+  { from:'religion',   row:'Predisposing', col:'Spiritual',      src:'Religion / spirituality', match:FX.faithHurt },
+  // ----- Precipitating -----
+  { from:'hpi',        row:'Precipitating', col:'auto',          src:'HPI narrative', match:FX.stress },
+  { from:'hpi',        row:'Precipitating', col:'Biological',    src:'HPI narrative', match:FX.nonadh },
+  { from:'hpi',        row:'Precipitating', col:'Biological',    src:'HPI narrative', match:FX.subst },
+  { from:'hpi',        row:'Precipitating', col:'Biological',    src:'HPI narrative', match:FX.medill },
+  { from:'timeline',   row:'Precipitating', col:'auto',          src:'Timeline / key events', match:FX.stress },
+  { from:'living',     row:'Precipitating', col:'auto',          src:'Current psychosocial situation', match:FX.recent },
+  // ----- Perpetuating -----
+  { from:'living',     row:'Perpetuating', col:'auto',           src:'Current psychosocial situation', match:FX.ongoing },
+  { from:fxRadio('insight', { 'None':'Poor insight', 'Partial':'Partial insight' }), row:'Perpetuating', col:'Psychological', src:'Insight (18F)' },
+  { from:'motivation', row:'Perpetuating', col:'Psychological',  src:'Treatment motivation / engagement', match:FX.refuse },
+  { from:'premorbid',  row:'Perpetuating', col:'Psychological',  src:'Premorbid personality', match:FX.maladapt },
+  { from:'pastMeds',   row:'Perpetuating', col:'Biological',     src:'Past medication trials', match:FX.nonadh },
+  { from:d=>fxCol(d,'episodes',3).filter(t=>FX.nonadh.test(t)), row:'Perpetuating', col:'Biological', src:'Past episodes (response / adherence)' },
+  { from:'hpi',        row:'Perpetuating', col:'Biological',     src:'HPI narrative', match:/\b(still (drinks|drinking|using)|continu\w* to (drink|use)|daily (drink|use))\w*/i },
+  { from:fxUnemployed, row:'Perpetuating', col:'Socio-cultural', src:'Occupation' },
+  { from:'hpi',        row:'Perpetuating', col:'Socio-cultural', src:'HPI narrative', match:FX.stigma },
+  // ----- Protective -----
+  { from:'protective', row:'Protective', col:'auto',             src:'Protective factors (safety)' },
+  { from:d=>[str((d.riskForm||{})['Protective factors'])].filter(Boolean), row:'Protective', col:'auto', src:'Risk formulation: protective factors' },
+  { from:d=>(d.famChecks||[]).includes('Available family supports') ? ['Available family supports'] : [], row:'Protective', col:'Socio-cultural', src:'Family history (noted)' },
+  { from:fxEmployed,   row:'Protective', col:'Socio-cultural',   src:'Occupation' },
+  { from:'living',     row:'Protective', col:'Socio-cultural',   src:'Current psychosocial situation', match:FX.strength },
+  { from:'premorbid',  row:'Protective', col:'Psychological',    src:'Premorbid personality', match:FX.strength },
+  { from:fxRadio('insight', { 'Full':'Good insight' }), row:'Protective', col:'Psychological', src:'Insight (18F)' },
+  { from:'motivation', row:'Protective', col:'Psychological',    src:'Treatment motivation / engagement', match:FX.engage },
+  { from:'pastMeds',   row:'Protective', col:'Biological',       src:'Past medication trials', match:FX.response },
+  { from:d=>fxCol(d,'episodes',3).filter(t=>FX.response.test(t)), row:'Protective', col:'Biological', src:'Past episodes (response / adherence)' },
+  { from:'religion',   row:'Protective', col:'Spiritual',        src:'Religion / spirituality', match:FX.faith }
+];
+/* For col:'auto' — first domain whose words appear in the sentence; otherwise Psychological */
+const FORMULATION_DOMAINS = [
+  ['Spiritual', FX.faith],
+  ['Biological', /\b(med(ication)?s?|drugs?|alcohol|drank|drink\w*|shabu|meth\w*|cannabis|marijuana|substance|illness|disease|diabet\w*|hypertens\w*|seizure|injur\w*|surgery|pregnan\w*|postpartum|thyroid|sleep\w*|insomnia|adheren\w*|dose|infection|fever)\b/i],
+  ['Socio-cultural', /\b(job|work\w*|employ\w*|money|financ\w*|income|poor|poverty|debt|family|wife|husband|partner|spouse|mother|father|parents?|siblings?|brother|sister|child(ren)?|son|daughter|friends?|neighbou?r\w*|school|teacher|boss|co-?workers?|landlord|evict\w*|moved|ofw|abroad|barangay|community|stigma|gossip|support\w*)\b/i]
+];
+const FORMULATION_MAX_PER_SOURCE = 4;   // at most this many chips from one map entry
+const FORMULATION_LABEL_CHARS = 60;
+
+const fbSentences = t => str(t).replace(/([.!?])\s+(?=[A-Z0-9“"(])/g,'$1\n').split(/\n+/).map(s=>s.replace(/^\s*(?:[-–•*]+|\d+[.)])\s+/,'').trim()).filter(s=>s.length>2);
+const fbLabel = t => { t=str(t); if(t.length<=FORMULATION_LABEL_CHARS) return t; const cut=t.slice(0,FORMULATION_LABEL_CHARS); return cut.replace(/\s+\S*$/,'')+'…'; };
+const fbDomain = t => (FORMULATION_DOMAINS.find(([,re])=>re.test(t))||['Psychological'])[0];
+/* { 'Row|Col': [{ text, label, src }] } — only non-empty sources, nothing already in that cell */
+function formulationSuggestions(d){
+  const out = {}, grid = d.bps || {}, seen = new Set();
+  FORMULATION_MAP.forEach(m=>{
+    let items = typeof m.from==='function' ? (m.from(d)||[]).map(str).filter(Boolean) : fbSentences(d[m.from]);
+    if(m.match) items = items.filter(t=>{ m.match.lastIndex=0; return m.match.test(t); });
+    items.slice(0, FORMULATION_MAX_PER_SOURCE).forEach(text=>{
+      const col = m.col==='auto' ? fbDomain(text) : m.col, key = m.row+'|'+col;
+      const have = str(grid[key]).toLowerCase(), sig = key+'::'+text.toLowerCase();
+      if(seen.has(sig) || (have && have.includes(text.toLowerCase().replace(/[.\s]+$/,'')))) return;
+      seen.add(sig);
+      (out[key] = out[key] || []).push({ text, label: m.label ? m.label(text, d) : fbLabel(text), src: m.src || (typeof m.from==='string' ? m.from : '') });
+    });
+  });
+  return out;
+}
+/* The narrative from the grid: opening, one sentence per row, protective factors, closing prompt */
+const FORMULATION_ROWS = [['Predisposing','Predisposing factors include'],['Precipitating','Precipitating factors include'],['Perpetuating','Perpetuating factors include'],['Protective','Protective factors include']];
+const FORMULATION_COLS = ['Biological','Psychological','Socio-cultural','Spiritual'];
+const FORMULATION_CLOSING = 'Taken together, these factors suggest [what the formulation implies for treatment].';
+function fbList(a){ return a.length<3 ? a.join(' and ') : a.slice(0,-1).join(', ')+', and '+a[a.length-1]; }
+function draftFormulation(d){
+  const g = d.bps || {};
+  const rows = FORMULATION_ROWS.map(([r,lead])=>{
+    const items = FORMULATION_COLS.flatMap(c=>str(g[r+'|'+c]).split(/\n+/).map(x=>x.replace(/^[\s\-–•*]+/,'').trim().replace(/[.;,]+$/,'')).filter(Boolean).map(x=>lc(x)+' ('+c.toLowerCase()+')'));
+    return items.length ? lead+' '+fbList(items)+'.' : '';
+  }).filter(Boolean);
+  if(!rows.length) return '';
+  const age = (str(d.agesex).match(/\b(\d{1,3})\b/)||[])[1], sx = patientSexOf(d);
+  const who = (age ? (/^8|^11$|^18$/.test(age)?'an ':'a ')+age+'-year-old ' : 'a ') + (sx==='M'?'man':sx==='F'?'woman':'patient');
+  const cc = str(d.cc).replace(/[.\s]+$/,'').replace(/^["“](.*)["”]$/,'$1') || (fbSentences(d.hpi)[0]||'').replace(/[.\s]+$/,'');
+  const dx = str(d.primaryDx).split('\n')[0].replace(/[.\s]+$/,'');
+  let open = 'This is '+who;
+  if(dx) open += ' with a working diagnosis of '+lc(dx);
+  if(cc) open += (dx ? ', who' : ' who')+' presented with '+(str(d.cc) ? quoted(cc) : lc(cc));
+  return [/[.!?]$/.test(open) ? open : open+'.', ...rows, FORMULATION_CLOSING].join(' ');
 }
 /* ---------- Laboratory panels (test names and normal ranges from the hospital's case presentation format) ---------- */
 const LAB_PANELS = [
@@ -2147,7 +2313,8 @@ const DocxGen = (() => {
     let h=0x811c9dc5; for(let i=0;i<t.length;i++){ h^=t.charCodeAt(i); h=Math.imul(h,0x01000193)>>>0; } return h.toString(16);
   }
   function customProps(kind, d, docXml, layout){
-    const json = JSON.stringify(d), chunks=[]; for(let i=0;i<json.length;i+=240) chunks.push(json.slice(i,i+240));
+    // integratedGenerated is an in-app marker only (formulation builder); it is not exported
+    const json = JSON.stringify(d, (k,v)=>k==='integratedGenerated'?undefined:v), chunks=[]; for(let i=0;i<json.length;i+=240) chunks.push(json.slice(i,i+240));
     const prop = (pid,name,val)=>`<property fmtid="{D5CDD505-2E9C-101B-9397-08002B2CF9AE}" pid="${pid}" name="${name}"><vt:lpwstr>${esc(val)}</vt:lpwstr></property>`;
     return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/custom-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">`+
       prop(2,'CaseAppKind',kind)+prop(3,'CaseAppPrint',textPrint(docXml))+(layout?prop(9999,'CaseAppLayout',layout):'')+chunks.map((c,i)=>prop(4+i,'CaseAppData'+String(i).padStart(3,'0'),c)).join('')+`</Properties>`;
@@ -2894,10 +3061,45 @@ const DocxImport = (() => {
           </div><div class="tbl-actions"><button class="btn quiet" data-labadd="${p.id}">Add test</button></div></section>`; }).join('')}</div></div>`;
   }
   function gridHTML(f, d){
-    const v = d[f.id] || {};
-    return `<div class="field"><span class="lab" id="l-${f.id}">${h(f.label)}</span><div class="tbl"><table class="gridtbl"><thead><tr><th></th>${f.cols.map(c=>`<th scope="col">${h(c)}</th>`).join('')}</tr></thead><tbody>
-      ${f.rows.map(r=>`<tr><th scope="row">${h(r)}</th>${f.cols.map(c=>`<td><textarea data-grid="${f.id}" data-gk="${h(r+'|'+c)}" aria-label="${h(r+', '+c)}">${h(v[r+'|'+c])}</textarea></td>`).join('')}</tr>`).join('')}</tbody></table></div></div>`;
+    const v = d[f.id] || {}, B = f.builder, sg = B && fbState.rec===cur ? fbState.sugs : null;
+    const nSug = sg ? Object.values(sg).reduce((a,x)=>a+x.length,0) : 0;
+    return `<div class="field"><span class="lab" id="l-${f.id}">${h(f.label)}</span>${B?`<div class="tools fb-tools"><button class="btn" id="fbSuggest">Suggest from this case</button><button class="btn quiet" id="fbDismiss"${nSug?'':' hidden'}>Dismiss all</button></div><p class="hint fb-msg" id="fbMsg" role="status">${sg?fbMsgText(nSug):'Suggestions come from what you entered in earlier sections. Nothing is added until you tap a suggestion.'}</p>`:''}<div class="tbl"><table class="gridtbl"><thead><tr><th></th>${f.cols.map(c=>`<th scope="col">${h(c)}</th>`).join('')}</tr></thead><tbody>
+      ${f.rows.map(r=>`<tr><th scope="row">${h(r)}</th>${f.cols.map(c=>`<td><textarea data-grid="${f.id}" data-gk="${h(r+'|'+c)}" aria-label="${h(r+', '+c)}">${h(v[r+'|'+c])}</textarea>${B?fbChipsHTML(r+'|'+c, sg):''}</td>`).join('')}</tr>`).join('')}</tbody></table></div>${B?fbDdxHTML(d):''}</div>`;
   }
+  /* ----- formulation builder: suggestion chips, differentials panel, narrative draft ----- */
+  let fbState = { rec:null, sugs:null, uid:0 };
+  const fbMsgText = n => n ? `${n} suggestion${n===1?'':'s'} from this case. Tap one to add it to that cell; edit the wording afterwards.` : 'No new suggestions. Fill in the history sections first, or everything found is already in the grid.';
+  function fbChipsHTML(key, sg){
+    const list = sg && sg[key]; if(!list || !list.length) return '';
+    return `<div class="fb-sugs" data-sugcell="${h(key)}" role="group" aria-label="${h('Suggestions for '+key.replace('|',', '))}">${list.map(x=>`<button class="chip fb-chip" data-fbsug="${x.id}" title="${h('From: '+x.src+(x.label!==x.text?'\n'+x.text:''))}"><span>${h(x.label)}</span><small>${h(x.src)}</small></button>`).join('')}</div>`;
+  }
+  function fbDdxHTML(d){
+    const rows = (Array.isArray(d.ddx)?d.ddx:[]).filter(r=>Array.isArray(r) && r.some(c=>str(c)));
+    return `<section class="fb-ddx" aria-labelledby="fbDdxH"><div class="fb-ddx-head"><h4 id="fbDdxH">Differentials considered</h4><button class="btn quiet" id="fbToDdx">Edit in 23. Differentials ›</button></div>
+      ${rows.length?`<ul>${rows.map(r=>`<li><strong>${h(str(r[0])||'(No diagnosis named)')}</strong>${str(r[1])?`<span><em>For:</em> ${h(str(r[1]))}</span>`:''}${str(r[2])?`<span><em>Against:</em> ${h(str(r[2]))}</span>`:''}</li>`).join('')}</ul>`:'<p class="hint">No differentials entered yet.</p>'}</section>`;
+  }
+  function fbFind(id){ for(const [k,list] of Object.entries(fbState.sugs||{})){ const i=list.findIndex(x=>x.id===id); if(i>=0) return [k,list,i]; } return null; }
+  function fbAccept(id){
+    const hit = fbFind(id); if(!hit) return; const [key,list,i] = hit, x = list[i], d = D();
+    d.bps = d.bps || {}; const was = str(d.bps[key]); d.bps[key] = was ? was+'\n'+x.text : x.text;
+    const ta = document.querySelector(`[data-grid="bps"][data-gk="${CSS.escape(key)}"]`); if(ta){ ta.value = d.bps[key]; grow(ta); }
+    list.splice(i,1); if(!list.length) delete fbState.sugs[key];
+    const b = document.querySelector(`[data-fbsug="${id}"]`), box = b && b.parentNode; if(b) b.remove(); if(box && !box.children.length) box.remove();
+    fbRefreshMsg(); touch();
+  }
+  function fbRefreshMsg(){
+    const n = Object.values(fbState.sugs||{}).reduce((a,x)=>a+x.length,0), m=$('#fbMsg'), dm=$('#fbDismiss');
+    if(m) m.textContent = fbState.sugs ? fbMsgText(n) : ''; if(dm) dm.hidden = !n;
+  }
+  function fbWrite(mode){
+    const t = draftFormulation(D()), ta = $('[data-f="integrated"]'); if(!ta) return;
+    const was = str(ta.value), val = mode==='append' && was ? was+'\n\n'+t : t;
+    ta.value = val; setVal('integrated', null, val); D().integratedGenerated = true; grow(ta);
+    const ask=$('#fbAsk'); if(ask) ask.innerHTML=''; fbFlagNote();
+    ta.focus(); const p = val.lastIndexOf('[what the formulation'); if(p>=0) ta.setSelectionRange(p, val.indexOf(']',p)+1);
+    toast('Formulation drafted. Replace the bracketed prompt and edit it into your own words.');
+  }
+  function fbFlagNote(){ const n=$('#fbGenNote'); if(n) n.hidden = !(D().integratedGenerated && str(D().integrated)); }
 
   function fieldHTML(f, d, rec){
     if(f.legacy && !isFilled(f,d)) return '';
@@ -2907,7 +3109,7 @@ const DocxImport = (() => {
     switch(f.t){
       case 'sub': return `<h3 class="subhead ${f.small?'small':''}" id="l-${f.id}">${h(f.label)}</h3>`;
       case 'text': return `<div class="field">${lab}<input type="text" data-f="${f.id}" aria-labelledby="l-${f.id}" value="${h(v)}" autocomplete="off"></div>`;
-      case 'area': return `<div class="field">${lab}<textarea class="${f.big?'big':''}" data-f="${f.id}" aria-labelledby="l-${f.id}">${h(v)}</textarea>${f.tool==='course' && rec.courseNotes && rec.courseNotes.length?`<div class="tools"><button class="btn" id="draftCourse">Draft from ${rec.courseNotes.length===1?'1 progress note':rec.courseNotes.length+' progress notes'}</button></div>`:''}${f.tool==='lastMSE' && str(rec.lastMSE)?`<div class="tools"><button class="btn" id="insLastMSE">Insert last progress-note MSE</button></div>`:''}${f.tool==='caseCourse'?(n=>n?`<div class="tools"><button class="btn" id="draftCaseCourse">Draft from ${n===1?'1 progress note':n+' progress notes'}</button></div>`:'<span class="hint">Progress notes for this patient on this iPad can be drafted into this box.</span>')(sameNotes(rec).length):''}${f.mseTools?`<div class="tools"><button class="btn" id="draft">${h(typeof f.mseTools==='string'?f.mseTools:'Draft from 18A–18F')}</button><button class="btn" id="copy">Copy paragraph</button></div>`:''}</div>`;
+      case 'area': return `<div class="field">${lab}<textarea class="${f.big?'big':''}" data-f="${f.id}" aria-labelledby="l-${f.id}">${h(v)}</textarea>${f.tool==='course' && rec.courseNotes && rec.courseNotes.length?`<div class="tools"><button class="btn" id="draftCourse">Draft from ${rec.courseNotes.length===1?'1 progress note':rec.courseNotes.length+' progress notes'}</button></div>`:''}${f.tool==='lastMSE' && str(rec.lastMSE)?`<div class="tools"><button class="btn" id="insLastMSE">Insert last progress-note MSE</button></div>`:''}${f.tool==='caseCourse'?(n=>n?`<div class="tools"><button class="btn" id="draftCaseCourse">Draft from ${n===1?'1 progress note':n+' progress notes'}</button></div>`:'<span class="hint">Progress notes for this patient on this iPad can be drafted into this box.</span>')(sameNotes(rec).length):''}${f.formTools?`<div class="tools"><button class="btn" id="fbWrite">Write formulation from grid</button></div><div id="fbAsk" aria-live="polite"></div><p class="hint fb-gen" id="fbGenNote"${d.integratedGenerated && str(v)?'':' hidden'}>Drafted from the grid. Rewrite it in your own words before presenting.</p>`:''}${f.mseTools?`<div class="tools"><button class="btn" id="draft">${h(typeof f.mseTools==='string'?f.mseTools:'Draft from 18A–18F')}</button><button class="btn" id="copy">Copy paragraph</button></div>`:''}</div>`;
       case 'checks': { const sel=v||[]; return `<div class="field" role="group" aria-labelledby="l-${f.id}">${lab}<div class="chips">${f.o.map(o=>`<button class="chip" data-chk="${f.id}" data-o="${h(o)}" aria-pressed="${sel.includes(o)}">${h(o)}</button>`).join('')}</div>${f.score?`<div class="score" id="sc-${f.id}">${sel.length}/${f.o.length} positive</div>`:''}</div>`; }
       case 'radio': return `<div class="field" role="group" aria-labelledby="l-${f.id}">${lab}<div class="seg">${f.o.map(o=>`<button data-rad="${f.id}" data-o="${h(o)}" aria-pressed="${v===o}">${h(o)}</button>`).join('')}</div>${f.detail?`<div class="detail"><input type="text" data-f="${f.id}__d" placeholder="${h(f.detail)}" aria-label="${h(f.label+': '+f.detail)}" value="${h(d[f.id+'__d'])}"></div>`:''}</div>`;
       case 'radios': { const o=v||{}; return `<div class="field">${lab}<div class="radios">${f.p.map(([k,opts])=>`<div class="row" role="group" aria-label="${h(k)}"><span>${h(k)}</span><div class="seg">${opts.map(x=>`<button data-rads="${f.id}" data-k="${h(k)}" data-o="${h(x)}" aria-pressed="${o[k]===x}">${h(x)}</button>`).join('')}</div></div>`).join('')}</div></div>`; }
@@ -2989,6 +3191,21 @@ const DocxImport = (() => {
       const t=str(D().mseNarr); if(!t){ toast('The paragraph is empty.'); return; }
       (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast('Paragraph copied. Paste it into the EHR.')).catch(()=>{ const ta=$('[data-f="mseNarr"]'); ta.focus(); ta.select(); toast('Text selected. Tap Copy.'); });
     };
+    const fsg=$('#fbSuggest'); if(fsg) fsg.onclick=()=>{
+      const raw = formulationSuggestions(D()); fbState = { rec:cur, sugs:{}, uid:fbState.uid };
+      Object.entries(raw).forEach(([k,list])=>{ fbState.sugs[k] = list.map(x=>({ ...x, id:++fbState.uid })); });
+      const sc=window.scrollY; renderSection(); window.scrollTo(0,sc);
+    };
+    const fdm=$('#fbDismiss'); if(fdm) fdm.onclick=()=>{ fbState={ rec:null, sugs:null, uid:fbState.uid }; document.querySelectorAll('.fb-sugs').forEach(x=>x.remove()); fdm.hidden=true; const m=$('#fbMsg'); if(m) m.textContent='Suggestions dismissed.'; };
+    const ftd=$('#fbToDdx'); if(ftd) ftd.onclick=()=>{ const i=secs.findIndex(x=>x.id==='ddx'); if(i>=0) go(i); };
+    const fwr=$('#fbWrite'); if(fwr) fwr.onclick=()=>{
+      if(!draftFormulation(D())){ toast('The grid is empty. Fill in at least one cell first.'); return; }
+      const ta=$('[data-f="integrated"]'), ask=$('#fbAsk');
+      if(!str(ta.value)){ fbWrite('replace'); return; }
+      ask.innerHTML = `<div class="carry fb-ask"><div><strong>The narrative already has text.</strong> Replace it with a new draft from the grid, or add the draft below what you wrote?</div><div class="tools"><button class="btn primary" data-fbmode="replace">Replace</button><button class="btn" data-fbmode="append">Add below</button><button class="btn quiet" data-fbmode="cancel">Cancel</button></div></div>`;
+      ask.querySelectorAll('[data-fbmode]').forEach(b=>b.onclick=()=>{ if(b.dataset.fbmode==='cancel'){ ask.innerHTML=''; fwr.focus(); } else fbWrite(b.dataset.fbmode); });
+      ask.querySelector('[data-fbmode="replace"]').focus();
+    };
     document.querySelectorAll('#main textarea').forEach(grow);
   }
 
@@ -3048,6 +3265,7 @@ const DocxImport = (() => {
     if(el.dataset.r!=null){ D()[id][+el.dataset.r][+el.dataset.c]=el.value; if(R().kind==='sp' && id==='hotlines'){ const tmp={hotlines:D().hotlines.filter(r=>r.some(x=>str(x))).map(r=>r.slice())}; if(D().lang==='Filipino') spSwapDefaults(tmp,'English'); store.last.hotlines=tmp.hotlines; } touch(); return; }
     if(el.dataset.li!=null){ D()[id][+el.dataset.li]=el.value; touch(); return; }
     setVal(id, el.dataset.k??null, el.value);
+    if(id==='integrated' && D().integratedGenerated && !str(el.value)){ delete D().integratedGenerated; fbFlagNote(); }
   });
   document.addEventListener('click', e=>{
     const b=e.target.closest('button'); if(!b || !cur) return;
@@ -3062,6 +3280,7 @@ const DocxImport = (() => {
     else if(b.dataset.rads){ const id=b.dataset.rads, k=b.dataset.k, o=b.dataset.o; d[id]=d[id]||{};
       if(d[id][k]===o) delete d[id][k]; else d[id][k]=o;
       b.parentNode.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed', d[id][k]===x.dataset.o)); touch(); }
+    else if(b.dataset.fbsug){ fbAccept(+b.dataset.fbsug); }
     else if(b.dataset.famadd){ (d.family=Array.isArray(d.family)?d.family:[]).push({name:'',rel:'',age:'',status:'Living'}); touch(); renderSection(); const cs=document.querySelectorAll('.famcard'); if(cs.length){ const q=cs[cs.length-1].querySelector('input'); if(q) q.focus(); } }
     else if(b.dataset.famdel!=null){ const i=+b.dataset.famdel, m=d.family[i]; if((str(m.name)||str(m.desc)) && !confirm('Remove '+(str(m.name)||'this family member')+'?')) return; d.family.splice(i,1); touch(); renderSection(); }
     else if(b.dataset.famtog!=null){ const m=d.family[+b.dataset.famtog], k=b.dataset.fk; m[k]=!m[k]; b.setAttribute('aria-pressed', !!m[k]); refreshGeno(); touch(); }
