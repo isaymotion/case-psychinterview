@@ -1,5 +1,6 @@
 /* Offline support: serve the app from the iPad's cache when there is no connection. */
-const CACHE = 'case-mse-v22';
+const PREFIX = 'case-mse-';   // this app's own caches only — never clear other apps' caches (shared origin)
+const CACHE = PREFIX + 'v23';
 const FILES = [
   './',
   './index.html',
@@ -56,7 +57,7 @@ const FILES = [
   './fonts/title-blackitalic.woff'
 ];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });
-self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
+self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith(PREFIX) && k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   if (new URL(e.request.url).origin !== self.location.origin) return;   // Google sign-in and Drive go straight to the network, never into the cache
