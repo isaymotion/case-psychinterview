@@ -380,9 +380,13 @@ function usePalette(cfg){
   RISK = cfg.riskTone || 'accent1'; MSE_TONE = TONES[0];
   CHAR_EM = cfg.charEm || 0.5;
 }
-// Text size: FS scales the reading text (1 = Normal, 1.3 = Large); set per deck in generate()
-let FS=1, BODY=14, LABEL=12.5;
+// Text size: FS scales the reading text. FS0 is the deck's smallest size (1 = Normal, 1.3 = Large), set in generate();
+// each section then grows up to FS_MAX while it still fits on the same number of slides (see paginate)
+let FS=1, FS0=1, BODY=14, LABEL=12.5;
+let FS_MAX = 1.7;
 const z = n => Math.round(n*FS*10)/10;
+const zs = n => Math.round(n*Math.min(FS,1.5)*10)/10;   // number tiles grow less than reading text
+const setFS = f => { FS=f; BODY=z(14); LABEL=z(12.5); };
 
 const asList = v => Array.isArray(v) ? v.filter(x=>S(x)) : [];
 const firstLetter = t => (String(t).match(/[A-Za-z0-9]/)||['•'])[0].toUpperCase();
@@ -498,9 +502,9 @@ function measure(b, w){
       return { h: LH(LABEL)+0.08 + lines*ph + (lines-1)*0.1, ph };
     }
     case 'stats': {
-      const n=b.items.length, tw=Math.min(2.7,(w-GAP*(n-1))/n), hasSub=b.items.some(i=>i.sub);
-      const subH = hasSub ? Math.max(...b.items.map(i=>i.sub?lineCount(i.sub,tw-0.24,11)*LH(11):0)) : 0;
-      return { h: 1.12 + subH, tw };
+      const n=b.items.length, tw=Math.min(zs(2.7),(w-GAP*(n-1))/n), hasSub=b.items.some(i=>i.sub);
+      const subH = hasSub ? Math.max(...b.items.map(i=>i.sub?lineCount(i.sub,tw-0.24,zs(11))*LH(zs(11)):0)) : 0;
+      return { h: zs(1.12) + subH, tw };
     }
     case 'table': {
       const cols=colWidths(b, w), head=rowH(b.cols, cols, z(12.5), true), rows=b.rows.map(r=>rowH(r, cols, b.pt||z(13)));
@@ -529,7 +533,12 @@ function colWidths(b, w){
   // wider columns for longer text, within limits
   const len=b.cols.map((c,i)=>Math.max(c.length, ...b.rows.map(r=>Math.min(160,(r[i]||'').length)))+12);
   const tot=len.reduce((a,x)=>a+x,0);
-  let ws=len.map(l=>Math.max(1.4, w*l/tot)); const s=ws.reduce((a,x)=>a+x,0); ws=ws.map(x=>x*w/s);
+  // no column narrower than its longest word, so words are not broken across lines
+  const wordW = (t, pt, bold) => Math.max(0, ...String(t||'').split(/[\s/]+/).map(x=>x.length))*pt/72*CHAR_EM*(bold?1.18:1.08)+0.26;
+  const need=b.cols.map((c,i)=>Math.min(w/n, Math.max(1.4, wordW(c, z(12.5), true), ...b.rows.map(r=>wordW(r[i], b.pt||z(13))))));
+  let ws=len.map((l,i)=>Math.max(need[i], w*l/tot)); const s=ws.reduce((a,x)=>a+x,0);
+  if(s>w){ const slack=ws.reduce((a,x,i)=>a+x-need[i],0), cut=s-w; ws = slack>=cut ? ws.map((x,i)=>x-(x-need[i])*cut/slack) : ws.map(x=>x*w/s); }
+  else ws=ws.map(x=>x*w/s);
   return ws;
 }
 function textParas(text, pt, opt={}){
@@ -598,9 +607,9 @@ function draw(ctx, b, x, y, w, toneIdx, sectionTone){
     }
     case 'stats': {
       b.items.forEach((it,i)=>{ const t=it.tone||tone(i);
-        const paras=[{runs:[{t:it.value, sz:it.value.length>9?20:28, b:true, color:PAL.stat(t), font:'head'}], align:'ctr', after:2},
-                     {runs:[{t:it.label, sz:12, color:PAL.text}], align:'ctr'}];
-        if(it.sub) paras.push({runs:[{t:it.sub, sz:11, color:PAL.text, i:true}], align:'ctr', before:3});
+        const paras=[{runs:[{t:it.value, sz:Math.min(zs(it.value.length>9?20:28), Math.floor((m.tw-0.3)*72/(Math.max(3,it.value.length)*0.62))), b:true, color:PAL.stat(t), font:'head'}], align:'ctr', after:2},
+                     {runs:[{t:it.label, sz:zs(12), color:PAL.text}], align:'ctr'}];
+        if(it.sub) paras.push({runs:[{t:it.sub, sz:zs(11), color:PAL.text, i:true}], align:'ctr', before:3});
         ctx.shape({ x:x+i*(m.tw+GAP), y, w:m.tw, h:m.h, geom:'roundRect', adj:9000, fill:PAL.card(t), anchor:'ctr', paras, name:it.label, inset:[0.12,0.08,0.12,0.08] }); });
       break;
     }
@@ -699,8 +708,8 @@ function mseRows(d, secs){
     label: s.title, risk: !!s.risk,
     paras: s.fields.filter(f=>filled(f,d)).map(f=>{
       const t=fieldText(f,d);
-      if(f.t==='checks' || f.t==='area') return { runs:[{t, sz:z(13), color:PAL.text}], after:2 };
-      return { runs:[{t:f.label+': ', sz:z(13), b:true, color:PAL.text},{t, sz:z(13), color:PAL.text}], after:2 };
+      if(f.t==='checks' || f.t==='area') return { runs:[{t, sz:z(13), u:13, color:PAL.text}], after:2 };
+      return { runs:[{t:f.label+': ', sz:z(13), u:13, b:true, color:PAL.text},{t, sz:z(13), u:13, color:PAL.text}], after:2 };
     })
   }));
 }
@@ -776,26 +785,49 @@ function plan(data, opts){
   return { slides, label };
 }
 
-/* Lay content slides out, adding "(cont.)" slides when a section runs long */
+/* Lay content slides out, adding "(cont.)" slides when a section runs long.
+   Each section is first laid out at the deck's smallest text size; then the text is enlarged as far as it can go
+   (up to FS_MAX) without needing more slides, so short sections are not left with small text on an empty slide. */
+const atScale = b => b.type!=='mse' ? b : { ...b, rows: b.rows.map(r=>({ ...r, paras: r.paras.map(p=>({ ...p, runs: p.runs.map(x=> x.u ? { ...x, sz:z(x.u) } : x) })) })) };
+function layoutSection(tpl, sl, f){
+  setFS(f);
+  const A=tpl.area, out=[]; let over=false;
+  let queue=sl.blocks.map(atScale), page={...sl, fs:f, blocks:[], placed:[]}, y=A.y, n=0;
+  const flush = () => { out.push(page); n++; page={...sl, fs:f, title: sl.title+' (cont.)', blocks:[], placed:[]}; y=A.y; };
+  while(queue.length){
+    const b=queue.shift(), room=A.y+A.h-y, h=measure(b,A.w).h;
+    if(h<=room){ page.placed.push({b, y}); y+=h+GAP; continue; }
+    const sp = b.type==='text' ? splitText(b, A.w, room) : (b.type==='table'||b.type==='mse') ? splitRows(b, A.w, room, b.type) : null;
+    if(sp && room>0.9){ page.placed.push({b:sp[0], y}); queue.unshift(sp[1]); flush(); continue; }
+    if(page.placed.length){ queue.unshift(b); flush(); continue; }
+    // Too big for an empty slide and cannot be split: place it anyway (smaller text for tables)
+    over=true;
+    if(b.type==='table' && !b.pt){ queue.unshift({...b, pt:z(11)}); continue; }
+    page.placed.push({b, y}); y+=h+GAP;
+  }
+  if(page.placed.length || !n) out.push(page);
+  return { pages: out, over };
+}
 function paginate(tpl, slides){
-  const A=tpl.area, out=[];
+  const out=[];
   slides.forEach(sl=>{
     if(sl.kind!=='content'){ out.push(sl); return; }
-    let queue=sl.blocks.slice(), page={...sl, blocks:[], placed:[]}, y=A.y, first=true, n=0;
-    const flush = () => { out.push(page); n++; page={...sl, title: sl.title+' (cont.)', blocks:[], placed:[]}; y=A.y; };
-    while(queue.length){
-      const b=queue.shift(), room=A.y+A.h-y, h=measure(b,A.w).h;
-      if(h<=room){ page.placed.push({b, y}); y+=h+GAP; continue; }
-      const sp = b.type==='text' ? splitText(b, A.w, room) : (b.type==='table'||b.type==='mse') ? splitRows(b, A.w, room, b.type) : null;
-      if(sp && room>0.9){ page.placed.push({b:sp[0], y}); queue.unshift(sp[1]); flush(); continue; }
-      if(page.placed.length){ queue.unshift(b); flush(); continue; }
-      // Too big for an empty slide and cannot be split: place it anyway (smaller text for tables)
-      if(b.type==='table' && !b.pt){ queue.unshift({...b, pt:z(11)}); continue; }
-      page.placed.push({b, y}); y+=h+GAP;
+    let best=layoutSection(tpl, sl, FS0);
+    if(!best.over) for(let f=FS_MAX; f>FS0+0.01; f=Math.round((f-0.05)*100)/100){
+      const r=layoutSection(tpl, sl, f);
+      if(!r.over && r.pages.length<=best.pages.length){ best=r; break; }
     }
-    if(page.placed.length || !n) out.push(page);
-    first=false;
+    // A page with room left (often a "(cont.)" page) grows on its own
+    best.pages.forEach(pg=>{
+      if(best.over){ out.push(pg); return; }
+      for(let f=FS_MAX; f>pg.fs+0.01; f=Math.round((f-0.05)*100)/100){
+        const r=layoutSection(tpl, { ...pg, blocks:pg.placed.map(x=>x.b) }, f);
+        if(!r.over && r.pages.length===1){ pg=r.pages[0]; break; }
+      }
+      out.push(pg);
+    });
   });
+  setFS(FS0);
   return out;
 }
 
@@ -894,7 +926,7 @@ function renderSlide(tpl, sl, idx, total){
     default: {
       ctx.ph(titleType, T(sl.title, [[32,20,1],[22,14,2]]));
       badge(ctx, tpl, layout, firstLetter(sl.title));
-      const A=tpl.area;
+      const A=tpl.area; setFS(sl.fs||FS0);
       sl.placed.forEach(({b,y},i)=>draw(ctx, b, A.x, y, A.w, i, (sl.risk && (b.type==='text'||b.type==='chips')) ? RISK : null));
     }
   }
@@ -964,9 +996,9 @@ function assemble(tpl, rendered, meta){
   return zip(files);
 }
 
-/* Public: build the .pptx bytes. opts: { template (ArrayBuffer), templateCfg, title, presenter, patientAs, dividers, notes, include, date, textScale (1 = Normal, 1.3 = Large) } */
+/* Public: build the .pptx bytes. opts: { template (ArrayBuffer), templateCfg, title, presenter, patientAs, dividers, notes, include, date, textScale (smallest text: 1 = Normal, 1.3 = Large; sections with room grow up to FS_MAX) } */
 async function generate(data, opts){
-  FS = Math.min(1.6, Math.max(0.8, Number(opts.textScale)||1)); BODY = z(14); LABEL = z(12.5);
+  FS0 = Math.min(1.6, Math.max(0.8, Number(opts.textScale)||1)); FS_MAX = Math.max(1.7, FS0+0.4); setFS(FS0);
   usePalette(opts.templateCfg || {});
   const tpl = await loadTemplate(opts.template, opts.templateCfg);
   GENO_MAXH = tpl.area.h;

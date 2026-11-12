@@ -3306,7 +3306,7 @@ const DocxImport = (() => {
   }
   async function slidesFor(rec, P){
     const T = CaseSlides.TEMPLATES, t = T.find(x=>x.id===P.tpl) || T[0];
-    const out = await CaseSlides.generate(rec.data, { template: await templateBytes(t), templateCfg:t, title:P.title, presenter:P.presenter, patientAs:P.mode, dividers:P.dividers, notes:P.notes, textScale: P.size==='large' ? 1.3 : 1, include:P.include });
+    const out = await CaseSlides.generate(rec.data, { template: await templateBytes(t), templateCfg:t, title:P.title, presenter:P.presenter, patientAs:P.mode, dividers:P.dividers, notes:P.notes, textScale: P.size==='large' ? 1.6 : 1.3, include:P.include });
     const base = String(out.label).replace(/\./g,'').replace(/[^\w\- ]+/g,' ').trim().replace(/\s+/g,'_').slice(0,40) || 'Patient';
     return { bytes: out.bytes, name: `${base}_Case_presentation_${today()}.pptx`, out };
   }
@@ -3496,7 +3496,7 @@ const DocxImport = (() => {
       <p class="small">Makes slides from this case, in the order of the case file. Slides show the entries in short blocks; the full text you typed goes into the speaker notes.</p>
       <div class="field"><span class="lab" id="l-pf">Save as</span><span class="hint" id="pfhint">${h(FMT[st.fmt].hint)}</span><div class="seg" role="group" aria-labelledby="l-pf">${Object.entries(FMT).map(([k,f])=>`<button data-pf="${k}" aria-pressed="${k===st.fmt}">${h(f.label)}</button>`).join('')}</div></div>
       <div class="field"><span class="lab" id="l-pt">Slide design</span><span class="hint" id="pthint">${h((T.find(t=>t.id===st.tpl)||{}).note||'')}</span><div class="seg" role="group" aria-labelledby="l-pt">${T.map(t=>`<button data-pt="${h(t.id)}" aria-pressed="${t.id===st.tpl}">${h(t.name)}</button>`).join('')}</div></div>
-      <div class="field"><span class="lab" id="l-pz">Text size</span><span class="hint">Large makes reading text about 30% bigger for a big room; long sections continue on extra slides.</span><div class="seg" role="group" aria-labelledby="l-pz"><button data-pz="normal" aria-pressed="${st.size==='normal'}">Normal</button><button data-pz="large" aria-pressed="${st.size==='large'}">Large</button></div></div>
+      <div class="field"><span class="lab" id="l-pz">Text size</span><span class="hint">Text grows to fill each slide. Normal is 18 to 24 pt; Large is 22 to 28 pt, for a big room. Long sections continue on extra slides.</span><div class="seg" role="group" aria-labelledby="l-pz"><button data-pz="normal" aria-pressed="${st.size==='normal'}">Normal</button><button data-pz="large" aria-pressed="${st.size==='large'}">Large</button></div></div>
       <div class="field"><label class="lab" for="ptitle">Title</label><input type="text" id="ptitle" value="${h(title)}" autocomplete="off"></div>
       <div class="field"><label class="lab" for="ppres">Presenter</label><input type="text" id="ppres" value="${h(presenter)}" autocomplete="off"></div>
       <div class="field"><span class="lab" id="l-pm">Show the patient as</span><span class="hint">The name and MRN are replaced everywhere in the slides and notes. Read the slides before presenting: names of relatives or places typed into the text are not changed.</span>
@@ -3529,7 +3529,7 @@ const DocxImport = (() => {
         go.disabled=true; go.textContent='Creating…';
         try{
           const out = await CaseSlides.generate(D(), { template: await templateBytes(t), templateCfg:t, title:ttl, presenter:pres, patientAs:st.mode,
-            dividers:st.dividers, notes:st.notes, textScale: st.size==='large' ? 1.3 : 1, include:avail.map(x=>x.id).filter(id=>st.include.has(id)) });
+            dividers:st.dividers, notes:st.notes, textScale: st.size==='large' ? 1.6 : 1.3, include:avail.map(x=>x.id).filter(id=>st.include.has(id)) });
           const base = String(out.label).replace(/\./g,'').replace(/[^\w\- ]+/g,' ').trim().replace(/\s+/g,'_').slice(0,40) || 'Patient';
           const stem = `${base}_Case_presentation_${new Date().toISOString().slice(0,10)}`;
           let file;
