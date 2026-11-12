@@ -1,6 +1,6 @@
 /* Offline support: serve the app from the iPad's cache when there is no connection. */
 const PREFIX = 'case-mse-';   // this app's own caches only — never clear other apps' caches (shared origin)
-const CACHE = PREFIX + 'v26';
+const CACHE = PREFIX + 'v27';
 const FILES = [
   './',
   './index.html',

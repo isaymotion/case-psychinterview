@@ -318,9 +318,13 @@ class SlideCtx {
   shape(o){ // {x,y,w,h, geom, adj, fill, line, lineW, paras, inset, anchor, name, shadow}
     const id=++this.id, ins=o.inset||[0.14,0.1,0.14,0.1];
     this.items.push({ kind:'shape', o:{ ...o, inset:ins } });
-    const geom = `<a:prstGeom prst="${o.geom||'rect'}"><a:avLst>${o.adj!=null?`<a:gd name="adj" fmla="val ${o.adj}"/>`:''}</a:avLst></a:prstGeom>`;
+    if(o.pts){ // a free line through points (inches): its box is worked out here
+      const xs=o.pts.map(p=>p[0]), ys=o.pts.map(p=>p[1]); o.x=Math.min(...xs); o.y=Math.min(...ys); o.w=Math.max(Math.max(...xs)-o.x, 0.002); o.h=Math.max(Math.max(...ys)-o.y, 0.002); }
+    const geom = o.pts ? `<a:custGeom><a:avLst/><a:gdLst/><a:ahLst/><a:cxnLst/><a:rect l="0" t="0" r="r" b="b"/><a:pathLst><a:path w="${E(o.w)}" h="${E(o.h)}"${o.fill?'':' fill="none"'}>`+
+        o.pts.map((p,i)=>`<a:${i?'lnTo':'moveTo'}><a:pt x="${E(p[0]-o.x)}" y="${E(p[1]-o.y)}"/></a:${i?'lnTo':'moveTo'}>`).join('')+(o.close?'<a:close/>':'')+`</a:path></a:pathLst></a:custGeom>`
+      : `<a:prstGeom prst="${o.geom||'rect'}"><a:avLst>${o.adj!=null?`<a:gd name="adj" fmla="val ${o.adj}"/>`:''}</a:avLst></a:prstGeom>`;
     const fill = o.fill ? `<a:solidFill>${clr(o.fill)}</a:solidFill>` : '<a:noFill/>';
-    const ln = o.line ? `<a:ln w="${E(o.lineW||0.014)}"><a:solidFill>${clr(o.line)}</a:solidFill>${o.dash?'<a:prstDash val="dash"/>':''}</a:ln>` : '<a:ln><a:noFill/></a:ln>';
+    const ln = o.line ? `<a:ln w="${E(o.lineW||0.014)}"><a:solidFill>${clr(o.line)}</a:solidFill>${o.dash?`<a:prstDash val="${o.dash==='dot'?'sysDot':'dash'}"/>`:''}${o.pts?'<a:round/>':''}</a:ln>` : '<a:ln><a:noFill/></a:ln>';
     const fx = o.shadow ? '<a:effectLst><a:outerShdw blurRad="76200" dist="19050" dir="5400000" algn="t" rotWithShape="0"><a:prstClr val="black"><a:alpha val="16000"/></a:prstClr></a:outerShdw></a:effectLst>' : '';
     const tx = o.paras ? `<p:txBody><a:bodyPr wrap="square" lIns="${E(ins[0])}" tIns="${E(ins[1])}" rIns="${E(ins[2])}" bIns="${E(ins[3])}" anchor="${o.anchor||'t'}" rtlCol="0"><a:noAutofit/></a:bodyPr><a:lstStyle/>${this.P(o.paras)}</p:txBody>` : '';
     const isText = o.paras && !o.fill && !o.line;
@@ -515,8 +519,9 @@ function measure(b, w){
       return { h: 2.75 + statLines*LH(14) + 0.2 };
     }
     case 'genogram': {
-      const G=b.G, sc=Math.min((w-0.4)/G.w, (GENO_MAXH-0.55)/G.h, 0.62);
-      return { h: G.h*sc + 0.25 + 0.35, sc };
+      const fit = G => Math.min((w-0.4)/G.w, (GENO_MAXH-0.3)/G.h, 0.62);
+      const G = b.G2 && fit(b.G2) > fit(b.G)*1.08 ? b.G2 : b.G, sc = fit(G);   // key beside the genogram when that makes it larger
+      return { h: G.h*sc + 0.25 + 0.1, sc, G };
     }
     case 'mse': {
       const cols=[2.55, w-2.55], rows=b.rows.map(r=>Math.max(rowH([r.label],[cols[0]],z(13),true), cellH(r.paras, cols[1])));
@@ -651,24 +656,19 @@ function draw(ctx, b, x, y, w, toneIdx, sectionTone){
       break;
     }
     case 'genogram': {
-      const G=b.G, sc=m.sc, gw=G.w*sc, ox=x+(w-gw)/2, oy=y+0.12, ink='1B2A3A', S1=G.S*sc, X=v=>ox+v*sc, Y=v=>oy+v*sc;
-      const pt = (k, lo, hi) => Math.max(lo, Math.min(hi, Math.round(k*sc*72*0.88)));
+      const G=m.G||b.G, sc=m.sc, gw=G.w*sc, ox=x+(w-gw)/2, oy=y+0.12, X=v=>ox+v*sc, Y=v=>oy+v*sc;
+      const pt = fs => Math.max(5, Math.round(fs*sc*72*0.9*2)/2);
       ctx.shape({ x:ox-0.18, y:y, w:gw+0.36, h:G.h*sc+0.25, geom:'roundRect', adj:3500, fill:'FFFFFF', name:'Genogram' });
-      const line = (x1,y1,x2,y2,dash) => { if(x2<x1){ [x1,x2]=[x2,x1]; [y1,y2]=[y2,y1]; }
-        ctx.shape({ x:x1, y:Math.min(y1,y2), w:Math.max(0,x2-x1), h:Math.abs(y2-y1), geom:'line', line:ink, lineW:0.017, flipV:y2<y1, dash, name:'Line' }); };
-      G.lines.forEach(l=>line(X(l.x1),Y(l.y1),X(l.x2),Y(l.y2),l.dash));
-      G.nodes.forEach(n=>{
-        const geom = n.sex==='F' ? 'ellipse' : n.sex==='U' ? 'diamond' : 'rect', nx=X(n.x), ny=Y(n.y);
-        ctx.shape({ x:nx, y:ny, w:S1, h:S1, geom, fill:n.fill?ink:'FFFFFF', line:ink, lineW:0.022, anchor:'ctr', inset:[0,0,0,0], name:n.name||'Member',
-          paras: n.age ? [{ runs:[{ t:String(n.age).slice(0,4), sz:pt(0.36,10,20), b:true, color:n.fill?'FFFFFF':ink }], align:'ctr' }] : undefined });
-        if(n.pt){ const k=0.13*sc; ctx.shape({ x:nx+k, y:ny+k, w:S1-2*k, h:S1-2*k, geom, line:ink, lineW:0.018, name:'Patient' }); }
-        if(n.dead){ const e=0.12*sc; line(nx-e, ny-e, nx+S1+e, ny+S1+e); line(nx-e, ny+S1+e, nx+S1+e, ny-e); }
-        const lp = genoLabelPos(n, G.S), runs=[{ runs:[{ t:genoLabel(n.name,13), sz:pt(0.29,9,15), b:n.pt, color:ink }], align:lp.side?'l':'ctr' }];
-        if(n.cond) runs.push({ runs:[{ t:genoLabel(n.cond,15), sz:pt(0.25,8,13), i:true, color:'4A5A6B' }], align:lp.side?'l':'ctr' });
-        if(lp.side) ctx.shape({ x:X(lp.x), y:Y(n.y+0.05), w:2.0*sc, h:0.9*sc, inset:[0,0,0,0], anchor:'ctr', paras:runs, name:'Label' });
-        else ctx.shape({ x:nx-0.55*sc, y:ny+S1+0.04*sc, w:S1+1.1*sc, h:0.75*sc, inset:[0,0,0,0], paras:runs, name:'Label' });
+      G.prims.forEach(p=>{
+        if(p.t==='line'){ let x1=X(p.x1), y1=Y(p.y1), x2=X(p.x2), y2=Y(p.y2); if(x2<x1){ [x1,x2]=[x2,x1]; [y1,y2]=[y2,y1]; }
+          ctx.shape({ x:x1, y:Math.min(y1,y2), w:Math.max(0,x2-x1), h:Math.abs(y2-y1), geom:'line', line:p.c, lineW:Math.max(0.008, p.w*sc*0.8), flipV:y2<y1, dash:p.dash, name:'Line' }); }
+        else if(p.t==='poly') ctx.shape({ pts:p.pts.map(q=>[X(q[0]), Y(q[1])]), close:p.close, fill:p.fill, line:p.c, lineW:Math.max(0.008, p.w*sc*0.8), dash:p.dash, name:'Relationship' });
+        else if(p.t==='shape') ctx.shape({ x:X(p.x), y:Y(p.y), w:p.w*sc, h:p.h*sc, geom:p.g==='rect' && p.r ? 'roundRect' : p.g, adj:p.r ? 6000 : undefined, fill:p.fill||undefined, line:p.c, lineW:Math.max(0.008, p.sw*sc*0.8), dash:p.dash, anchor:'ctr', inset:[0,0,0,0], name:p.name||'Member',
+          paras: p.text ? [{ runs:[{ t:p.text.t, sz:pt(p.text.fs), b:true, color:p.text.c }], align:'ctr' }] : undefined });
+        else if(p.t==='text'){ const bw=p.w*sc*1.25+0.25, bh=p.h*sc*1.15+0.05, bx = p.a==='m' ? X(p.x)-bw/2 : p.a==='e' ? X(p.x)-bw : X(p.x);
+          ctx.shape({ x:bx, y:Y(p.y)-0.01, w:bw, h:bh, inset:[0,0,0,0], name:'Label',
+            paras:p.lines.map(l=>({ runs:[{ t:l.t, sz:pt(l.fs), b:l.b, color:l.c }], align:p.a==='m' ? 'ctr' : p.a==='e' ? 'r' : 'l' })) }); }
       });
-      ctx.shape({ x, y:y+G.h*sc+0.3, w, h:0.3, inset:[0,0,0,0], paras:[{ runs:[{ t:GENO_LEGEND, sz:10.5, i:true, color:PAL.free }], align:'ctr' }], name:'Legend' });
       break;
     }
     case 'mse': {
@@ -760,7 +760,7 @@ function plan(data, opts){
       const s=byId[id];
       if(id==='famprof'){
         const G = typeof genogramLayout==='function' ? genogramLayout(d) : null;
-        if(G) slides.push({ kind:'content', title:'Family genogram', blocks:[{type:'genogram', G}], notes: sectionNotes(s,d) });
+        if(G) slides.push({ kind:'content', title:'Family genogram', blocks:[{type:'genogram', G, G2:genogramLayout(d, { key:'right' })}], notes: sectionNotes(s,d) });
         const fam = s.fields.find(f=>f.t==='family');
         if(fam && filled(fam,d)) slides.push({ kind:'content', title:'Family profile', blocks:sectionBlocks({ ...s, fields:[fam] }, d).map(b=>({ ...b, label:'' })), notes:'' });
         return;

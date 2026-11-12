@@ -129,15 +129,22 @@ function path(g, geom, x, y, w, h, adj){
   g.rect(x*PX, y*PX, w*PX, h*PX);
 }
 function drawShape(g, o, theme){
+  const dashOf = () => o.dash==='dot' ? [0.012*PX, 0.05*PX] : o.dash ? [0.07*PX, 0.05*PX] : [];
+  if(o.pts){   // a free line through points
+    g.beginPath(); o.pts.forEach((q,i)=>{ if(i) g.lineTo(q[0]*PX, q[1]*PX); else g.moveTo(q[0]*PX, q[1]*PX); }); if(o.close) g.closePath();
+    if(o.fill){ g.fillStyle = color(o.fill, theme); g.fill(); }
+    if(o.line){ g.strokeStyle = color(o.line, theme); g.lineWidth = Math.max(1, (o.lineW||0.014)*PX); g.lineJoin='round'; g.setLineDash(dashOf()); g.stroke(); g.setLineDash([]); }
+    return;
+  }
   if(o.geom==='line'){   // a straight line from corner to corner of its box (flipV: bottom-left to top-right)
     g.beginPath(); g.moveTo(o.x*PX, (o.flipV ? o.y+o.h : o.y)*PX); g.lineTo((o.x+o.w)*PX, (o.flipV ? o.y : o.y+o.h)*PX);
-    g.strokeStyle = color(o.line||'tx1', theme); g.lineWidth = Math.max(1, (o.lineW||0.014)*PX); g.setLineDash(o.dash ? [0.07*PX, 0.05*PX] : []); g.stroke(); g.setLineDash([]);
+    g.strokeStyle = color(o.line||'tx1', theme); g.lineWidth = Math.max(1, (o.lineW||0.014)*PX); g.setLineDash(dashOf()); g.stroke(); g.setLineDash([]);
     return;
   }
   if(o.fill || o.line){
     path(g, o.geom, o.x, o.y, o.w, o.h, o.adj);
     if(o.fill){ g.fillStyle = color(o.fill, theme); g.fill(); }
-    if(o.line){ g.strokeStyle = color(o.line, theme); g.lineWidth = Math.max(1, (o.lineW||0.014)*PX); g.setLineDash(o.dash ? [0.07*PX, 0.05*PX] : []); g.stroke(); g.setLineDash([]); }
+    if(o.line){ g.strokeStyle = color(o.line, theme); g.lineWidth = Math.max(1, (o.lineW||0.014)*PX); g.setLineDash(dashOf()); g.stroke(); g.setLineDash([]); }
   }
   if(o.paras) drawText(g, o.paras, o, o.inset || [0.14,0.1,0.14,0.1], o.anchor || 't', { sz:14, fam:FAM.body, color:'tx1', align:'l', lnSpc:1 }, theme);
 }
