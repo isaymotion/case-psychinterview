@@ -53,7 +53,7 @@ with sync_playwright() as p:
     check('Exported 9 days ago' in pg.locator('[data-open="c2"]').inner_text() and pg.locator('[data-open="c2"] .tag.warn').count()==1, 'stale record flagged')
     check('Exported today' in pg.locator('[data-open="r2"]').inner_text(), 'exported today')
     check('Edited since export' in pg.locator('[data-open="r3"]').inner_text(), 'edited since export')
-    check(pg.locator('.tidy').count()==1 and pg.locator('.fchip[data-k="old"] b').inner_text()=='1', 'clean-up reminder counts one')
+    check(pg.locator('.tidy:not(.bk)').count()==1 and pg.locator('.fchip[data-k="old"] b').inner_text()=='1', 'clean-up reminder counts one')
     pg.screenshot(path=os.path.join(out,'home-patients.png'))
     pg.click('#tidy'); check(pg.locator('.cases [data-s]:not([hidden])').count()==1 and pg.locator('li.pt').is_hidden(), 'Ready to delete chip shows only that record'); pg.click('.fchip[data-k="all"]')
     # exporting from inside a record marks it
