@@ -1,21 +1,23 @@
 #!/bin/bash
-# Publish a PsychInterview release after the tests pass. Run from anywhere.
-# usage: APP=<clone of main> DT=<dev-tools worktree> SESSION=<claude session url> release.sh "<main commit subject>" "<body>" "<dev-tools commit subject>"
-# Refuses to push if main moved since the last fetch (another chat released): rebase, renumber cache + What's new, rerun tests, try again.
+# usage: release.sh "<main subject>" "<body>" "<dev-tools subject>"
 set -e
-APP=${APP:-$PWD}; DT=${DT:-$APP/../dt}
-TAIL="Co-Authored-By: Claude <noreply@anthropic.com>${SESSION:+
-Claude-Session: $SESSION}"
-cd "$APP"
-git add -A && git commit -q -m "$1
+APP=${APP:-/home/claude/work/case-psychinterview}; DT=${DT:-/home/claude/work/dt}
+TAIL="Co-Authored-By: Claude Fable 5.2 <noreply@anthropic.com>
+${SESSION:+Claude-Session: $SESSION}"
+cd "$APP"; git add -A
+if git log -1 --format=%s | grep -q '^wip$'; then git commit -q --amend -m "$1
 
 $2
 
-$TAIL"
+$TAIL"; else git commit -q -m "$1
+
+$2
+
+$TAIL"; fi
 git fetch -q origin main
 if ! git merge-base --is-ancestor origin/main HEAD; then echo "MAIN MOVED: rebase needed"; git log --oneline -3 origin/main; exit 3; fi
 git push origin HEAD:main 2>&1 | tail -1
-cd "$DT" && git add -A && git commit -q -m "$3
+cd "$DT"; git add -A; git commit -q -m "$3
 
-$TAIL" && git push origin HEAD:dev-tools 2>&1 | tail -1
+$TAIL"; git fetch -q origin dev-tools; git merge-base --is-ancestor origin/dev-tools HEAD || git rebase -q origin/dev-tools; git push origin HEAD:dev-tools 2>&1 | tail -1
 git -C "$APP" log --oneline -1
