@@ -129,7 +129,8 @@ function path(g, geom, x, y, w, h, adj){
   g.rect(x*PX, y*PX, w*PX, h*PX);
 }
 function drawShape(g, o, theme){
-  const dashOf = () => o.dash==='dot' ? [0.012*PX, 0.05*PX] : o.dash ? [0.07*PX, 0.05*PX] : [];
+  const dashOf = () => o.dash==='dot' ? [0.012*PX, 0.05*PX] : o.dash==='sparse' ? [0.012*PX, 0.1*PX] : o.dash==='dashdot' ? [0.07*PX, 0.035*PX, 0.012*PX, 0.035*PX]
+    : o.dash==='dashdotdot' ? [0.085*PX, 0.035*PX, 0.012*PX, 0.035*PX, 0.012*PX, 0.035*PX] : o.dash==='short' ? [0.032*PX, 0.028*PX] : o.dash ? [0.07*PX, 0.05*PX] : [];
   if(o.pts){   // a free line through points
     g.beginPath(); o.pts.forEach((q,i)=>{ if(i) g.lineTo(q[0]*PX, q[1]*PX); else g.moveTo(q[0]*PX, q[1]*PX); }); if(o.close) g.closePath();
     if(o.fill){ g.fillStyle = color(o.fill, theme); g.fill(); }

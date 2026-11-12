@@ -324,7 +324,7 @@ class SlideCtx {
         o.pts.map((p,i)=>`<a:${i?'lnTo':'moveTo'}><a:pt x="${E(p[0]-o.x)}" y="${E(p[1]-o.y)}"/></a:${i?'lnTo':'moveTo'}>`).join('')+(o.close?'<a:close/>':'')+`</a:path></a:pathLst></a:custGeom>`
       : `<a:prstGeom prst="${o.geom||'rect'}"><a:avLst>${o.adj!=null?`<a:gd name="adj" fmla="val ${o.adj}"/>`:''}</a:avLst></a:prstGeom>`;
     const fill = o.fill ? `<a:solidFill>${clr(o.fill)}</a:solidFill>` : '<a:noFill/>';
-    const ln = o.line ? `<a:ln w="${E(o.lineW||0.014)}"><a:solidFill>${clr(o.line)}</a:solidFill>${o.dash?`<a:prstDash val="${o.dash==='dot'?'sysDot':'dash'}"/>`:''}${o.pts?'<a:round/>':''}</a:ln>` : '<a:ln><a:noFill/></a:ln>';
+    const ln = o.line ? `<a:ln w="${E(o.lineW||0.014)}"><a:solidFill>${clr(o.line)}</a:solidFill>${o.dash==='sparse'?'<a:custDash><a:ds d="100000" sp="450000"/></a:custDash>':o.dash?`<a:prstDash val="${{dot:'sysDot', dashdot:'dashDot', dashdotdot:'lgDashDotDot', short:'sysDash'}[o.dash]||'dash'}"/>`:''}${o.pts?'<a:round/>':''}</a:ln>` : '<a:ln><a:noFill/></a:ln>';
     const fx = o.shadow ? '<a:effectLst><a:outerShdw blurRad="76200" dist="19050" dir="5400000" algn="t" rotWithShape="0"><a:prstClr val="black"><a:alpha val="16000"/></a:prstClr></a:outerShdw></a:effectLst>' : '';
     const tx = o.paras ? `<p:txBody><a:bodyPr wrap="square" lIns="${E(ins[0])}" tIns="${E(ins[1])}" rIns="${E(ins[2])}" bIns="${E(ins[3])}" anchor="${o.anchor||'t'}" rtlCol="0"><a:noAutofit/></a:bodyPr><a:lstStyle/>${this.P(o.paras)}</p:txBody>` : '';
     const isText = o.paras && !o.fill && !o.line;
