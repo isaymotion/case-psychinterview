@@ -403,7 +403,7 @@ function fieldText(f, d){
     case 'text': case 'area': return f.quote ? quoteIt(S(v)) : S(v);
     case 'checks': return asList(v).join(', ');
     case 'radio': { const det=S(d[f.id+'__d']); return [v||'', det].filter(Boolean).join(v&&det?'. ':''); }
-    case 'radios': return f.p.filter(([k])=>v&&v[k]).map(([k])=>k+': '+v[k]).join('; ');
+    case 'radios': return (f.scale && typeof scaleLine==='function' ? [scaleLine(f,d)] : []).concat(f.p.filter(([k])=>v&&v[k]).map(([k])=>k+': '+v[k])).join('; ');
     case 'parts': return f.p.filter(k=>S((v||{})[k])).map(k=>k+': '+S(v[k])).join('; ');
     case 'table': return (v||[]).filter(r=>r.some(c=>S(c))).map(r=>f.c.map((c,i)=>S(r[i])?c+': '+S(r[i]):'').filter(Boolean).join('; ')).join('\n');
   }
@@ -422,6 +422,11 @@ function sectionBlocks(s, d){
     switch(f.t){
       case 'text': fact(f.label, S(v)); break;
       case 'radio': case 'radios': {
+        if(f.scale && typeof scaleScore==='function'){   // a rating scale: the total as a number tile
+          const sc=scaleScore(f,d); endFacts();
+          out.push({type:'stats', label:f.label, items:[{value: sc.done ? sc.total+'/'+sc.max : sc.n+'/'+sc.of, label: sc.done ? f.scale+', '+sc.band : f.scale+' items scored', sub: sc.flag ? 'Item '+parseInt(f.flag,10)+' above 0' : (sc.done ? '' : 'Subtotal '+sc.total)}]});
+          break;
+        }
         const val=fieldText(f,d);
         if(val.length>90){ endFacts(); out.push({type:'text', label:f.label, text:val}); } else fact(f.label, val, f.id in RISK_FIELDS ? RISK_TONE[v] : null);
         break;

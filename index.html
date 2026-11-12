@@ -231,6 +231,14 @@ textarea.big{min-height:180px}
 .risky .chip[aria-pressed="true"]{background:var(--risk);border-color:var(--risk)}
 @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .chip[aria-pressed="true"]{color:#0E151D} }
 .score{font-size:14px;color:var(--ink-2);margin-top:8px}
+.radios.scale .row{gap:10px;flex-wrap:nowrap;justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:10px}
+.radios.scale .row > span{width:auto;flex:1 1 auto;min-width:0;color:var(--ink)}
+.radios.scale .seg{flex:none}
+.radios.scale .seg button{min-width:44px}
+.scalebox{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:12px;padding:12px 14px;border-radius:10px;background:var(--wash);border:1px solid var(--line);font-size:15px;color:var(--ink-2)}
+.scalebox strong{font-size:17px;color:var(--ink)}
+.scalebox .btn{margin-left:auto}
+.scalebox .flagged{flex-basis:100%;margin:0;padding:8px 10px;border-left:3px solid var(--risk);background:var(--risk-wash);border-radius:0 8px 8px 0;color:var(--ink)}
 .seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--paper)}
 .seg button{border:0;border-right:1px solid var(--line);background:none;padding:10px 18px;min-height:44px;font-size:15.5px}
 .seg button:last-child{border-right:0}
@@ -528,6 +536,31 @@ body{zoom:var(--tz,1)}
 <script src="pdf.js"></script>
 <script>
 /* ---------- Template structure (mirrors the Integrated Psychiatry Resident Case + MSE Template) ---------- */
+/* ---------- Rating scales (v42). A scale is a 'radios' field with scale:'<name>': every item is scored 0 to 3, the app adds the total
+   and names the band. The item names are short labels in the app's own words, for a clinician who has given the questionnaire; they are
+   also the keys the scores are saved under, so NEVER reword one (add an alias mechanism first). opt:true keeps an unscored scale out of
+   "What's still blank". flag = the item that needs a risk assessment when it is above 0. ---------- */
+const SCALE_OPTS = ['0','1','2','3'];
+const SCALE_HINT = 'Optional. Enter the score for each item as the patient answered it on the questionnaire: 0 not at all, 1 several days, 2 more than half the days, 3 nearly every day. Tap a score again to clear it. A screening score supports the clinical assessment and does not replace it.';
+const SCALE_PHQ9 = { t:'radios', id:'phq9', scale:'PHQ-9', opt:true, prev:'phq9', label:'PHQ-9 (past 2 weeks)', hint:SCALE_HINT,
+  bands:[[0,'minimal'],[5,'mild'],[10,'moderate'],[15,'moderately severe'],[20,'severe']], flag:'9 Thoughts of death or self-harm',
+  p:['1 Little interest or pleasure','2 Feeling down or hopeless','3 Sleep too little or too much','4 Tired or little energy','5 Poor appetite or overeating','6 Feeling bad about self','7 Trouble concentrating','8 Slowed down or restless','9 Thoughts of death or self-harm'].map(k=>[k,SCALE_OPTS]) };
+const SCALE_GAD7 = { t:'radios', id:'gad7', scale:'GAD-7', opt:true, prev:'gad7', label:'GAD-7 (past 2 weeks)', hint:SCALE_HINT,
+  bands:[[0,'minimal'],[5,'mild'],[10,'moderate'],[15,'severe']],
+  p:['1 Nervous or on edge','2 Cannot stop worrying','3 Worrying about many things','4 Trouble relaxing','5 Restless','6 Easily annoyed or irritable','7 Afraid something awful may happen'].map(k=>[k,SCALE_OPTS]) };
+const SCALES = [SCALE_PHQ9, SCALE_GAD7];
+function scaleScore(f, d){
+  const v=(d&&d[f.id])||{}; let n=0, total=0;
+  f.p.forEach(([k])=>{ if(SCALE_OPTS.includes(String(v[k]))){ n++; total+=+v[k]; } });
+  const done=n===f.p.length, max=f.p.length*3;
+  return { n, of:f.p.length, total, max, done, band: done ? f.bands.filter(b=>total>=b[0]).pop()[1] : '', flag: !!f.flag && +v[f.flag]>0 };
+}
+/* one line for documents: "PHQ-9: 14/27 (moderate); item 9 above 0", or what is missing when not every item is scored */
+function scaleLine(f, d){
+  const s=scaleScore(f,d); if(!s.n) return '';
+  return (s.done ? `${f.scale}: ${s.total}/${s.max} (${s.band})` : `${f.scale}: incomplete, ${s.n} of ${s.of} items scored (subtotal ${s.total})`) + (s.flag ? `; item ${parseInt(f.flag,10)} above 0` : '');
+}
+
 const SECTIONS = [
   { id:'enc', num:'A', title:'Patient & encounter information', fields:[
     {t:'text', id:'patient', label:'Patient name', hint:'Surname, First name Middle initial. For example: Santos, Maria Clara R.'},
@@ -570,7 +603,9 @@ const SECTIONS = [
   ]},
   { id:'ros', num:'6', title:'Psychiatric review of systems', fields:[
     {t:'checks', id:'rosChecks', label:'Endorsed symptoms', o:['Sleep change','↓ Interest','Guilt','↓ Energy','↓ Concentration','Appetite change','Psychomotor change','Suicidality','↓ Need for sleep','Grandiosity','Impulsivity','Generalized worry','Panic attacks','Obsessions / compulsions','Trauma / PTSD symptoms','Social anxiety','Specific phobias','Hallucinations','Delusions / paranoia','Ideas of reference','Inattention / hyperactivity','Disordered eating']},
-    {t:'area', id:'rosDetails', label:'ROS details', hint:'Positive symptoms, duration/severity, and pertinent negatives.'}
+    {t:'area', id:'rosDetails', label:'ROS details', hint:'Positive symptoms, duration/severity, and pertinent negatives.'},
+    {t:'sub', id:'scalesHead', label:'Rating scales (optional)', small:true},
+    SCALE_PHQ9, SCALE_GAD7
   ]},
   { id:'pph', num:'7', title:'Past psychiatric history', fields:[
     {t:'area', id:'priorDx', label:'Prior diagnoses', hint:'Diagnosis / who made it / approximate date.'},
@@ -1716,7 +1751,9 @@ const PN_SECTIONS = [
     {t:'area', id:'events', label:'Overnight / nursing events', hint:'Incidents, PRNs given, restraint or seclusion, observation level, visitors.'},
     {t:'area', id:'labs', label:'New labs / results'},
     {t:'area', id:'collateral', label:'Collateral since last note'},
-    {t:'table', id:'meds', label:'Current medications', hint:'Carried forward from the source file. Update to reflect today.', c:['Medication','Dose / frequency','Change today','Adherence / side effects'], rows:4}
+    {t:'table', id:'meds', label:'Current medications', hint:'Carried forward from the source file. Update to reflect today.', c:['Medication','Dose / frequency','Change today','Adherence / side effects'], rows:4},
+    {t:'sub', id:'scalesHead', label:'Rating scales (optional)', small:true},
+    SCALE_PHQ9, SCALE_GAD7
   ]},
   { id:'pnMse1', num:'3A', group:'Mental status examination', title:'Appearance, behavior & speech', copyMSE:true, fields:[
     {t:'checks', id:'appChecks', label:'Appearance / behavior', o:SECTIONS.find(s=>s.id==='app').fields[0].o},
@@ -1796,6 +1833,7 @@ function progressFromSource(src, srcKind, now, author){
   d.planTable = rows(src.planTable).map(r=>r.slice(0,4));
   if(srcKind==='pn' && str(src.obs)) d.obs = src.obs;
   const prev = { suicideRisk:src.suicideRisk||'', violenceRisk:src.violenceRisk||'', level: srcKind==='case' ? (src.loc||'') : (src.dispo||'') };
+  SCALES.forEach(f=>{ const t=scaleLine(f,src); if(t) prev[f.id]=t.replace(/^[^:]+:\s*/,''); });
   const lastMSE = {};
   ['appChecks','speechChecks','percChecks','affectChecks','cogChecks'].forEach(k=>{ if((src[k]||[]).length) lastMSE[k]=src[k].slice(); });
   if((src.tcChecks||[]).length) lastMSE.tcChecks = src.tcChecks.filter(x=>!SAFETY_CHIPS.includes(x));
@@ -2482,7 +2520,8 @@ const DocxGen = (() => {
         return [{runs}];
       }
       case 'radios': {
-        const runs=[]; f.p.forEach(([k])=>{ if(v[k]) { if(runs.length) runs.push({text:';  '}); runs.push({text:k+': '}); runs.push({text:v[k], b:true}); } });
+        const runs=[]; if(f.scale) runs.push({text:scaleLine(f,d), b:true});
+        f.p.forEach(([k])=>{ if(v[k]) { if(runs.length) runs.push({text:';  '}); runs.push({text:k+': '}); runs.push({text:v[k], b:true}); } });
         return [{runs}];
       }
       case 'lines': return v.map(str).filter(Boolean).map((t,i)=>({runs:[{text:(i+1)+'. '+t}], after:20}));
@@ -2669,7 +2708,8 @@ const DocxGen = (() => {
     N(v('hpi'));
     const assoc = partsTxt('assoc', ['Sleep','Mood','Interests','Relationships','Functioning']); if(assoc) N('Associated changes: '+assoc+'.');
     N(v('timeline'));
-    if((d.rosChecks||[]).length || v('rosDetails')){ H('PSYCHIATRIC REVIEW OF SYSTEMS'); if((d.rosChecks||[]).length) N('(+) '+d.rosChecks.join(', ')); N(v('rosDetails')); }
+    { const sc=SCALES.map(f=>scaleLine(f,d)).filter(Boolean);
+      if((d.rosChecks||[]).length || v('rosDetails') || sc.length){ H('PSYCHIATRIC REVIEW OF SYSTEMS'); if((d.rosChecks||[]).length) N('(+) '+d.rosChecks.join(', ')); N(v('rosDetails')); sc.forEach(t=>N(t)); } }
 
     H('PAST PSYCHIATRIC HISTORY');
     bullets([ v('priorDx') && 'Prior diagnoses: '+v('priorDx'),
@@ -3332,6 +3372,10 @@ const DocxImport = (() => {
   /* ----- What's new. Newest entry FIRST; id goes up by one each release (it is the key for the unseen badge).
      Add an entry on every release, with the cache number from sw.js as v. Types: feature (New), update (Improved), fix (Fixed). ----- */
   const CHANGELOG=[
+    {id:26, v:'v43', date:'2026-11-13', title:'Rating scales that add themselves up', items:[
+      ['feature','PHQ-9 and GAD-7 are now in the case (6. Psychiatric review of systems) and in the progress note (2. Objective). Tap the score for each item as the patient answered it; the app adds the total and names the range, such as 14 of 27, moderate. Both are optional.'],
+      ['feature','The total prints in the Word file and shows as a number on the slides. A new progress note shows the last documented score, so you can follow the trend.'],
+      ['update','When item 9 of the PHQ-9 is above 0, the app reminds you to ask directly about thoughts of death, self-harm and suicide and to record your risk assessment. A screening score supports the clinical assessment and does not replace it.']]},
     {id:25, v:'v42', date:'2026-11-13', title:'Genogram: gender identity, pets and others in the household', items:[
       ['feature','Gender identity: Transgender or Non-binary for a family member (and Transgender for the patient). The symbol follows the identity, with a small symbol beside it.'],
       ['feature','Pets, other relatives and household members who are not related are now drawn on the genogram, in a row of their own under the family. Join them to someone with a relationship line.'],
@@ -4214,7 +4258,7 @@ const DocxImport = (() => {
     }
     return extText(f, d);
   }
-  const countable = (s,d) => s.fields.filter(f=>f.t!=='sub' && !(f.legacy && !isFilled(f,d)));
+  const countable = (s,d) => s.fields.filter(f=>f.t!=='sub' && !((f.legacy || f.opt) && !isFilled(f,d)));
   /* '' nothing typed, 'part' some fields filled, 'full' every field filled */
   function secState(s, d){ const fs=countable(s,d), n=fs.filter(f=>isFilled(f,d)).length; return !n ? '' : n===fs.length ? 'full' : 'part'; }
   const DOT_LABEL = { '':'not started', part:'partly filled', full:'every field filled' };
@@ -4474,6 +4518,12 @@ const DocxImport = (() => {
   }
   function fbFlagNote(){ const n=$('#fbGenNote'); if(n) n.hidden = !(D().integratedGenerated && str(D().integrated)); }
 
+  function scaleBoxHTML(f, d){
+    const s=scaleScore(f,d);
+    return (s.done ? `<span><strong>${h(f.scale)} total ${s.total} of ${s.max}</strong>, ${h(s.band)}</span>` : s.n ? `<span><strong>${s.n} of ${s.of} items scored</strong>, subtotal ${s.total}. Score every item to get the total.</span>` : `<span>Not scored.</span>`)
+      + (s.n ? `<button class="btn quiet" data-clearscale="${h(f.id)}">Clear scores</button>` : '')
+      + (s.flag ? `<p class="flagged"><strong>Item ${parseInt(f.flag,10)} is above 0.</strong> Ask directly about thoughts of death, self-harm and suicide, and record your risk assessment.</p>` : '');
+  }
   function fieldHTML(f, d, rec){
     if(f.legacy && !isFilled(f,d)) return '';
     const prevV = f.prev && rec.prev && rec.prev[f.prev];
@@ -4486,7 +4536,7 @@ const DocxImport = (() => {
       case 'checks': { const sel=v||[]; return `<div class="field" role="group" aria-labelledby="l-${f.id}">${lab}<div class="chips">${f.o.map(o=>`<button class="chip" data-chk="${f.id}" data-o="${h(o)}" aria-pressed="${sel.includes(o)}">${h(o)}</button>`).join('')}</div>${f.score?`<div class="score" id="sc-${f.id}">${sel.length}/${f.o.length} positive</div>`:''}</div>`; }
       case 'radio': if(f.couple) return `<div class="field">${lab}<select data-f="${f.id}" aria-labelledby="l-${f.id}">${famCoupleOptions(v, 'Married / partners (not specified)')}</select></div>`;   // a long list: a grouped picker instead of buttons
         return `<div class="field" role="group" aria-labelledby="l-${f.id}">${lab}<div class="seg">${f.o.map(o=>`<button data-rad="${f.id}" data-o="${h(o)}" aria-pressed="${v===o}">${h(o)}</button>`).join('')}</div>${f.detail?`<div class="detail"><input type="text" data-f="${f.id}__d" placeholder="${h(f.detail)}" aria-label="${h(f.label+': '+f.detail)}" value="${h(d[f.id+'__d'])}"></div>`:''}</div>`;
-      case 'radios': { const o=v||{}; return `<div class="field">${lab}<div class="radios">${f.p.map(([k,opts])=>`<div class="row" role="group" aria-label="${h(k)}"><span>${h(k)}</span><div class="seg">${opts.map(x=>`<button data-rads="${f.id}" data-k="${h(k)}" data-o="${h(x)}" aria-pressed="${o[k]===x}">${h(x)}</button>`).join('')}</div></div>`).join('')}</div></div>`; }
+      case 'radios': { const o=v||{}; return `<div class="field">${lab}<div class="radios${f.scale?' scale':''}">${f.p.map(([k,opts])=>`<div class="row" role="group" aria-label="${h(k)}"><span>${h(k)}</span><div class="seg">${opts.map(x=>`<button data-rads="${f.id}" data-k="${h(k)}" data-o="${h(x)}" aria-pressed="${o[k]===x}">${h(x)}</button>`).join('')}</div></div>`).join('')}</div>${f.scale?`<div class="scalebox" id="sc-${f.id}" aria-live="polite">${scaleBoxHTML(f,d)}</div>`:''}</div>`; }
       case 'parts': { const o=v||{}; return `<div class="field">${lab}<div class="grid ${f.long?'long':''} ${f.inline?'inline':''}">${f.p.map(k=>`<label>${h(k)}${f.long?`<textarea data-f="${f.id}" data-k="${h(k)}">${h(o[k])}</textarea>`:`<input type="text" data-f="${f.id}" data-k="${h(k)}" value="${h(o[k])}" autocomplete="off">`}</label>`).join('')}</div></div>`; }
       case 'patients': return patientsHTML(d);
       case 'family': return familyHTML(f, d);
@@ -4657,7 +4707,10 @@ const DocxImport = (() => {
       b.parentNode.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed', x.dataset.o===d[id])); if(id==='parentsRel'||id==='ptRel') refreshGeno(); touch(); }
     else if(b.dataset.rads){ const id=b.dataset.rads, k=b.dataset.k, o=b.dataset.o; d[id]=d[id]||{};
       if(d[id][k]===o) delete d[id][k]; else d[id][k]=o;
-      b.parentNode.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed', d[id][k]===x.dataset.o)); touch(); }
+      b.parentNode.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed', d[id][k]===x.dataset.o));
+      { const f=FIELDS[R().kind][id], box=document.getElementById('sc-'+id); if(f && f.scale && box) box.innerHTML=scaleBoxHTML(f,d); }
+      touch(); }
+    else if(b.dataset.clearscale){ const id=b.dataset.clearscale; if(confirm('Clear every score in this scale?')){ delete d[id]; touch(); const y=window.scrollY; renderSection(); window.scrollTo(0,y); } }
     else if(b.dataset.fbsug){ fbAccept(+b.dataset.fbsug); }
     else if(b.dataset.famadd){ (d.family=Array.isArray(d.family)?d.family:[]).push({name:'',rel:'',age:'',status:'Living'}); famIds(d); touch(); renderSection(); const cs=document.querySelectorAll('.famcard'); if(cs.length){ const q=cs[cs.length-1].querySelector('input'); if(q) q.focus(); } }
     else if(b.dataset.famdel!=null){ const i=+b.dataset.famdel, m=d.family[i]; if((str(m.name)||str(m.desc)) && !confirm('Remove '+(str(m.name)||'this family member')+'?')) return; d.family.splice(i,1);
