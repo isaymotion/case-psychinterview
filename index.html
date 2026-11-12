@@ -399,10 +399,24 @@ a.btn{display:inline-flex;align-items:center;text-decoration:none}
 @media (min-width:1000px) and (min-height:720px){ .start{position:sticky;top:calc(var(--bar) + 20px + env(safe-area-inset-top,0px))} }
 @media (max-width:640px){
   .starts{grid-template-columns:1fr 1fr}
-  .bar.top .lbl,.news-strip .d{display:none}
+  .bar.top .lbl,.news-strip .d,.news-strip .go .x{display:none}
   .bar.top .btn.ghost{padding:9px 11px}
   .cases .meter{display:none}
 }
+/* theme and text size (v31). Forced dark is generated at start-up from the dark media rules (forceDark in the script). */
+:root[data-theme="light"]{color-scheme:light} :root[data-theme="dark"]{color-scheme:dark}
+body{zoom:var(--tz,1)}
+.rail{height:calc((100vh - env(safe-area-inset-top,0px)) / var(--tz,1) - var(--bar))}
+.sheet{max-height:calc(80vh / var(--tz,1))}
+.pick{max-height:calc(44vh / var(--tz,1))}
+.bar{container:bar/inline-size}
+@container bar (max-width:760px){ .bar .x-long{display:none} }
+@container bar (max-width:600px){ .bar .hide-sm{display:none} .bar{gap:6px;padding:0 10px} .bar .btn{padding:9px 10px} }
+.btn.ghost.ico{justify-content:center;min-width:44px;padding:9px 10px;font-weight:700}
+.look-row{margin:0 0 18px}
+.look-row .lab{display:block;font-weight:600;font-size:16px;margin:0 0 8px}
+@media (max-width:640px){ .bar.top{gap:6px;padding:0 10px} }
+@media (max-width:420px){ .bar.top .logo{display:none} }
 /* What's new */
 .news{max-width:860px;margin:0 auto;padding:28px 20px 60px}
 .news h2{font:600 30px/1.2 var(--serif);margin:8px 0 6px}
@@ -3110,6 +3124,10 @@ const DocxImport = (() => {
   /* ----- What's new. Newest entry FIRST; id goes up by one each release (it is the key for the unseen badge).
      Add an entry on every release, with the cache number from sw.js as v. Types: feature (New), update (Improved), fix (Fixed). ----- */
   const CHANGELOG=[
+    {id:15, v:'v32', date:'2026-11-12', title:'Light and dark, text size, and Undo for Delete all', items:[
+      ['feature','Light or dark: the sun and moon button in the top bar switches between Match this device, Light and Dark.'],
+      ['feature','Text size: tap Aa in the top bar for Small, Normal, Large or Larger. It applies to every screen and is remembered on this iPad.'],
+      ['feature','Delete all records now shows Undo for a few seconds, the same as deleting one record.']]},
     {id:14, v:'v31', date:'2026-11-12', title:'Great-grandparents and more partners on the genogram', items:[
       ['feature','Great-grandparents: add the grandparent first, then the great-grandfather or great-grandmother and choose whose parent they are.'],
       ['feature','Up to four partners for each person. The third and fourth are joined by a line that goes over the top, and their children hang from that line.']]},
@@ -3169,6 +3187,9 @@ const DocxImport = (() => {
     bin:'<path d="M5 7h14M10 7V4.8h4V7M7 7l.8 12a1.5 1.5 0 0 0 1.5 1.4h5.4a1.5 1.5 0 0 0 1.5-1.4L17 7M10.3 10.5v6M13.7 10.5v6"/>',
     find:'<circle cx="11" cy="11" r="6"/><path d="M15.5 15.5 20 20"/>',
     news:'<path d="M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9L12 17.5l-1.9-5.1L5 10.5l5.1-1.9zM18.5 16v4M16.5 18h4"/>',
+    sun:'<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4"/>',
+    moon:'<path d="M19.5 14.2A7.8 7.8 0 0 1 9.8 4.5a7.8 7.8 0 1 0 9.7 9.7z"/>',
+    auto:'<circle cx="12" cy="12" r="8"/><path d="M12 4v16M12 7.5l5.5 3M12 12l7 3.6M12 16.5l4.5 2.2"/>',
     file:'<path d="M4 7.5a2 2 0 0 1 2-2h3.5l2 2H18a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/>'
   };
   const ic = n => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n]}</svg>`;
@@ -3187,6 +3208,39 @@ const DocxImport = (() => {
   const KIND_PLURAL={case:'Cases', pn:'Progress notes', dc:'Discharge summaries', ho:'Handovers', mc:'Certificates', ca:'Abstracts', sp:'Safety plans'};
   let homeQ='', homeK='all';
 
+  /* ----- look: theme and text size, remembered in store.last (theme: undefined/'auto' = match the device; textSize: index into SIZES) ----- */
+  const THEMES=['auto','light','dark'], THEME_NAME={auto:'Match this device', light:'Light', dark:'Dark'}, THEME_ICON={auto:'auto', light:'sun', dark:'moon'};
+  const SIZES=[['Small',.9],['Normal',1],['Large',1.12],['Larger',1.25]];
+  const theme = () => THEMES.includes(store.last.theme) ? store.last.theme : 'auto';
+  const sizeIdx = () => SIZES[store.last.textSize] ? store.last.textSize : 1;
+  function applyLook(){
+    const r=document.documentElement, t=theme();
+    if(t==='auto') r.removeAttribute('data-theme'); else r.setAttribute('data-theme', t);
+    r.style.setProperty('--tz', SIZES[sizeIdx()][1]);
+  }
+  /* The stylesheet writes every dark rule as @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) … }.
+     This copies those rules once for :root[data-theme="dark"], so "Dark" works on a device set to light. New dark rules need nothing extra. */
+  (function forceDark(){
+    const css=document.querySelector('style').textContent, tag='@media (prefers-color-scheme:dark){'; let out='', i=0;
+    while((i=css.indexOf(tag,i))>=0){ let j=i+tag.length, n=1; const a=j; while(n && j<css.length){ const c=css[j++]; if(c==='{') n++; else if(c==='}') n--; }
+      out+=css.slice(a,j-1).split(':root:not([data-theme="light"])').join(':root[data-theme="dark"]')+'\n'; i=j; }
+    const st=document.createElement('style'); st.id='forcedDark'; st.textContent=out; document.head.appendChild(st);
+  })();
+  const lookButtons = () => `<button class="btn ghost ico" id="aa" aria-label="Text size: ${SIZES[sizeIdx()][0]}">Aa</button><button class="btn ghost ico" id="theme" aria-label="Theme: ${THEME_NAME[theme()]}. Tap to change">${ic(THEME_ICON[theme()])}</button>`;
+  function wireLook(){
+    const tb=$('#theme'), set=t=>{ store.last.theme=t; applyLook(); persist(); tb.innerHTML=ic(THEME_ICON[t]); tb.setAttribute('aria-label','Theme: '+THEME_NAME[t]+'. Tap to change'); };
+    tb.onclick=()=>{ const t=THEMES[(THEMES.indexOf(theme())+1)%3]; set(t); toast('Theme: '+THEME_NAME[t]); };
+    $('#aa').onclick=()=>sheet(`<h3>Text size and theme</h3>
+      <div class="look-row"><span class="lab">Text size</span><div class="seg" role="group" aria-label="Text size">${SIZES.map((z,i)=>`<button data-size="${i}" aria-pressed="${i===sizeIdx()}">${z[0]}</button>`).join('')}</div></div>
+      <div class="look-row"><span class="lab">Theme</span><div class="seg" role="group" aria-label="Theme">${THEMES.map(t=>`<button data-theme-set="${t}" aria-pressed="${t===theme()}">${THEME_NAME[t]}</button>`).join('')}</div></div>
+      <p class="small">These apply to every screen of PsychInterview and are remembered on this iPad. Exported Word files and slides are not affected.</p>
+      <div class="tools end"><button class="btn primary" data-close>Done</button></div>`, (s,close)=>{
+        s.querySelector('[data-close]').onclick=close;
+        s.querySelectorAll('[data-size]').forEach(b=>b.onclick=()=>{ store.last.textSize=+b.dataset.size; applyLook(); persist(); s.querySelectorAll('[data-size]').forEach(x=>x.setAttribute('aria-pressed', x===b)); $('#aa').setAttribute('aria-label','Text size: '+SIZES[sizeIdx()][0]); });
+        s.querySelectorAll('[data-theme-set]').forEach(b=>b.onclick=()=>{ set(b.dataset.themeSet); s.querySelectorAll('[data-theme-set]').forEach(x=>x.setAttribute('aria-pressed', x===b)); });
+      });
+  }
+
   /* ----- home ----- */
   function renderHome(){
     cur=null; document.title='PsychInterview';
@@ -3196,12 +3250,12 @@ const DocxImport = (() => {
     document.body.innerHTML = `
       <header class="bar top"><img class="logo" src="icon-192.png" alt="" width="36" height="36"><h1>PsychInterview</h1>
         <button class="btn ghost" id="news" aria-label="What's new${fresh.length?', '+fresh.length+' unread':''}">${ic('news')}<span class="lbl">What's new</span>${fresh.length?`<span class="badge">${fresh.length}</span>`:''}</button>
-        <button class="btn ghost" id="imp" aria-label="Open Word file">${ic('file')}<span class="lbl">Open Word file</span></button>
+        <button class="btn ghost" id="imp" aria-label="Open Word file">${ic('file')}<span class="lbl">Open Word file</span></button>${lookButtons()}
         <input type="file" id="impFile" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden></header>
       <main class="home">
         <div class="hero"><h2>Patient records</h2>
           <p class="sub">${list.length ? list.length+' record'+(list.length===1?'':'s')+' saved on this iPad' : 'Nothing saved on this iPad yet'}</p></div>
-        ${fresh.length?`<button class="news-strip" id="newsStrip">${ic('news')}<span><strong>${h(fresh[0].title)}.</strong> <span class="d">${h(longDate(fresh[0].date))}</span></span><span class="go">See what's new ›</span></button>`:''}
+        ${fresh.length?`<button class="news-strip" id="newsStrip">${ic('news')}<span><strong>${h(fresh[0].title)}.</strong> <span class="d">${h(longDate(fresh[0].date))}</span></span><span class="go"><span class="x">See what's new </span>›</span></button>`:''}
         <div class="home-grid">
           <section class="start" aria-label="Start a new document">
             <p class="sec-h">Start something new</p>
@@ -3233,7 +3287,7 @@ const DocxImport = (() => {
     $('#newca').onclick = chooseAbstractSource;
     $('#newho').onclick = newHandover;
     $('#newsp').onclick = chooseSafetySource;
-    $('#imp').onclick = ()=>{ pickFile(importFile); };
+    $('#imp').onclick = ()=>{ pickFile(importFile); }; wireLook();
     ['#news','#newsStrip','#newsLink'].forEach(q=>{ const b=$(q); if(b) b.onclick=renderNews; });
     document.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>openRec(b.dataset.open));
     document.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>askDelete(b.dataset.del));
@@ -3243,7 +3297,8 @@ const DocxImport = (() => {
     const q=$('#q'); if(q) q.oninput=()=>{ homeQ=q.value; filter(); }; else homeQ='';
     document.querySelectorAll('.fchip').forEach(b=>b.onclick=()=>{ homeK=b.dataset.k; document.querySelectorAll('.fchip').forEach(x=>x.setAttribute('aria-pressed', x===b)); filter(); });
     filter();
-    const w=$('#wipe'); if(w) w.onclick=()=>{ if(confirm('Delete ALL records from this iPad? This cannot be undone.')){ store.cases={}; persist(); renderHome(); } };
+    const w=$('#wipe'); if(w) w.onclick=()=>{ if(confirm('Delete ALL '+list.length+' records from this iPad?')){ const kept=store.cases; store.cases={}; persist(); renderHome();
+      toast('Deleted all '+list.length+' record'+(list.length===1?'':'s')+'.', 'Undo', ()=>{ store.cases=Object.assign({}, kept, store.cases); persist(); if(!cur) renderHome(); }); } };
     window.scrollTo(0,0);
   }
   /* Delete one record. The record is kept in memory for a few seconds so a slip can be undone. */
@@ -3265,7 +3320,7 @@ const DocxImport = (() => {
     cur=null; document.title="What's new | PsychInterview";
     const fresh=new Set(unseenNews().map(e=>e.id));
     document.body.innerHTML = `
-      <header class="bar top"><button class="btn ghost" id="back" aria-label="Back to records">‹ Records</button><h1>What's new</h1></header>
+      <header class="bar top"><button class="btn ghost" id="back" aria-label="Back to records">‹ Records</button><h1>What's new</h1>${lookButtons()}</header>
       <main class="news">
         <h2>What's new</h2>
         <p class="lead">Changes to PsychInterview, newest first. Entries marked <span class="news-new">New</span> were added since you last opened this page.</p>
@@ -3274,7 +3329,7 @@ const DocxImport = (() => {
           <div class="news-body"><h3>${h(e.title)}</h3><ul>${e.items.map(([ty,tx])=>`<li><span class="news-type ${ty}">${NEWS_TYPE[ty]}</span><span>${h(tx)}</span></li>`).join('')}</ul></div></article>`).join('')}
         <footer class="credit"><p>Suggestions and corrections: <a href="mailto:isaymotion@gmail.com">isaymotion@gmail.com</a></p></footer>
       </main>`;
-    $('#back').onclick = renderHome;
+    $('#back').onclick = renderHome; wireLook();
     store.last.newsSeen = CHANGELOG[0].id; persist();
     window.scrollTo(0,0);
   }
@@ -3603,14 +3658,14 @@ const DocxImport = (() => {
     const rec=R(); document.title=recTitle(rec)+' | PsychInterview';
     document.body.innerHTML = `
       <header class="bar">
-        <button class="btn quiet" id="back" aria-label="All records">‹ Records</button>
+        <button class="btn quiet" id="back" aria-label="All records">‹<span class="x-long"> Records</span></button>
         <button class="btn only-narrow" id="menu" aria-expanded="false" aria-controls="rail">Sections</button>
         <h1 id="title">${h(recTitle(rec))}<small>${h(recKind(rec))}</small></h1>
         <span class="status" id="status">Saved on this iPad</span>
         ${['mc','ca','ho','sp'].includes(rec.kind)?'':'<button class="btn hide-sm" id="rem">Reminders</button>'}
         <button class="btn quiet danger hide-sm" id="del">Delete</button>
         ${rec.kind==='case'?'<button class="btn" id="pres" aria-label="Create presentation slides">Slides</button>':''}
-        <button class="btn primary" id="export">Export Word file</button>
+        <button class="btn primary" id="export" aria-label="Export Word file">Export<span class="x-long"> Word file</span></button>
       </header>
       <div class="layout"><nav class="rail" id="rail" aria-label="Sections"></nav><main class="main" id="main"></main></div>`;
     $('#back').onclick = ()=>{ persist(); renderHome(); };
@@ -4399,6 +4454,7 @@ const DocxImport = (() => {
   setTimeout(()=>{ if(gReady()) gResume(); }, 0);
   document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='hidden' && cur) persist(); });
   if('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(()=>{});
+  applyLook();
   renderHome();
   checkInbox();
 })();
