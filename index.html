@@ -188,9 +188,28 @@ textarea.big{min-height:180px}
 .rail button.sub{padding-left:27px}
 .rail button.cur{background:var(--paper);border-left-color:var(--blue);color:var(--ink);font-weight:600}
 .rail button.risk.cur{border-left-color:var(--risk)}
-.dot{width:9px;height:9px;border-radius:50%;border:1.5px solid var(--line)}
-.dot.on{background:var(--blue);border-color:var(--blue)}
-.risk .dot.on{background:var(--risk);border-color:var(--risk)}
+.dot{width:11px;height:11px;border-radius:50%;border:1.5px solid var(--line)}
+.dot.on{background:linear-gradient(90deg,var(--blue) 50%,transparent 50%);border-color:var(--blue)}
+.dot.on.full{background:var(--blue)}
+.risk .dot.on{background:linear-gradient(90deg,var(--risk) 50%,transparent 50%);border-color:var(--risk)}
+.risk .dot.on.full{background:var(--risk)}
+.rail-top{position:sticky;top:-10px;z-index:1;margin-top:-10px;padding:12px 12px 8px;background:var(--page);border-bottom:1px solid var(--line);display:grid;gap:8px}
+.rail-top .search{max-width:none;flex:none;display:block}
+.rail-top .btn{width:100%;display:block;padding:8px 13px;text-align:center;border:1px solid var(--line);border-radius:10px;background:var(--paper);color:var(--ink);font-size:14.5px;min-height:44px}
+.rail button.hit{grid-template-columns:40px 1fr;align-items:start}
+.rail button.hit strong{display:block;font-weight:600;color:var(--ink)}
+.rail button.hit small{display:block;font-size:13.5px;color:var(--ink-3);overflow-wrap:anywhere}
+.rail mark,.pick mark{background:#FCE9A6;color:#3D2C00;border-radius:3px;padding:0 1px}
+.rail .nohit{padding:14px 18px;font-size:14.5px;color:var(--ink-3)}
+.field.flash,.subhead.flash{animation:flash 1.8s ease-out}
+@keyframes flash{0%,35%{box-shadow:0 0 0 6px var(--wash),0 0 0 8px var(--blue);border-radius:8px}100%{box-shadow:0 0 0 6px transparent,0 0 0 8px transparent;border-radius:8px}}
+@media (prefers-reduced-motion:reduce){ .field.flash,.subhead.flash{animation:none;outline:2px solid var(--blue);outline-offset:6px} }
+.pick li.grp{border-bottom:1px solid var(--line);padding:12px 4px 6px;font:600 13px/1.2 var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);margin:0}
+.pick button[aria-current]{background:var(--wash)}
+.bar h1.tap{cursor:pointer;-webkit-tap-highlight-color:transparent}
+.bar h1.tap .chev{display:inline-block;margin-left:5px;font-size:11px;opacity:.8}
+.news-strip.cont{margin-bottom:12px}
+.news-strip.cont + .news-strip{margin-top:0}
 .main{padding:26px 34px 80px;max-width:900px;width:100%;min-width:0}
 .sec-head{margin-bottom:22px;padding-bottom:14px;border-bottom:2px solid var(--blue)}
 .sec-head.risk{border-bottom-color:var(--risk)}
@@ -386,6 +405,7 @@ a.btn{display:inline-flex;align-items:center;text-decoration:none}
 .toast.act{display:flex;align-items:center;gap:14px;padding:8px 8px 8px 18px}
 .toast button{background:none;border:0;color:var(--gold);font-weight:700;min-height:44px;padding:0 12px;border-radius:8px}
 @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .toast button{color:#8A5A12} }
+.sheet .linkbtn{background:none;border:0;padding:0;color:var(--blue);text-decoration:underline;font-size:inherit;min-height:44px}
 .credit .linkbtn{background:none;border:0;padding:0;color:var(--blue);text-decoration:underline;font-size:inherit;min-height:44px}
 @media (min-width:1000px){
   .home-grid{grid-template-columns:330px minmax(0,1fr);gap:36px}
@@ -3244,7 +3264,7 @@ const DocxImport = (() => {
 /* ---------- App ---------- */
 (function(){
   const KEY='psyCaseApp.v1';
-  const VERSION='November 12, 2026';
+  const VERSION='November 13, 2026';
   const $ = (s,el=document)=>el.querySelector(s);
   const h = s => String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   const FIELDS = {}; Object.keys(SCHEMAS).forEach(k=>FIELDS[k]={});
@@ -3285,6 +3305,13 @@ const DocxImport = (() => {
   /* ----- What's new. Newest entry FIRST; id goes up by one each release (it is the key for the unseen badge).
      Add an entry on every release, with the cache number from sw.js as v. Types: feature (New), update (Improved), fix (Fixed). ----- */
   const CHANGELOG=[
+    {id:22, v:'v39', date:'2026-11-13', title:'Easier to find your way around a record', items:[
+      ['feature','Pick up where you left off: a record reopens at the section you were last on, and the home screen has a Continue card for the record you opened last.'],
+      ['feature','Find in this record: the box above the section list finds a field name or any word you typed, in every section, and takes you to it.'],
+      ['feature','What’s still blank: a button above the section list shows the sections with nothing in them and the empty fields in the partly filled ones. Tap one to go there. The Export sheet for a case mentions it too.'],
+      ['feature','This patient’s documents: tap the patient’s name at the top of a record to move to the case, a progress note or another document of the same patient, or to add a progress note, without going back to the home screen.'],
+      ['update','The dot beside a section now has three states: empty (nothing typed), half (some fields filled) and full (every field filled).'],
+      ['update','The iPad’s back swipe now goes from a record or What’s new back to the home screen instead of leaving the app, and reloading the page keeps the record and section you were on.']]},
     {id:21, v:'v38', date:'2026-11-13', title:'Genogram: household outline and more relationship lines', items:[
       ['update','The age of someone who has died can now be read on the genogram: it sits on a small plate over the cross.'],
       ['update','Crowded rows of the genogram are tidier: curved relationship lines in one row no longer sit on top of each other.'],
@@ -3458,8 +3485,32 @@ const DocxImport = (() => {
   const HOME_SORTS={edited:'Last edited', name:'Patient name', created:'Date created'};
   const PT_SHOW=8;   // a patient with more documents than this shows the newest six and a "Show more" button
 
+  /* ----- where you are (v38). rec.at = id of the section last shown in that record; store.last.lastOpen = the record last opened.
+     The address carries the place as #/r/<record id>/<section id> or #/news (ids only, never a name), so the iPad's back swipe steps
+     record -> home instead of leaving the app, and a reload reopens the same section. Opening a record or What's new adds one history
+     entry; moving between sections replaces it. Google sign-in comes back with its own #access_token=..., which is left alone. ----- */
+  const secAt = rec => { const i=SECS(rec).findIndex(s=>s.id===rec.at); return i<0 ? 0 : i; };
+  function syncURL(hash, push){
+    try{
+      if(/(^#|&)(access_token|error)=/.test(location.hash) || location.hash===hash) return;
+      const url = hash || location.pathname+location.search;
+      if(push) history.pushState({inApp:1}, '', url); else history.replaceState(history.state, '', url);
+    }catch(e){}
+  }
+  function goBack(){ if(history.state && history.state.inApp && location.hash) history.back(); else { if(cur) persist(); renderHome(); } }
+  function route(){
+    document.querySelectorAll('.scrim').forEach(x=>x.remove());
+    if(cur) persist();
+    const m = location.hash.match(/^#\/r\/([\w-]+)(?:\/([\w-]+))?$/), rec = m && store.cases[m[1]];
+    if(rec){ if(m[2] && SECS(rec).some(x=>x.id===m[2])) rec.at=m[2]; cur=rec.id; secIdx=secAt(rec); railQ=''; renderEditor(); }
+    else if(location.hash==='#/news') renderNews();
+    else renderHome();
+  }
+  window.addEventListener('popstate', ()=>whenUnlocked(route));
+
   function renderHome(){
-    cur=null; document.title='PsychInterview';
+    cur=null; document.title='PsychInterview'; syncURL('', false);
+    const lastRec = store.cases[store.last.lastOpen], lastSec = lastRec && SECS(lastRec)[secAt(lastRec)];
     const sortBy = HOME_SORTS[store.last.homeSort] ? store.last.homeSort : 'edited', byPt = store.last.homeView!=='docs';
     const list = Object.values(store.cases).sort((a,b)=> sortBy==='name' ? (recTitle(a).localeCompare(recTitle(b)) || b.updated-a.updated) : sortBy==='created' ? b.created-a.created : b.updated-a.updated);
     const fresh = unseenNews(), kinds = Object.keys(KIND_PLURAL).filter(k=>list.some(c=>c.kind===k)), stale = list.filter(isStale).length;
@@ -3490,6 +3541,7 @@ const DocxImport = (() => {
       <main class="home">
         <div class="hero"><h2>Patient records</h2>
           <p class="sub">${list.length ? list.length+' record'+(list.length===1?'':'s')+' saved on this iPad' : 'Nothing saved on this iPad yet'}</p></div>
+        ${lastRec && list.length>1?`<button class="news-strip cont" id="cont">${ic(lastRec.kind)}<span><strong>Continue: ${h(recTitle(lastRec).replace(/\.$/,''))}.</strong> <span class="d">${h(recKind(lastRec))}${lastRec.at?`, at ${h(lastSec.num)}. ${h(lastSec.title)}`:''}</span></span><span class="go"><span class="x">Open </span>›</span></button>`:''}
         ${fresh.length?`<button class="news-strip" id="newsStrip">${ic('news')}<span><strong>${h(fresh[0].title)}.</strong> <span class="d">${h(longDate(fresh[0].date))}</span></span><span class="go"><span class="x">See what's new </span>›</span></button>`:''}
         <div class="home-grid">
           <section class="start" aria-label="Start a new document">
@@ -3521,6 +3573,7 @@ const DocxImport = (() => {
         </div>
         <footer class="credit"><img class="logo" src="icon-192.png" alt="PsychInterview app icon" width="56" height="56"><p>Web app developed in 2026 by Isabella Navarro, MD.</p><p>Latest version ${VERSION}. <button class="linkbtn" id="newsLink">What's new</button></p><p><a href="mailto:isaymotion@gmail.com">isaymotion@gmail.com</a></p></footer>
       </main>`;
+    { const c=$('#cont'); if(c) c.onclick=()=>openRec(lastRec.id); }
     $('#new').onclick = newCase;
     $('#newpn').onclick = chooseProgressSource;
     $('#newdc').onclick = chooseDischargeSource;
@@ -3753,7 +3806,7 @@ const DocxImport = (() => {
   }
   /* ----- What's new ----- */
   function renderNews(){
-    cur=null; document.title="What's new | PsychInterview";
+    cur=null; document.title="What's new | PsychInterview"; syncURL('#/news', !location.hash);
     const fresh=new Set(unseenNews().map(e=>e.id));
     document.body.innerHTML = `
       <header class="bar top"><button class="btn ghost" id="back" aria-label="Back to records">‹ Records</button><h1>What's new</h1>${lookButtons()}</header>
@@ -3765,7 +3818,7 @@ const DocxImport = (() => {
           <div class="news-body"><h3>${h(e.title)}</h3><ul>${e.items.map(([ty,tx])=>`<li><span class="news-type ${ty}">${NEWS_TYPE[ty]}</span><span>${h(tx)}</span></li>`).join('')}</ul></div></article>`).join('')}
         <footer class="credit"><p>Suggestions and corrections: <a href="mailto:isaymotion@gmail.com">isaymotion@gmail.com</a></p></footer>
       </main>`;
-    $('#back').onclick = renderHome; wireLook();
+    $('#back').onclick = goBack; wireLook();
     store.last.newsSeen = CHANGELOG[0].id; persist();
     window.scrollTo(0,0);
   }
@@ -4089,14 +4142,87 @@ const DocxImport = (() => {
   }
 
   /* ----- editor ----- */
-  function openRec(id){ cur=id; secIdx=0; renderEditor(); }
+  function openRec(id){
+    const rec=store.cases[id]; if(!rec) return renderHome();
+    cur=id; secIdx=secAt(rec); railQ=''; store.last.lastOpen=id;
+    syncURL('#/r/'+id+'/'+SECS(rec)[secIdx].id, !/^#\/r\//.test(location.hash));
+    renderEditor();
+  }
+  let railQ='';   // what is typed in "Find in this record"
+  /* plain text of what is in a field, for Find */
+  function plainText(f, d){
+    const v=d[f.id];
+    switch(f.t){
+      case 'text': case 'area': return str(v);
+      case 'checks': return (Array.isArray(v)?v:[]).join(', ');
+      case 'radio': return [v, d[f.id+'__d']].map(str).filter(Boolean).join(': ');
+      case 'radios': case 'parts': return Object.entries(v||{}).filter(([k,x])=>str(x)).map(([k,x])=>k+': '+str(x)).join('; ');
+      case 'table': return (Array.isArray(v)?v:[]).map(r=>(Array.isArray(r)?r:[]).map(str).filter(Boolean).join(', ')).filter(Boolean).join('\n');
+      case 'patients': return (Array.isArray(d.rows)?d.rows:[]).map(r=>Object.values(r||{}).filter(x=>typeof x==='string' && x.trim()).join(', ')).join('\n');
+    }
+    return extText(f, d);
+  }
+  const countable = (s,d) => s.fields.filter(f=>f.t!=='sub' && !(f.legacy && !isFilled(f,d)));
+  /* '' nothing typed, 'part' some fields filled, 'full' every field filled */
+  function secState(s, d){ const fs=countable(s,d), n=fs.filter(f=>isFilled(f,d)).length; return !n ? '' : n===fs.length ? 'full' : 'part'; }
+  const DOT_LABEL = { '':'not started', part:'partly filled', full:'every field filled' };
+  function findHits(q){
+    const d=D(), out=[]; q=q.trim().toLowerCase(); if(q.length<2) return out;
+    const cut=(t,k)=>{ const a=Math.max(0,k-24), b=Math.min(t.length,k+q.length+46); return (a?'…':'')+h(t.slice(a,k))+'<mark>'+h(t.slice(k,k+q.length))+'</mark>'+h(t.slice(k+q.length,b))+(b<t.length?'…':''); };
+    SECS().forEach((s,i)=>{
+      if(s.preview||s.morning) return;
+      const inTitle=(s.num+' '+s.title+' '+(s.group||'')).toLowerCase().includes(q);
+      if(inTitle) out.push({i, lab:s.title, snip:'Section'});
+      countable(s,d).forEach(f=>{ const t=plainText(f,d).replace(/\s+/g,' '), k=t.toLowerCase().indexOf(q);
+        if(k>=0) out.push({i, f:f.id, lab:str(f.label)||s.title, snip:cut(t,k)});
+        else if(str(f.label).toLowerCase().includes(q)) out.push({i, f:f.id, lab:f.label, snip:isFilled(f,d)?'Field':'Field, still blank'}); });
+    });
+    return out;
+  }
+  function goSec(i, fid){
+    secIdx=i; const r=$('#rail'); if(r){ r.classList.remove('open'); const m=$('#menu'); if(m) m.setAttribute('aria-expanded','false'); }
+    renderRail(); renderSection();
+    const el = fid && (document.getElementById('l-'+fid) || document.querySelector('#main [data-f="'+fid+'"]')), box = el && (el.closest('.field') || el);
+    if(box){ box.scrollIntoView({block:'center'}); box.classList.add('flash'); setTimeout(()=>box.classList.remove('flash'), 1900); } else window.scrollTo(0,0);
+  }
+  /* What's still blank: sections with nothing in them, and partly filled ones with the names of their empty fields */
+  function blankList(){
+    const d=D(), none=[], part=[];
+    SECS().forEach((s,i)=>{ if(s.preview||s.morning) return; const st=secState(s,d);
+      if(!st) none.push({i,s}); else if(st==='part') part.push({i, s, miss:countable(s,d).filter(f=>!isFilled(f,d))}); });
+    return {none, part};
+  }
+  function blanksSheet(){
+    const {none, part}=blankList(), total=SECS().filter(s=>!(s.preview||s.morning)).length;
+    const names = miss => { const a=miss.map(f=>str(f.label)).filter(Boolean); return a.slice(0,3).join('; ')+(a.length>3?'; and '+(a.length-3)+' more':''); };
+    sheet(`<h3>What's still blank</h3>
+      ${none.length||part.length ? `<p><strong>${none.length} of ${total} section${total===1?'':'s'}</strong> ${none.length===1?'has':'have'} nothing in ${none.length===1?'it':'them'} yet${part.length?`, and ${part.length} ${part.length===1?'is':'are'} partly filled`:''}. Tap one to go there. A section that does not apply to this patient can stay blank.</p>
+      <ul class="pick">${none.length?`<li class="grp">Not started</li>`:''}${none.map(x=>`<li><button data-bs="${x.i}"><strong>${h(x.s.num)}. ${h(x.s.title)}</strong></button></li>`).join('')}
+        ${part.length?`<li class="grp">Partly filled</li>`:''}${part.map(x=>`<li><button data-bs="${x.i}" data-bf="${h(x.miss[0].id)}"><strong>${h(x.s.num)}. ${h(x.s.title)}</strong><span>Blank: ${h(names(x.miss))}</span></button></li>`).join('')}</ul>`
+      : `<p>Every field in every section has something in it.</p>`}
+      <div class="tools"><button class="btn quiet" data-close>Close</button></div>`,
+    (s2, close)=>{ s2.querySelector('[data-close]').onclick=close;
+      s2.querySelectorAll('[data-bs]').forEach(b=>b.onclick=()=>{ close(); goSec(+b.dataset.bs, b.dataset.bf); }); }, 'wide');
+  }
+  /* The patient's other documents, from inside a record */
+  function docsSheet(){
+    const rec=R(), g=homeGroups(Object.values(store.cases)).find(x=>x.recs.includes(rec)), recs=(g && g.pt ? g.recs : [rec]).slice().sort((a,b)=>b.updated-a.updated);
+    const src = rec.kind==='case'||rec.kind==='pn' ? rec : recs.find(c=>c.kind==='case'||c.kind==='pn');
+    sheet(`<h3>${h(recTitle(rec))}</h3>
+      <p>${recs.length>1 ? recs.length+' documents are saved for this patient on this iPad. Tap one to open it.' : 'This is the only document saved for this patient on this iPad.'}</p>
+      <ul class="pick">${recs.map(c=>`<li><button data-go="${c.id}"${c===rec?' aria-current="true"':''}><strong>${h(recKind(c))}</strong><span>${c===rec?'Open now. ':''}Edited ${h(when(c.updated))}</span></button></li>`).join('')}</ul>
+      <div class="tools">${src?'<button class="btn" id="dsPn">+ Progress note</button>':''}<button class="btn quiet" data-close>Close</button></div>`,
+    (s2, close)=>{ s2.querySelector('[data-close]').onclick=close;
+      s2.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{ close(); if(b.dataset.go!==cur){ persist(); openRec(b.dataset.go); } });
+      const pn=s2.querySelector('#dsPn'); if(pn) pn.onclick=()=>{ close(); persist(); createProgress(src.data, src.kind, recTitle(src)+' ('+lc(recKind(src))+')'); }; });
+  }
   function renderEditor(){
     const rec=R(); document.title=recTitle(rec)+' | PsychInterview';
     document.body.innerHTML = `
       <header class="bar top ed">
         <button class="btn quiet" id="back" aria-label="All records">‹<span class="x-long"> Records</span></button>
         <button class="btn only-narrow" id="menu" aria-expanded="false" aria-controls="rail">Sections</button>
-        <h1 id="title">${h(recTitle(rec))}<small>${h(recKind(rec))}</small></h1>
+        <h1 id="title"${rec.kind==='ho'?'':' class="tap" role="button" tabindex="0" aria-haspopup="dialog" title="This patient\'s documents"'}>${h(recTitle(rec))}<small>${h(recKind(rec))}${rec.kind==='ho'?'':'<span class="chev" aria-hidden="true">▾</span>'}</small></h1>
         <span class="status" id="status">Saved on this iPad</span>
         ${['mc','ca','ho','sp'].includes(rec.kind)?'':'<button class="btn hide-sm" id="rem">Reminders</button>'}
         <button class="btn quiet danger hide-sm" id="del">Delete</button>
@@ -4105,7 +4231,8 @@ const DocxImport = (() => {
         <button class="btn ico hide-xs" id="aa" aria-label="Text size and theme">Aa</button>
       </header>
       <div class="layout"><nav class="rail" id="rail" aria-label="Sections"></nav><main class="main" id="main"></main></div>`;
-    $('#back').onclick = ()=>{ persist(); renderHome(); };
+    $('#back').onclick = goBack;
+    { const t=$('#title'); if(t.classList.contains('tap')){ t.onclick=docsSheet; t.onkeydown=e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); docsSheet(); } }; } }
     $('#menu').onclick = ()=>{ const r=$('#rail'); const o=r.classList.toggle('open'); $('#menu').setAttribute('aria-expanded',o); };
     if($('#rem')) $('#rem').onclick = showReminders;
     $('#del').onclick = ()=>{ if(confirm('Delete this record from this iPad? Export it first if you need a copy.')){ removeRec(cur); } };
@@ -4116,18 +4243,32 @@ const DocxImport = (() => {
   }
   function renderRail(){
     const d=D(); let g=null, html='';
+    const r=$('#rail');
+    if(!$('#railList')){
+      r.innerHTML=`<div class="rail-top"><label class="search">${ic('find')}<input type="search" id="find" placeholder="Find in this record" aria-label="Find in this record" autocomplete="off" value="${h(railQ)}"></label><button class="btn" id="blanks">What's still blank</button></div><div id="railList"></div>`;
+      $('#find').oninput=e=>{ railQ=e.target.value; renderRail(); };
+      $('#blanks').onclick=blanksSheet;
+    }
+    const box=$('#railList');
+    if(railQ.trim().length>=2){
+      const hits=findHits(railQ), secs=SECS();
+      box.innerHTML = hits.length ? hits.slice(0,60).map(x=>`<button class="hit" data-hit="${x.i}"${x.f?` data-hf="${h(x.f)}"`:''}><span class="n">${h(secs[x.i].num)}</span><span><strong>${h(x.lab)}</strong><small>${x.snip}</small></span></button>`).join('')+(hits.length>60?`<p class="nohit">Showing the first 60 of ${hits.length}. Type more to narrow it down.</p>`:'')
+        : `<p class="nohit">Nothing in this record matches. Clear the box to see the sections again.</p>`;
+      box.querySelectorAll('[data-hit]').forEach(b=>b.onclick=()=>goSec(+b.dataset.hit, b.dataset.hf));
+      return;
+    }
     SECS().forEach((s,i)=>{
       if(s.group && s.group!==g) html+=`<div class="grp">${h(s.num.replace(/[A-Z]$/,''))} &nbsp;${h(s.group)}</div>`;
       g=s.group||null;
-      const on=sectionStarted(s,d);
-      html+=`<button class="${s.group?'sub ':''}${s.risk?'risk ':''}${i===secIdx?'cur':''}" data-sec="${i}" ${i===secIdx?'aria-current="step"':''}><span class="n">${h(s.num)}</span><span>${h(s.title)}</span>${s.preview||s.morning?'<span></span>':`<span class="dot ${on?'on':''}" aria-label="${on?'started':'not started'}"></span>`}</button>`;
+      const st=secState(s,d);
+      html+=`<button class="${s.group?'sub ':''}${s.risk?'risk ':''}${i===secIdx?'cur':''}" data-sec="${i}" ${i===secIdx?'aria-current="step"':''}><span class="n">${h(s.num)}</span><span>${h(s.title)}</span>${s.preview||s.morning?'<span></span>':`<span class="dot ${st?'on':''} ${st==='full'?'full':''}" role="img" aria-label="${DOT_LABEL[st]}"></span>`}</button>`;
     });
-    const r=$('#rail'); r.innerHTML=html;
-    r.querySelectorAll('[data-sec]').forEach(b=>b.onclick=()=>{ secIdx=+b.dataset.sec; r.classList.remove('open'); $('#menu').setAttribute('aria-expanded','false'); renderRail(); renderSection(); window.scrollTo(0,0); });
+    box.innerHTML=html;
+    box.querySelectorAll('[data-sec]').forEach(b=>b.onclick=()=>goSec(+b.dataset.sec));
   }
   function updateRailDots(){
     const d=D();
-    document.querySelectorAll('#rail [data-sec]').forEach(b=>{ const on=sectionStarted(SECS()[+b.dataset.sec],d); const dot=b.querySelector('.dot'); if(!dot) return; dot.classList.toggle('on',on); dot.setAttribute('aria-label',on?'started':'not started'); });
+    document.querySelectorAll('#rail [data-sec]').forEach(b=>{ const st=secState(SECS()[+b.dataset.sec],d); const dot=b.querySelector('.dot'); if(!dot) return; dot.classList.toggle('on',!!st); dot.classList.toggle('full',st==='full'); dot.setAttribute('aria-label',DOT_LABEL[st]); });
   }
 
   /* ----- editors for the case presentation format ----- */
@@ -4308,6 +4449,7 @@ const DocxImport = (() => {
   function renderSection(){
     const rec=R(), secs=SECS(), s=secs[secIdx], d=D();
     const prev=secs[secIdx-1], next=secs[secIdx+1];
+    rec.at=s.id; store.last.lastOpen=rec.id; syncURL('#/r/'+rec.id+'/'+s.id, false);
     const hasLast = s.copyMSE && rec.lastMSE && Object.keys(rec.lastMSE).length;
     $('#main').innerHTML = `
       <div class="sec-head ${s.risk?'risk':''}">
@@ -4328,7 +4470,7 @@ const DocxImport = (() => {
         ${prev?`<button class="btn" id="prev">‹ ${h(prev.num)} ${h(prev.title)}</button>`:'<span></span>'}
         ${next?`<button class="btn primary" id="next">${h(next.num)} ${h(next.title)} ›</button>`:`<span class="tools" style="margin:0">${rec.kind==='case'?'<button class="btn" id="donePres">Create slides</button>':''}<button class="btn primary" id="done">Export Word file</button></span>`}
       </div>`;
-    const go = i => { secIdx=i; renderRail(); renderSection(); window.scrollTo(0,0); };
+    const go = i => goSec(i);
     if(prev) $('#prev').onclick=()=>go(secIdx-1);
     if(next) $('#next').onclick=()=>go(secIdx+1); else { $('#done').onclick=exportDocx; if($('#donePres')) $('#donePres').onclick=presentationSheet; }
     const rc=$('#rmChart'); if(rc) rc.onclick=()=>{ if(confirm('Remove the hospitalization timeline slide? You can send it again from the DSM app.')){ delete d.admChart; touch(); renderSection(); } };
@@ -4661,9 +4803,11 @@ const DocxImport = (() => {
         <li><button data-lay="form"><strong>Case form (app format)</strong><span>Every field in labeled tables. Best for checking entries and for editing in Word before opening the file in the app again.${last==='form'?' Last used.':''}</span></button></li>
       </ul>
       <p class="small">Both files can be opened in this app again with Open Word file.</p>
+      ${blankList().none.length?`<p class="small">${blankList().none.length} section${blankList().none.length===1?' has':'s have'} nothing in ${blankList().none.length===1?'it':'them'} yet. <button class="linkbtn" id="seeBlanks">See which</button></p>`:''}
       <div class="tools"><button class="btn quiet" data-close>Cancel</button></div>`,
     (s2, close)=>{
       s2.querySelector('[data-close]').onclick=close;
+      { const sb=s2.querySelector('#seeBlanks'); if(sb) sb.onclick=()=>{ close(); blanksSheet(); }; }
       s2.querySelectorAll('[data-lay]').forEach(b=>b.onclick=async ()=>{
         const lay=b.dataset.lay; store.last.caseLayout=lay; persist();
         s2.querySelectorAll('[data-lay]').forEach(x=>x.disabled=true); b.querySelector('strong').textContent='Creating…';
@@ -4911,7 +5055,7 @@ const DocxImport = (() => {
   if('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(()=>{});
   applyLook();
   if(lockOn()){ document.body.innerHTML=''; showLock(); }   // nothing about a patient is drawn until the passcode is in
-  whenUnlocked(()=>{ renderHome(); checkInbox(); });
+  whenUnlocked(()=>{ if(/^#\/(r\/|news$)/.test(location.hash)) route(); else renderHome(); checkInbox(); });
 })();
 
 </script>
