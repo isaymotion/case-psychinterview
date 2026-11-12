@@ -370,7 +370,7 @@ a.btn{display:inline-flex;align-items:center;text-decoration:none}
 .fchip[aria-pressed="true"]{background:var(--blue);border-color:var(--blue);color:#fff}
 .fchip[aria-pressed="true"] b{color:inherit;opacity:.8}
 @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .fchip[aria-pressed="true"]{color:#0E151D} }
-.cases{display:grid;gap:10px;border-top:0}
+.cases{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;border-top:0}
 .cases li{display:flex;align-items:stretch;background:var(--paper);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 1px 2px rgba(20,40,60,.05);transition:border-color .15s ease}
 .cases li[hidden]{display:none}
 .cases button.open{flex:1;min-width:0;gap:14px;padding:13px 4px 13px 14px}
@@ -403,6 +403,39 @@ a.btn{display:inline-flex;align-items:center;text-decoration:none}
   .bar.top .btn.ghost{padding:9px 11px}
   .cases .meter{display:none}
 }
+/* patients, sort, exported marks (v34) */
+.recs-tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px}
+.vseg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--paper)}
+.vseg button{border:0;background:none;min-height:44px;padding:0 16px;font-size:14.5px;color:var(--ink-2)}
+.vseg button[aria-pressed="true"]{background:var(--blue);color:#fff;font-weight:600}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .vseg button[aria-pressed="true"]{color:#0E151D} }
+.sortbox{display:inline-flex;align-items:center;gap:8px;font-size:14.5px;color:var(--ink-3);margin-left:auto}
+.sortbox select{width:auto;min-height:44px;border-radius:999px;padding:0 34px 0 14px;font-size:14.5px}
+.tag{display:inline-block;font-size:12.5px;font-weight:600;line-height:1.5;padding:0 8px;border-radius:999px;background:var(--wash);color:var(--ink-2);margin-left:4px;white-space:nowrap}
+.tag.ok{color:var(--good)}
+.tag.warn{background:#FBF0D9;color:#7A4E0C}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .tag.warn{background:rgba(224,182,108,.16);color:#E0B66C} }
+.cases li.pt{display:block;overflow:visible}
+.cases li.pt[hidden]{display:none}
+.pt-head{display:flex;align-items:center;flex-wrap:wrap;gap:10px 14px;padding:13px 12px 11px 14px}
+.pt-head .who{flex:1 1 210px;min-width:0;display:block}
+.pt-head .who strong{display:block;font-size:17.5px;line-height:1.3}
+.pt-head .who span{display:block;font-size:14px;color:var(--ink-3)}
+.pt-ic{--k:var(--ink-2)}
+.btn.sm{min-height:44px;padding:8px 13px;font-size:14.5px;white-space:nowrap}
+.pt-note{margin:0 14px 10px;padding:8px 12px;border-radius:10px;font-size:14px;background:#FBF0D9;color:#5E3C08}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .pt-note{background:rgba(224,182,108,.16);color:#E0B66C} }
+.doc{display:flex;align-items:stretch;border-top:1px solid var(--line)}
+.doc[hidden]{display:none}
+.cases .doc button.open{padding:9px 4px 9px 18px;gap:12px}
+.doc .kic{width:32px;height:32px;border-radius:9px}
+.doc .kic .ic{width:18px;height:18px}
+.doc .who strong{font-size:15.5px;white-space:normal}
+.pt-more{display:block;width:100%;border:0;border-top:1px solid var(--line);background:none;min-height:44px;color:var(--blue);font-weight:600;font-size:14.5px;border-radius:0 0 14px 14px}
+.tidy{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 12px;padding:10px 14px;border-radius:12px;font-size:14.5px;background:#FBF0D9;color:#5E3C08}
+.tidy span{flex:1 1 260px}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .tidy{background:rgba(224,182,108,.16);color:#E0B66C} }
+@media (max-width:640px){ .sortbox{margin-left:0} .sortbox .l{display:none} .doc .meter{display:none} }
 /* theme and text size (v31). Forced dark is generated at start-up from the dark media rules (forceDark in the script). */
 :root[data-theme="light"]{color-scheme:light} :root[data-theme="dark"]{color-scheme:dark}
 body{zoom:var(--tz,1)}
@@ -3124,6 +3157,12 @@ const DocxImport = (() => {
   /* ----- What's new. Newest entry FIRST; id goes up by one each release (it is the key for the unseen badge).
      Add an entry on every release, with the cache number from sw.js as v. Types: feature (New), update (Improved), fix (Fixed). ----- */
   const CHANGELOG=[
+    {id:17, v:'v34', date:'2026-11-12', title:'Records grouped by patient', items:[
+      ['feature','By patient: a patient with several documents now has one card listing them, with a + Progress note button. Switch to All documents for the flat list.'],
+      ['feature','Sort the list by last edited, patient name or date created.'],
+      ['feature','Exported marks: a record shows when its Word file was last exported, or that it was edited since.'],
+      ['feature','Clean-up reminder: records exported 7 or more days ago and not edited since are flagged as ready to delete, with a chip to show only those.'],
+      ['feature','Duplicate notice: typing an MRN that another case on this iPad already has offers to open that case instead.']]},
     {id:16, v:'v33', date:'2026-11-12', title:'More time to undo a delete', items:[
       ['update','Undo now stays on screen for 15 seconds after deleting one record or all records (it was 8).']]},
     {id:15, v:'v32', date:'2026-11-12', title:'Light and dark, text size, and Undo for Delete all', items:[
@@ -3192,6 +3231,7 @@ const DocxImport = (() => {
     sun:'<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4"/>',
     moon:'<path d="M19.5 14.2A7.8 7.8 0 0 1 9.8 4.5a7.8 7.8 0 1 0 9.7 9.7z"/>',
     auto:'<circle cx="12" cy="12" r="8"/><path d="M12 4v16M12 7.5l5.5 3M12 12l7 3.6M12 16.5l4.5 2.2"/>',
+    person:'<circle cx="12" cy="8.5" r="3.5"/><path d="M5 19.5c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"/>',
     file:'<path d="M4 7.5a2 2 0 0 1 2-2h3.5l2 2H18a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/>'
   };
   const ic = n => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n]}</svg>`;
@@ -3244,11 +3284,59 @@ const DocxImport = (() => {
   }
 
   /* ----- home ----- */
+  /* ----- patients: the records of one patient, grouped for the home list. The MRN decides when both sides have one;
+     otherwise the name in any word order (same rule as samePt). Handover sheets and unnamed records stand alone. ----- */
+  const nameKey = x => str(x).toLowerCase().replace(/[^a-z0-9ñ]+/g,' ').trim().split(' ').filter(Boolean).sort().join(' ');
+  const recPt = rec => rec.kind==='ho' ? null : { mrn:normMRN(rec.data.mrn), name:nameKey(rec.data.patient||rec.data.patientName) };
+  function homeGroups(list){
+    const groups=[];
+    for(const rec of list){
+      const p=recPt(rec), known = p && (p.mrn||p.name);
+      let g = known ? groups.find(g=>g.pt && ((p.mrn && g.mrns.has(p.mrn)) || (p.name && g.names.has(p.name) && !(p.mrn && g.mrns.size)))) : null;
+      if(!g){ g={pt:!!known, recs:[], mrns:new Set(), names:new Set()}; groups.push(g); }
+      g.recs.push(rec); if(known){ if(p.mrn) g.mrns.add(p.mrn); if(p.name) g.names.add(p.name); }
+    }
+    return groups;
+  }
+  /* ----- exported marks: rec.exported = time of the last Word export. A record is "ready to delete" when it was
+     exported CLEAN_DAYS or more ago and not edited since. ----- */
+  const DAY=864e5, CLEAN_DAYS=7;
+  const editedSince = rec => rec.updated > rec.exported + 60000;
+  const isStale = rec => !!rec.exported && !editedSince(rec) && Date.now()-rec.exported >= CLEAN_DAYS*DAY;
+  function markExported(id){ const rec=store.cases[id]; if(!rec) return; rec.exported=Date.now(); try{ localStorage.setItem(KEY, JSON.stringify(store)); }catch(e){} }
+  function expTag(rec){
+    if(!rec.exported) return '';
+    if(editedSince(rec)) return '<span class="tag">Edited since export</span>';
+    const n=Math.floor((Date.now()-rec.exported)/DAY);
+    return `<span class="tag ${isStale(rec)?'warn':'ok'}">Exported ${n===0?'today':n===1?'yesterday':n+' days ago'}</span>`;
+  }
+  const HOME_SORTS={edited:'Last edited', name:'Patient name', created:'Date created'};
+  const PT_SHOW=8;   // a patient with more documents than this shows the newest six and a "Show more" button
+
   function renderHome(){
     cur=null; document.title='PsychInterview';
-    const list = Object.values(store.cases).sort((a,b)=>b.updated-a.updated);
-    const fresh = unseenNews(), kinds = Object.keys(KIND_PLURAL).filter(k=>list.some(c=>c.kind===k));
-    if(homeK!=='all' && !kinds.includes(homeK)) homeK='all';
+    const sortBy = HOME_SORTS[store.last.homeSort] ? store.last.homeSort : 'edited', byPt = store.last.homeView!=='docs';
+    const list = Object.values(store.cases).sort((a,b)=> sortBy==='name' ? (recTitle(a).localeCompare(recTitle(b)) || b.updated-a.updated) : sortBy==='created' ? b.created-a.created : b.updated-a.updated);
+    const fresh = unseenNews(), kinds = Object.keys(KIND_PLURAL).filter(k=>list.some(c=>c.kind===k)), stale = list.filter(isStale).length;
+    if(homeK!=='all' && !kinds.includes(homeK) && !(homeK==='old' && stale)) homeK='all';
+    const attrs = c => `class="${'k-'+c.kind}" data-kind="${c.kind}"${isStale(c)?' data-old="1"':''} data-s="${h((recTitle(c)+' '+recKind(c)+' '+str(c.data.mrn)).toLowerCase())}"`;
+    const meter = c => { const n=SECS(c).length, p=progress(c); return `<span class="meter">${p} of ${n} sections<i><b style="width:${Math.round(p/n*100)}%"></b></i></span>`; };
+    const bin = c => `<button class="rm" data-del="${c.id}" aria-label="Delete ${h(recTitle(c))}, ${h(recKind(c))}">${ic('bin')}</button>`;
+    const card = c => `<li ${attrs(c)}><button class="open" data-open="${c.id}"><i class="kic">${ic(c.kind)}</i>
+                <span class="who"><span class="kind">${h(recKind(c))}</span><strong>${h(recTitle(c))}</strong>
+                <span>${str(c.data.mrn)?'MRN '+h(str(c.data.mrn))+'. ':''}${h(str(c.data.datetime))}${str(c.data.datetime)?'. ':''}Edited ${h(when(c.updated))}${expTag(c)}</span></span>
+                ${meter(c)}</button>${bin(c)}</li>`;
+    const doc = (c,i,n) => `<div ${attrs(c).replace('class="','class="doc ')}${n>PT_SHOW && i>=6?' data-extra="1"':''}><button class="open" data-open="${c.id}"><i class="kic">${ic(c.kind)}</i>
+                <span class="who"><strong>${h(recKind(c))}</strong><span>Edited ${h(when(c.updated))}${expTag(c)}</span></span>${meter(c)}</button>${bin(c)}</div>`;
+    const group = (g,gi) => { const lead=g.recs.find(c=>c.kind==='case')||g.recs[0], mrn=str((g.recs.find(c=>str(c.data.mrn))||lead).data.mrn), src=g.recs.filter(c=>c.kind==='case'||c.kind==='pn').sort((a,b)=>b.updated-a.updated)[0];
+      const counts=Object.keys(KIND_PLURAL).map(k=>{ const n=g.recs.filter(c=>c.kind===k).length; return n===1 ? SCHEMAS[k].name.toLowerCase() : n ? n+' '+KIND_PLURAL[k].toLowerCase() : ''; }).filter(Boolean).join(', ');
+      const cases=g.recs.filter(c=>c.kind==='case').length, extra=g.recs.length>PT_SHOW ? g.recs.length-6 : 0;
+      return `<li class="pt" data-g="${gi}"><div class="pt-head"><i class="kic pt-ic">${ic('person')}</i>
+                <span class="who"><strong>${h(recTitle(lead))}</strong><span>${mrn?'MRN '+h(mrn)+'. ':''}${h(counts.charAt(0).toUpperCase()+counts.slice(1))}</span></span>
+                ${src?`<button class="btn sm" data-newpn="${src.id}">+ Progress note</button>`:''}</div>
+                ${cases>1?`<p class="pt-note">${cases} cases are saved for this patient. If one is a duplicate, open it to check, then delete it with its bin.</p>`:''}
+                ${g.recs.map((c,i)=>doc(c,i,g.recs.length)).join('')}
+                ${extra?`<button class="pt-more" data-more>Show ${extra} more</button>`:''}</li>`; };
     document.body.innerHTML = `
       <header class="bar top"><img class="logo" src="icon-192.png" alt="" width="36" height="36"><h1>PsychInterview</h1>
         <button class="btn ghost" id="news" aria-label="What's new${fresh.length?', '+fresh.length+' unread':''}">${ic('news')}<span class="lbl">What's new</span>${fresh.length?`<span class="badge">${fresh.length}</span>`:''}</button>
@@ -3266,14 +3354,11 @@ const DocxImport = (() => {
           <section class="recs" aria-label="Saved records">
             <div class="recs-head"><p class="sec-h">Saved records</p>
               ${list.length>1?`<label class="search">${ic('find')}<input type="search" id="q" placeholder="Search name, MRN or type" aria-label="Search records" value="${h(homeQ)}" autocomplete="off"></label>`:''}</div>
-            ${kinds.length>1?`<div class="fchips" role="group" aria-label="Show">${['all',...kinds].map(k=>`<button class="fchip" data-k="${k}" aria-pressed="${homeK===k}">${k==='all'?'All':KIND_PLURAL[k]}<b>${k==='all'?list.length:list.filter(c=>c.kind===k).length}</b></button>`).join('')}</div>`:''}
-            ${list.length ? `<ul class="cases">${list.map(c=>{
-              const n=SECS(c).length, p=progress(c), pct=Math.round(p/n*100);
-              return `<li class="k-${c.kind}" data-kind="${c.kind}" data-s="${h((recTitle(c)+' '+recKind(c)+' '+str(c.data.mrn)).toLowerCase())}"><button class="open" data-open="${c.id}"><i class="kic">${ic(c.kind)}</i>
-                <span class="who"><span class="kind">${h(recKind(c))}</span><strong>${h(recTitle(c))}</strong>
-                <span>${str(c.data.mrn)?'MRN '+h(str(c.data.mrn))+'. ':''}${h(str(c.data.datetime))}${str(c.data.datetime)?'. ':''}Edited ${h(when(c.updated))}</span></span>
-                <span class="meter">${p} of ${n} sections<i><b style="width:${pct}%"></b></i></span></button>
-                <button class="rm" data-del="${c.id}" aria-label="Delete ${h(recTitle(c))}, ${h(recKind(c))}">${ic('bin')}</button></li>`;}).join('')}</ul>
+            ${list.length>1?`<div class="recs-tools"><div class="vseg" role="group" aria-label="Show records"><button data-view="pt" aria-pressed="${byPt}">By patient</button><button data-view="docs" aria-pressed="${!byPt}">All documents</button></div>
+              <label class="sortbox"><span class="l">Sort by</span><select id="sort" aria-label="Sort by">${Object.entries(HOME_SORTS).map(([k,v])=>`<option value="${k}"${k===sortBy?' selected':''}>${v}</option>`).join('')}</select></label></div>`:''}
+            ${kinds.length>1||stale?`<div class="fchips" role="group" aria-label="Show">${['all',...kinds,...(stale?['old']:[])].map(k=>`<button class="fchip" data-k="${k}" aria-pressed="${homeK===k}">${k==='all'?'All':k==='old'?'Ready to delete':KIND_PLURAL[k]}<b>${k==='all'?list.length:k==='old'?stale:list.filter(c=>c.kind===k).length}</b></button>`).join('')}</div>`:''}
+            ${stale?`<div class="tidy"><span><strong>${stale} record${stale===1?' was':'s were'} exported ${CLEAN_DAYS} or more days ago</strong> and not edited since. Check that the Word file is in your hospital's approved storage, then delete the record here.</span><button class="btn sm" id="tidy">Show ${stale===1?'it':'them'}</button></div>`:''}
+            ${list.length ? `<ul class="cases">${byPt ? homeGroups(list).map((g,gi)=> g.pt && g.recs.length>1 ? group(g,gi) : g.recs.map(card).join('')).join('') : list.map(card).join('')}</ul>
               <p class="nomatch" id="nomatch" hidden>No record matches. Clear the search or choose <strong>All</strong>.</p>`
               : `<p class="empty">Nothing here yet. Tap <strong>New case</strong> to start an interview, or <strong>Open Word file</strong> to continue one you exported.</p>`}
             <div class="privacy"><strong>Where your data lives.</strong> Records are saved only in this app on this iPad; nothing is uploaded anywhere. Export the Word file to your hospital's approved storage, then delete the record here.</div>
@@ -3293,11 +3378,18 @@ const DocxImport = (() => {
     ['#news','#newsStrip','#newsLink'].forEach(q=>{ const b=$(q); if(b) b.onclick=renderNews; });
     document.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>openRec(b.dataset.open));
     document.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>askDelete(b.dataset.del));
-    const filter=()=>{ const q=homeQ.trim().toLowerCase(); let n=0;
-      document.querySelectorAll('.cases li').forEach(li=>{ const ok=(homeK==='all'||li.dataset.kind===homeK) && (!q||li.dataset.s.includes(q)); li.hidden=!ok; if(ok) n++; });
+    document.querySelectorAll('[data-newpn]').forEach(b=>b.onclick=()=>{ const src=store.cases[b.dataset.newpn]; if(src) createProgress(src.data, src.kind, recTitle(src)+' ('+lc(recKind(src))+')'); });
+    const filter=()=>{ const q=homeQ.trim().toLowerCase(), all=homeK==='all' && !q; let n=0;
+      document.querySelectorAll('.cases [data-s]').forEach(el=>{ const ok=(homeK==='all' || (homeK==='old' ? !!el.dataset.old : el.dataset.kind===homeK)) && (!q||el.dataset.s.includes(q)) && !(all && el.dataset.extra && !el.parentNode.dataset.all); el.hidden=!ok; if(ok) n++; });
+      document.querySelectorAll('.cases li.pt').forEach(li=>{ li.hidden=!li.querySelector('.doc:not([hidden])'); const m=li.querySelector('[data-more]'); if(m) m.hidden=!all || !!li.dataset.all; });
       const nm=$('#nomatch'); if(nm) nm.hidden = n>0; };
+    document.querySelectorAll('[data-more]').forEach(b=>b.onclick=()=>{ b.parentNode.dataset.all='1'; filter(); });
     const q=$('#q'); if(q) q.oninput=()=>{ homeQ=q.value; filter(); }; else homeQ='';
-    document.querySelectorAll('.fchip').forEach(b=>b.onclick=()=>{ homeK=b.dataset.k; document.querySelectorAll('.fchip').forEach(x=>x.setAttribute('aria-pressed', x===b)); filter(); });
+    const pick=k=>{ homeK=k; document.querySelectorAll('.fchip').forEach(x=>x.setAttribute('aria-pressed', x.dataset.k===k)); filter(); };
+    document.querySelectorAll('.fchip').forEach(b=>b.onclick=()=>pick(b.dataset.k));
+    const td=$('#tidy'); if(td) td.onclick=()=>{ pick('old'); const f=document.querySelector('.fchips'); if(f) f.scrollIntoView({block:'nearest'}); };
+    document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{ store.last.homeView=b.dataset.view; persist(); const y=window.scrollY; renderHome(); window.scrollTo(0,y); });
+    const so=$('#sort'); if(so) so.onchange=()=>{ store.last.homeSort=so.value; persist(); const y=window.scrollY; renderHome(); window.scrollTo(0,y); };
     filter();
     const w=$('#wipe'); if(w) w.onclick=()=>{ if(confirm('Delete ALL '+list.length+' records from this iPad?')){ const kept=store.cases; store.cases={}; persist(); renderHome();
       toast('Deleted all '+list.length+' record'+(list.length===1?'':'s')+'.', 'Undo', ()=>{ store.cases=Object.assign({}, kept, store.cases); persist(); if(!cur) renderHome(); }); } };
@@ -4116,6 +4208,7 @@ const DocxImport = (() => {
       const f = slides ? await slidesFor(rec, intent.pres) : await docxFor(rec, intent.layout);
       stat('Uploading to your Google Drive…');
       const res = await gUpload(f.bytes, f.name, slides ? PPTX_TYPE : DOCX_TYPE, slides ? 'application/vnd.google-apps.presentation' : 'application/vnd.google-apps.document', token);
+      if(!slides) markExported(rec.id);
       box.querySelector('.sheet').innerHTML = `<h3>Saved to ${what}</h3><p><strong>${h(res.name||f.name)}</strong> is in the <strong>PsychInterview</strong> folder of your Google Drive. Check the layout there; ${slides?'Google Slides may swap fonts it does not have.':'Google Docs may move pictures a little.'}</p>
         <div class="tools">${res.webViewLink ? `<a class="btn primary" href="${h(res.webViewLink)}" target="_blank" rel="noopener">Open in ${what}</a>` : ''}<button class="btn quiet" data-close>Done</button></div>`;
       box.querySelector('[data-close]').onclick = close;
@@ -4190,6 +4283,19 @@ const DocxImport = (() => {
     };
     reader.readAsText(file);
   }
+  /* Same MRN as another case on this iPad: say so once per value, when the resident leaves the MRN box */
+  let dupSeen='';
+  document.addEventListener('change', e=>{
+    const el=e.target; if(!cur || !el || !el.dataset || el.dataset.f!=='mrn' || R().kind!=='case') return;
+    const m=normMRN(D().mrn), others = m ? Object.values(store.cases).filter(c=>c.kind==='case' && c.id!==cur && normMRN(c.data.mrn)===m) : [];
+    if(!others.length || dupSeen===cur+'|'+m) return; dupSeen=cur+'|'+m;
+    sheet(`<h3>This MRN is already on this iPad</h3>
+      <p>Another case has MRN <strong>${h(str(D().mrn))}</strong>:</p>
+      <ul class="pick">${others.map(c=>`<li><button data-go="${c.id}"><strong>${h(recTitle(c))}</strong><span>Case. Edited ${h(when(c.updated))}. Tap to open it instead.</span></button></li>`).join('')}</ul>
+      <p class="small">If this is a new admission of the same patient, keep both. The home screen lists them together under the patient.</p>
+      <div class="tools end"><button class="btn primary" data-close>Keep both</button></div>`,
+      (s2,close)=>{ s2.querySelector('[data-close]').onclick=close; s2.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{ close(); persist(); openRec(b.dataset.go); }); });
+  });
   document.addEventListener('change', e=>{ if(e.target && e.target.id==='geno-file'){ openGenogramFile(e.target.files && e.target.files[0]); e.target.value=''; } });
   async function saveGenogram(){
     const d=D(), when=new Date().toLocaleDateString('en-US',{month:'long', year:'numeric'}), nm=str(d.genoPtName);
@@ -4222,7 +4328,7 @@ const DocxImport = (() => {
         s2.querySelector('.sheet').innerHTML = `<h3>Word file ready</h3><p>${h(name)}</p><div class="tools"><button class="btn primary" id="wshare">Share</button>${gReady()?'<button class="btn" id="wgoogle">Save to Google Docs</button>':''}<button class="btn quiet" data-close>Done</button></div>`;
         s2.querySelector('[data-close]').onclick=close;
         const wg=s2.querySelector('#wgoogle'); if(wg) wg.onclick=()=>{ close(); gStart({ rec:cur, what:'doc', layout:lay }); };
-        const sh=s2.querySelector('#wshare'); sh.onclick=()=>saveFile(bytes, name, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'Word file created: '+name); sh.focus();
+        const sh=s2.querySelector('#wshare'); { const rid=cur; sh.onclick=async ()=>{ if(await saveFile(bytes, name, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'Word file created: '+name)) markExported(rid); }; } sh.focus();
       });
     });
   }
@@ -4232,7 +4338,7 @@ const DocxImport = (() => {
       const rec=R(), f=await docxFor(rec);
       sheet(`<h3>Word file ready</h3><p>${h(f.name)}</p><div class="tools"><button class="btn primary" id="wshare">Share</button><button class="btn" id="wgoogle">Save to Google Docs</button><button class="btn quiet" data-close>Done</button></div>`,
         (s2, close)=>{ s2.querySelector('[data-close]').onclick=close;
-          s2.querySelector('#wshare').onclick=()=>saveFile(f.bytes, f.name, DOCX_TYPE, 'Word file created: '+f.name);
+          s2.querySelector('#wshare').onclick=async ()=>{ if(await saveFile(f.bytes, f.name, DOCX_TYPE, 'Word file created: '+f.name)) markExported(rec.id); };
           s2.querySelector('#wgoogle').onclick=()=>{ close(); gStart({ rec:cur, what:'doc' }); }; });
       return;
     }
@@ -4241,19 +4347,19 @@ const DocxImport = (() => {
     const base = (str(d.patient)||str(d.patientName)||(R().kind==='ho'?(str(d.unit)||'Unit'):'')||'Patient').replace(/[^\w\- ]+/g,' ').trim().replace(/\s+/g,'_').slice(0,50) || 'Patient';
     const hd = rec.kind==='pn' && /^\d+$/.test(str(d.hday)) ? '_HD'+str(d.hday) : '';
     const name = `${base}_${SCHEMAS[rec.kind].file}${hd}_${new Date().toISOString().slice(0,10)}.docx`;
-    await saveFile(bytes, name, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'Word file created: '+name);
+    if(await saveFile(bytes, name, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'Word file created: '+name)) markExported(rec.id);
   }
   // Hands a file to the iPad's share sheet (Save to Files, AirDrop, open in an app); downloads it elsewhere
   async function saveFile(bytes, name, type, done){
     const file = new File([bytes], name, {type});
     if(navigator.canShare && navigator.canShare({files:[file]})){
-      try{ await navigator.share({files:[file], title:name}); return; }
-      catch(err){ if(err && err.name==='AbortError') return; }
+      try{ await navigator.share({files:[file], title:name}); return true; }
+      catch(err){ if(err && err.name==='AbortError') return false; }
     }
     const url=URL.createObjectURL(file), a=document.createElement('a');
     a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove();
     setTimeout(()=>URL.revokeObjectURL(url), 5000);
-    toast(done);
+    toast(done); return true;
   }
 
   /* ----- case presentation (PowerPoint) ----- */
