@@ -56,14 +56,13 @@ Passing: every `errors []`, no Traceback; "screens visited: 85 across 7 records"
 | Progress note, discharge summary, medical certificate, clinical abstract, handover (+ morning notes), safety plan (English/Filipino) | Done |
 | Slides: 5 designs, pptx/pdf/Keynote, Google Slides, timeline slide, large text, formulation builder | Done (later sessions) |
 | Google Docs conversion of protocol export | **Checked 2026-11-12** through real Drive conversion: letterhead, both floating logos, genogram, lab table with red flags, salient/ddx/formulation/goals tables, page breaks all convert faithfully (7 pages both ways). Only defect was footer page numbers (large black); fixed in v24 (next row). |
-| v24 release (footer fix) | **PR #13 open, awaiting the user's merge approval**: https://github.com/isaymotion/case-psychinterview/pull/13 (branch `gdocs-footer`; index.html footers + VERSION 'November 12, 2026', sw.js `v24`). Tests pass, all 8 docx validate, verified in real Google Docs. Self-merge is blocked as "merge without review"; merge once she approves (she can tap Merge on GitHub, or a session with repo write access runs `gh api -X PUT repos/isaymotion/case-psychinterview/pulls/13/merge -f merge_method=merge`). If main has moved, rebase first. |
+| v24 release (footer fix) | **Live**: PR #13 merged 2026-11-12 with the user's approval (cache `v24`, VERSION 'November 12, 2026'). |
 | Google Docs/Slides export | Live; **not yet confirmed by the user on a real iPad + Gmail** |
 | Google Slides fonts after conversion | Not yet checked |
 | Rename to PsychInterview | Done |
 | Filipino safety-plan wording | Awaiting review by a Filipino-speaking clinician |
 
 ## 7. Next steps
-- Land v24: PR #13 needs the user's approval to merge (see §6). After merging, tell her to wait 1–2 min and reopen the app; the home screen should say "Latest version November 12, 2026".
 - Ask whether the real Google export worked on her iPad. If error `redirect_uri_mismatch`: the Google Cloud client must list redirect URI `https://isaymotion.github.io/case-psychinterview/` exactly and JS origin `https://isaymotion.github.io`. If `access_denied`: add the Gmail to Audience → Test users.
 - Check Google Slides conversion fonts (upload a fixture pptx from `t_slides.py` output via Drive the same way as §5, export as PDF, compare). Other Word kinds (form layout, letters) share `FOOTER`, so they get the v24 fix too; spot-check one in Google Docs if time.
 - Release after v24: cache `v25`, VERSION = release date.
