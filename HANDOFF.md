@@ -22,6 +22,7 @@
   Example: `{t:'radio', id:'progRating', label:'Prognosis', o:['Good','Fair','Guarded','Poor']}`.
 - **Case form order** follows the MMWGH Case Presentation Protocol: A encounter, B presentation details (title, prepared/supervised by, objectives), 1 Identifying data … 18A–18G MSE … 21 Labs, 22 Salient features, 23 Differentials (`ddx` table), 24 Working diagnosis (`primaryDx`), 25 Formulation (`bps` grid; a formulation builder was added later), 26 Risk, 27 Prognosis, 28 Goals & plan, 29 Discussion & references.
 - **Word export:** `DocxGen.build(d, kind, ex)`. Case has two layouts: `ex.layout='protocol'` (hospital format, A4 Arial, letterhead from `PROTOCOL_HEAD` with base64 DOH + hospital logos) or `'form'` (labeled tables). Genogram PNG passed as `ex.geno`. Letters (mc, ca, ho, sp, and case files) embed the data as JSON in `docProps/custom.xml` (`CaseAppKind`, `CaseAppLayout`, `CaseAppPrint` fingerprint) so they reopen exactly; an edited file is detected by the fingerprint.
+- **Footers:** three templates in index.html: `FOOTER` (form layout + all letters), `FOOTER_P` (protocol), `footerSP()` (safety plan). Page numbers use complex fields (`fldChar` begin/instrText/separate/end), each run carrying grey `sz` formatting, plus `<w:rPr>` in the paragraph's `pPr`. Do not go back to `w:fldSimple`: Google Docs drops its formatting (since v24).
 - **Import:** `DocxImport.fileToData(file)` → `{kind, data, filled, missed, edited}`.
 - **Genogram:** `genogramLayout(d)` → `genogramSVG(G)`; slides draw it as editable shapes.
 - **Slides:** `CASE_FORMAT` in slides.js sets order; `NOT_SLIDES = ['enc','pres']`.
@@ -33,7 +34,7 @@
 3. If adding a field type: update `isFilled`, `fieldHTML`, input/click handlers, Word export (`valueParas` or a table), import (`parseValue`/table detection), `extText` (plain text for notes/slides), and slides `sectionBlocks`.
 4. Bump `CACHE` in sw.js and `VERSION` date.
 5. Run tests (§5); look at rendered output images for any visual change.
-6. Commit with attribution lines, push, open PR and merge with gh REST API (§8).
+6. Commit with attribution lines, push, open PR (§8); merge once the user approves.
 
 ## 5. Commands
 ```
@@ -42,8 +43,9 @@ git fetch origin dev-tools && git worktree add ../dt origin/dev-tools
 pip install python-docx --break-system-packages      # playwright + Chromium are preinstalled
 bash ../dt/tools/tests/run_all.sh "$PWD"               # runs against the clone
 ```
-Passing: every `errors []`, no Traceback; "screens visited: 85 across 7 records"; slides 5 designs generated (~41–42 slides for the fixture); Google test shows sign-in with the real client id; linked-documents lines print differential, admitDx with "Rule out:", labs with (L) flags.
+Passing: every `errors []`, no Traceback; "screens visited: 85 across 7 records"; slides 5 designs generated (~41–42 slides for the fixture); Google test shows sign-in with the real client id; linked-documents lines print differential, admitDx with "Rule out:", labs with (L) flags. Exported test files land in `../dt/tools/tests/out/` (case_protocol.docx, case_form.docx, reg_*.docx).
 - Docx validation: `python3 /mnt/skills/public/docx/scripts/office/validate.py file.docx`. Render: `soffice --headless --convert-to pdf file.docx && pdftoppm -jpeg -r 50 file.pdf p`.
+- **Real Google Docs conversion check** (uses her connected Google Drive; fixture only, no patient data): copy the docx under the working dir (file references from /tmp are refused), `Google_Drive create_file` with `base64Content: sha256:<hash>:<abs path>` and the docx mime type (it converts to a Google Doc), then `download_file_content` with `exportMimeType: application/pdf` (result is saved to a JSON file; base64-decode `content`), render with pdftoppm and compare with the soffice render. Trash the test file afterwards.
 - Other tests in `tools/tests/`: `t_roundtrip.py scripts work live fx` (needs an older app copy as `live`), `t_oldfields.py`, `t_portrait.py`, `t_ui1.py`, `t_geno.js`, `t_name.py`. Each takes the tests folder as argv[1].
 
 ## 6. Status
@@ -53,20 +55,26 @@ Passing: every `errors []`, no Traceback; "screens visited: 85 across 7 records"
 | Hospital-protocol Word export with letterhead, genogram, lab table, ddx, formulation grid | Done |
 | Progress note, discharge summary, medical certificate, clinical abstract, handover (+ morning notes), safety plan (English/Filipino) | Done |
 | Slides: 5 designs, pptx/pdf/Keynote, Google Slides, timeline slide, large text, formulation builder | Done (later sessions) |
+| Google Docs conversion of protocol export | **Checked 2026-11-12** through real Drive conversion: letterhead, both floating logos, genogram, lab table with red flags, salient/ddx/formulation/goals tables, page breaks all convert faithfully (7 pages both ways). Only defect was footer page numbers (large black); fixed in v24 (next row). |
+| v24 release (footer fix) | **PR #13 open, awaiting the user's merge approval**: https://github.com/isaymotion/case-psychinterview/pull/13 (branch `gdocs-footer`; index.html footers + VERSION 'November 12, 2026', sw.js `v24`). Tests pass, all 8 docx validate, verified in real Google Docs. Self-merge is blocked as "merge without review"; merge once she approves (she can tap Merge on GitHub, or a session with repo write access runs `gh api -X PUT repos/isaymotion/case-psychinterview/pulls/13/merge -f merge_method=merge`). If main has moved, rebase first. |
 | Google Docs/Slides export | Live; **not yet confirmed by the user on a real iPad + Gmail** |
+| Google Slides fonts after conversion | Not yet checked |
 | Rename to PsychInterview | Done |
 | Filipino safety-plan wording | Awaiting review by a Filipino-speaking clinician |
 
 ## 7. Next steps
+- Land v24: PR #13 needs the user's approval to merge (see §6). After merging, tell her to wait 1–2 min and reopen the app; the home screen should say "Latest version November 12, 2026".
 - Ask whether the real Google export worked on her iPad. If error `redirect_uri_mismatch`: the Google Cloud client must list redirect URI `https://isaymotion.github.io/case-psychinterview/` exactly and JS origin `https://isaymotion.github.io`. If `access_denied`: add the Gmail to Audience → Test users.
-- Check Google Docs conversion of the protocol export (floating logos, genogram) and Google Slides fonts; adjust if they convert badly.
-- Next release: cache `v24`, VERSION = release date.
+- Check Google Slides conversion fonts (upload a fixture pptx from `t_slides.py` output via Drive the same way as §5, export as PDF, compare). Other Word kinds (form layout, letters) share `FOOTER`, so they get the v24 fix too; spot-check one in Google Docs if time.
+- Release after v24: cache `v25`, VERSION = release date.
 
 ## 8. Pitfalls learned
 - `gh pr create` fails (GraphQL blocked). Use REST: `gh api repos/isaymotion/case-psychinterview/pulls -f base=main -f head=<branch> -f title=… -f body=…` then `gh api -X PUT repos/…/pulls/<n>/merge -f merge_method=merge`.
+- Repo write access must be attached to the session (`add_repo` with `access: push`; git proxy returns 403 otherwise). Self-merging is blocked as "merge without review" even with access: open the PR and get the user's explicit approval to merge.
 - Push with `git push -u origin <branch>`; the stop hook complains about branches without upstream. Clone is shallow with a single-branch refspec: run `git config remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'` once.
 - Pages build status API is blocked; just tell the user to wait 1–2 min and reopen the app.
-- docx schema order: `<w:jc>` must come last in `<w:pPr>`; validate after any docx change.
+- docx schema order: `<w:jc>` comes after the other pPr items she uses; `<w:rPr>` (paragraph-mark formatting) goes after `<w:jc>`. Validate after any docx change.
+- Google Docs ignores formatting on runs inside `w:fldSimple`; use complex fields.
 - Hidden rail in portrait: test scripts must use `textContent`, not `innerText`.
 - Playwright: start the local server inside the test (`serve.py`), not with `&` in bash (gets killed).
 - Lab cards need `minmax(400px,…)` or names truncate in portrait.
