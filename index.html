@@ -436,6 +436,27 @@ a.btn{display:inline-flex;align-items:center;text-decoration:none}
 .tidy span{flex:1 1 260px}
 @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .tidy{background:rgba(224,182,108,.16);color:#E0B66C} }
 @media (max-width:640px){ .sortbox{margin-left:0} .sortbox .l{display:none} .doc .meter{display:none} }
+/* dark top bar inside a record (v36) */
+.bar.top.ed .btn{background:transparent;border-color:rgba(255,255,255,.3);color:#fff}
+.bar.top.ed .btn:active{background:rgba(255,255,255,.12)}
+.bar.top.ed .btn.quiet{border-color:transparent}
+.bar.top.ed .btn.quiet.danger{color:#FFB4AB}
+.bar.top.ed .btn.primary{background:#fff;border-color:#fff;color:#1B2D45}
+.bar.top.ed .btn.ico{min-width:44px;padding:9px 10px;font-weight:700}
+.bar.top.ed h1 small,.bar.top.ed .status{color:rgba(255,255,255,.72)}
+/* passcode lock (v36) */
+.lock{position:fixed;inset:0;z-index:1000;background:var(--night);display:grid;place-items:center;padding:24px;overflow:auto}
+.lock-card{width:min(380px,100%);display:grid;gap:12px;justify-items:center;text-align:center;color:#fff}
+.lock-card img{border-radius:22.5%}
+.lock-card h2{font:600 24px/1.2 var(--serif);margin:6px 0 2px;color:#fff}
+.lock-card label,.lock-card p{color:rgba(255,255,255,.85);font-size:15.5px;margin:0}
+.lock-card input{text-align:center;font-size:24px;letter-spacing:.3em;min-height:52px;max-width:240px}
+.lock-card .err{color:#FFB4AB;min-height:1.4em;font-weight:600}
+.lock-card .btn{min-width:240px}
+.lock-card .btn.primary{background:#fff;border-color:#fff;color:#1B2D45}
+.lock-card .btn.plain{background:transparent;border-color:rgba(255,255,255,.3);color:#fff}
+.lock-card .linkbtn{color:rgba(255,255,255,.85);background:none;border:0;text-decoration:underline;min-height:44px;font-size:15px}
+.backup select{width:auto;min-height:44px;display:inline-block;margin:0 4px}
 /* backup and restore, export all for a patient (v35) */
 .backup{margin:14px 0 0;padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:var(--paper)}
 .backup h3{font:600 16px/1.3 var(--sans);margin:0 0 4px}
@@ -452,7 +473,9 @@ body{zoom:var(--tz,1)}
 .sheet{max-height:calc(80vh / var(--tz,1))}
 .pick{max-height:calc(44vh / var(--tz,1))}
 .bar{container:bar/inline-size}
-@container bar (max-width:760px){ .bar .x-long{display:none} }
+@container bar (max-width:860px){ .bar .x-long{display:none} }
+@container bar (max-width:480px){ .bar .hide-xs{display:none} }
+.bar #back{min-width:44px}
 @container bar (max-width:600px){ .bar .hide-sm{display:none} .bar{gap:6px;padding:0 10px} .bar .btn{padding:9px 10px} }
 .btn.ghost.ico{justify-content:center;min-width:44px;padding:9px 10px;font-weight:700}
 .look-row{margin:0 0 18px}
@@ -3166,6 +3189,9 @@ const DocxImport = (() => {
   /* ----- What's new. Newest entry FIRST; id goes up by one each release (it is the key for the unseen badge).
      Add an entry on every release, with the cache number from sw.js as v. Types: feature (New), update (Improved), fix (Fixed). ----- */
   const CHANGELOG=[
+    {id:19, v:'v36', date:'2026-11-12', title:'Passcode lock, and one look throughout', items:[
+      ['feature','Passcode lock (optional): the app asks for a 4 to 8 digit passcode when it opens and after 1, 5 or 15 minutes without use. Turn it on under the record list on the home screen. It keeps a casual look out on a shared iPad; it does not encrypt the records.'],
+      ['update','The screens inside a record now have the same dark top bar as the home screen, with an Aa button for text size and theme.']]},
     {id:18, v:'v35', date:'2026-11-12', title:'Backup, restore and Export all', items:[
       ['feature','Backup: save every record on this iPad to one file, with an optional password. Find it under the record list on the home screen.'],
       ['feature','Restore: bring records back from a backup file, on this or another iPad. It only adds records or replaces older copies, and can be undone.'],
@@ -3283,8 +3309,8 @@ const DocxImport = (() => {
   })();
   const lookButtons = () => `<button class="btn ghost ico" id="aa" aria-label="Text size: ${SIZES[sizeIdx()][0]}">Aa</button><button class="btn ghost ico" id="theme" aria-label="Theme: ${THEME_NAME[theme()]}. Tap to change">${ic(THEME_ICON[theme()])}</button>`;
   function wireLook(){
-    const tb=$('#theme'), set=t=>{ store.last.theme=t; applyLook(); persist(); tb.innerHTML=ic(THEME_ICON[t]); tb.setAttribute('aria-label','Theme: '+THEME_NAME[t]+'. Tap to change'); };
-    tb.onclick=()=>{ const t=THEMES[(THEMES.indexOf(theme())+1)%3]; set(t); toast('Theme: '+THEME_NAME[t]); };
+    const tb=$('#theme'), set=t=>{ store.last.theme=t; applyLook(); persist(); if(tb){ tb.innerHTML=ic(THEME_ICON[t]); tb.setAttribute('aria-label','Theme: '+THEME_NAME[t]+'. Tap to change'); } };
+    if(tb) tb.onclick=()=>{ const t=THEMES[(THEMES.indexOf(theme())+1)%3]; set(t); toast('Theme: '+THEME_NAME[t]); };
     $('#aa').onclick=()=>sheet(`<h3>Text size and theme</h3>
       <div class="look-row"><span class="lab">Text size</span><div class="seg" role="group" aria-label="Text size">${SIZES.map((z,i)=>`<button data-size="${i}" aria-pressed="${i===sizeIdx()}">${z[0]}</button>`).join('')}</div></div>
       <div class="look-row"><span class="lab">Theme</span><div class="seg" role="group" aria-label="Theme">${THEMES.map(t=>`<button data-theme-set="${t}" aria-pressed="${t===theme()}">${THEME_NAME[t]}</button>`).join('')}</div></div>
@@ -3379,6 +3405,11 @@ const DocxImport = (() => {
               <p>${list.length?'Save every record on this iPad to one file, as a safety copy or to move to another iPad. ':''}${store.last.backupAt?'Last backup saved '+h(when(store.last.backupAt))+'.':list.length?'No backup has been saved from this iPad yet.':'Have a backup file from this app? Bring its records back here.'}</p>
               <div class="row">${list.length?'<button class="btn" id="bkSave">Save a backup file</button>':''}<button class="btn" id="bkOpen">Restore from a backup file</button></div>
               <input type="file" id="bkFile" accept=".json,application/json" hidden></div>
+            ${canLock()?`<div class="backup" id="lockCard"><h3>Passcode lock</h3>
+              ${lockOn()?`<p><strong>On.</strong> The app asks for the passcode when it opens and after <select id="lockIdle" aria-label="Lock after">${LOCK_IDLE.map(m=>`<option value="${m}"${m===lockIdle()?' selected':''}>${m} minute${m===1?'':'s'}</option>`).join('')}</select> without use.</p>
+              <div class="row"><button class="btn" id="lockNow">Lock now</button><button class="btn" id="lockChange">Change passcode</button><button class="btn" id="lockOff">Turn off</button></div>`
+              :`<p>Ask for a passcode when the app opens and after a few minutes without use. It keeps a casual look out on a shared iPad. It does not encrypt the records, so keep the iPad's own passcode on as well.</p>
+              <div class="row"><button class="btn" id="lockSet">Turn on passcode lock</button></div>`}</div>`:''}
             ${list.length?`<div class="foot"><button class="btn quiet danger" id="wipe">Delete all records</button></div>`:''}
           </section>
         </div>
@@ -3402,6 +3433,9 @@ const DocxImport = (() => {
       const nm=$('#nomatch'); if(nm) nm.hidden = n>0; };
     { const groups = byPt ? homeGroups(list) : []; document.querySelectorAll('[data-expall]').forEach(b=>b.onclick=()=>exportPatient(groups[+b.dataset.expall].recs)); }
     const bs=$('#bkSave'); if(bs) bs.onclick=backupSave;
+    { const on=(q,fn)=>{ const b=$(q); if(b) b.onclick=fn; };
+      on('#lockSet', ()=>lockSheet('set')); on('#lockChange', ()=>lockSheet('change')); on('#lockOff', ()=>lockSheet('off')); on('#lockNow', ()=>showLock());
+      const li=$('#lockIdle'); if(li) li.onchange=()=>{ store.last.lock.idle=+li.value; persist(); toast('Locks after '+li.value+' minute'+(li.value==='1'?'':'s')+' without use.'); }; }
     $('#bkOpen').onclick=()=>{ const i=$('#bkFile'); i.onchange=e=>{ const f=e.target.files[0]; e.target.value=''; if(f) backupOpen(f); }; i.click(); };
     document.querySelectorAll('[data-more]').forEach(b=>b.onclick=()=>{ b.parentNode.dataset.all='1'; filter(); });
     const q=$('#q'); if(q) q.oninput=()=>{ homeQ=q.value; filter(); }; else homeQ='';
@@ -3438,6 +3472,83 @@ const DocxImport = (() => {
       if(ok){ files.forEach(f=>markExported(f.id)); close(); if(!cur) renderHome(); }
     };
   }
+
+  /* ----- passcode lock (v36). store.last.lock = { salt, hash, idle } : PBKDF2-SHA256 of the digits, idle in minutes.
+     It is a screen lock only: the records in this browser's storage are NOT encrypted. Start-up shows the lock before any record is drawn;
+     an idle lock covers the page (everything under it is made inert) and leaves the open record as it was. ----- */
+  const LOCK_IDLE=[1,5,15], LOCK_ITER=120000;
+  let locked=false, lastActive=Date.now(), lockFails=0, lockUntil=0, afterUnlock=[];
+  const canLock = () => !!(window.crypto && crypto.subtle);
+  const lockOn = () => canLock() && !!(store.last.lock && store.last.lock.hash);
+  const lockIdle = () => LOCK_IDLE.includes(store.last.lock && store.last.lock.idle) ? store.last.lock.idle : 5;
+  const whenUnlocked = fn => { if(locked) afterUnlock.push(fn); else fn(); };
+  const pinOK = p => /^\d{4,8}$/.test(p);
+  async function pinHash(pin, salt){
+    const base=await crypto.subtle.importKey('raw', new TextEncoder().encode(pin), 'PBKDF2', false, ['deriveBits']);
+    return B64.enc(new Uint8Array(await crypto.subtle.deriveBits({name:'PBKDF2', salt:B64.dec(salt), iterations:LOCK_ITER, hash:'SHA-256'}, base, 256)));
+  }
+  const pinMatches = async pin => pinOK(pin) && (await pinHash(pin, store.last.lock.salt))===store.last.lock.hash;
+  function showLock(){
+    if(locked || !lockOn()) return; locked=true; if(cur) persist();
+    const title=document.title; document.title='PsychInterview';
+    if(document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    Array.from(document.body.children).forEach(el=>{ el.inert=true; });
+    const el=document.createElement('div'); el.className='lock'; el.setAttribute('role','dialog'); el.setAttribute('aria-modal','true'); el.setAttribute('aria-label','PsychInterview is locked');
+    document.body.appendChild(el);
+    const unlock=()=>{ el.remove(); Array.from(document.body.children).forEach(x=>{ x.inert=false; }); locked=false; lockFails=0; lastActive=Date.now(); document.title=title;
+      const run=afterUnlock; afterUnlock=[]; run.forEach(fn=>fn()); };
+    const ask=()=>{
+      el.innerHTML=`<form class="lock-card" autocomplete="off"><img src="icon-192.png" alt="" width="72" height="72"><h2>PsychInterview is locked</h2>
+        <label for="lockPin">Enter your passcode</label><input id="lockPin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="off">
+        <p class="err" id="lockErr" role="alert"></p><button class="btn primary" type="submit">Unlock</button>
+        <button class="linkbtn" type="button" id="lockForgot">Forgot passcode?</button></form>`;
+      const pin=el.querySelector('#lockPin'), err=el.querySelector('#lockErr'); pin.focus();
+      el.querySelector('form').onsubmit=async e=>{ e.preventDefault();
+        const wait=Math.ceil((lockUntil-Date.now())/1000); if(wait>0){ err.textContent='Too many tries. Wait '+wait+' seconds.'; return; }
+        if(await pinMatches(pin.value)){ unlock(); return; }
+        lockFails++; pin.value=''; pin.focus();
+        if(lockFails>=5){ lockFails=0; lockUntil=Date.now()+30000; err.textContent='Too many tries. Wait 30 seconds.'; } else err.textContent='That passcode is not right.'; };
+      el.querySelector('#lockForgot').onclick=forgot;
+    };
+    const forgot=()=>{
+      el.innerHTML=`<div class="lock-card"><h2>Forgot the passcode?</h2>
+        <p>It cannot be recovered or reset. The only way back in is to erase every record in this app on this iPad, which also removes the lock.</p>
+        <p>Backup files and Word files you already saved are not touched, and a backup can be restored afterwards.</p>
+        <button class="btn primary" id="lockBack">Back, I will try again</button><button class="btn plain" id="lockErase">Erase all records and remove the lock</button></div>`;
+      el.querySelector('#lockBack').onclick=ask;
+      el.querySelector('#lockErase').onclick=()=>{ if(!confirm('Erase ALL records in PsychInterview on this iPad? This cannot be undone.')) return;
+        store.cases={}; delete store.last.lock; cur=null; persist(); afterUnlock=[]; unlock(); renderHome(); toast('All records erased. The passcode lock is off.'); };
+    };
+    ask();
+  }
+  /* set / change / turn off. Changing or turning off asks for the current passcode first. */
+  function lockSheet(mode){
+    const need = mode!=='set', make = mode!=='off';
+    sheet(`<h3>${mode==='set'?'Turn on passcode lock':mode==='change'?'Change passcode':'Turn off passcode lock'}</h3>
+      ${mode==='set'?`<p>Choose 4 to 8 digits. <strong>If you forget the passcode, the only way back in is to erase the records on this iPad</strong>, so save a backup file first and keep it in your hospital's approved storage.</p>`:''}
+      <div class="pwrow">${need?`<label>Current passcode<input type="password" inputmode="numeric" maxlength="8" id="lk0" autocomplete="off"></label>`:''}
+        ${make?`<label>New passcode (4 to 8 digits)<input type="password" inputmode="numeric" maxlength="8" id="lk1" autocomplete="off"></label><label>Type it again<input type="password" inputmode="numeric" maxlength="8" id="lk2" autocomplete="off"></label>`:''}</div>
+      <p class="err" id="lkErr" role="alert"></p>
+      <div class="tools end"><button class="btn quiet" data-close>Cancel</button><button class="btn primary" id="lkGo">${mode==='off'?'Turn off':'Save passcode'}</button></div>`,
+    (s2,close)=>{
+      s2.querySelector('[data-close]').onclick=close; const v=q=>{ const i=s2.querySelector(q); return i?i.value:''; }, err=s2.querySelector('#lkErr');
+      s2.querySelector('input').focus();
+      s2.querySelector('#lkGo').onclick=async ()=>{
+        if(need && !(await pinMatches(v('#lk0')))){ err.textContent='The current passcode is not right.'; return; }
+        if(make){ if(!pinOK(v('#lk1'))){ err.textContent='Use 4 to 8 digits, numbers only.'; return; }
+          if(v('#lk1')!==v('#lk2')){ err.textContent='The two passcodes do not match.'; return; }
+          const salt=B64.enc(crypto.getRandomValues(new Uint8Array(16)));
+          store.last.lock={ salt, hash:await pinHash(v('#lk1'), salt), idle:lockIdle() }; }
+        else delete store.last.lock;
+        lastActive=Date.now(); persist(); close(); renderHome();
+        toast(mode==='set'?'Passcode lock is on.':mode==='change'?'Passcode changed.':'Passcode lock is off.');
+      };
+    });
+  }
+  ['pointerdown','keydown','input'].forEach(ev=>document.addEventListener(ev, ()=>{ lastActive=Date.now(); }, true));
+  const idleCheck = () => { if(lockOn() && !locked && Date.now()-lastActive >= lockIdle()*60000) showLock(); };
+  setInterval(idleCheck, 10000);
+  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') idleCheck(); });
 
   /* ----- backup and restore. File: { app:'psychinterview', kind:'backup', format:1, made, version, count, cases }
      or, with a password, the same header with enc:{ kdf:'PBKDF2-SHA256', iter, salt, iv, data } in place of cases
@@ -3876,7 +3987,7 @@ const DocxImport = (() => {
   function renderEditor(){
     const rec=R(); document.title=recTitle(rec)+' | PsychInterview';
     document.body.innerHTML = `
-      <header class="bar">
+      <header class="bar top ed">
         <button class="btn quiet" id="back" aria-label="All records">‹<span class="x-long"> Records</span></button>
         <button class="btn only-narrow" id="menu" aria-expanded="false" aria-controls="rail">Sections</button>
         <h1 id="title">${h(recTitle(rec))}<small>${h(recKind(rec))}</small></h1>
@@ -3885,6 +3996,7 @@ const DocxImport = (() => {
         <button class="btn quiet danger hide-sm" id="del">Delete</button>
         ${rec.kind==='case'?'<button class="btn" id="pres" aria-label="Create presentation slides">Slides</button>':''}
         <button class="btn primary" id="export" aria-label="Export Word file">Export<span class="x-long"> Word file</span></button>
+        <button class="btn ico hide-xs" id="aa" aria-label="Text size and theme">Aa</button>
       </header>
       <div class="layout"><nav class="rail" id="rail" aria-label="Sections"></nav><main class="main" id="main"></main></div>`;
     $('#back').onclick = ()=>{ persist(); renderHome(); };
@@ -3893,6 +4005,7 @@ const DocxImport = (() => {
     $('#del').onclick = ()=>{ if(confirm('Delete this record from this iPad? Export it first if you need a copy.')){ removeRec(cur); } };
     $('#export').onclick = exportDocx;
     if($('#pres')) $('#pres').onclick = presentationSheet;
+    wireLook();
     renderRail(); renderSection();
   }
   function renderRail(){
@@ -4682,14 +4795,14 @@ const DocxImport = (() => {
       s.onclick=e=>{ if(e.target===s) done(); };
     });
   }
-  window.addEventListener('storage', e=>{ if(e.key===INBOX && e.newValue) checkInbox(); });
+  window.addEventListener('storage', e=>{ if(e.key===INBOX && e.newValue) whenUnlocked(checkInbox); });
   window.addEventListener('pagehide', ()=>{ if(cur) persist(); });
-  setTimeout(()=>{ if(gReady()) gResume(); }, 0);
+  setTimeout(()=>{ if(gReady()) whenUnlocked(gResume); }, 0);
   document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='hidden' && cur) persist(); });
   if('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(()=>{});
   applyLook();
-  renderHome();
-  checkInbox();
+  if(lockOn()){ document.body.innerHTML=''; showLock(); }   // nothing about a patient is drawn until the passcode is in
+  whenUnlocked(()=>{ renderHome(); checkInbox(); });
 })();
 
 </script>
