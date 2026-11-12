@@ -1,0 +1,10 @@
+const C=require('./load.js')(process.argv[2]);
+const vm=require('vm');
+const d=JSON.parse(require('fs').readFileSync(process.argv[3],'utf8'));
+const run = code => vm.runInContext(code, Object.assign(C, {__d:d}));
+const pn = run("progressFromSource(__d,'case',new Date(2026,9,3),'')");
+console.log('progress note differential:', JSON.stringify(pn.data.differential));
+const dc = run("dischargeFromSources(__d,[],new Date(2026,9,7),'')");
+console.log('discharge admitDx:', JSON.stringify(dc.data.admitDx)); console.log('discharge course:', JSON.stringify((dc.data.course||'').slice(0,60))); console.log('discharge keyResults:', JSON.stringify((dc.data.keyResults||'').slice(0,120)));
+const ca = run("abstractFromSources(null,__d,null,new Date(2026,9,7),{})");
+console.log('abstract admitDx:', JSON.stringify(ca.admitDx)); console.log('abstract peAdmit:', JSON.stringify(ca.peAdmit.slice(0,140))); console.log('abstract labs:', JSON.stringify((ca.labs||'').slice(0,140))); console.log('abstract course:', JSON.stringify((ca.course||'').slice(0,50)));

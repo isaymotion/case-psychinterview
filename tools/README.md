@@ -20,3 +20,6 @@ pip install python-pptx --break-system-packages
 gen_deck.mjs loads `http://localhost:8770/case-psychinterview/`; usage: `node dt/tools/gen_deck.mjs case.json sections.json deck_raw.pptx "Ma. Isabella P. Navarro, MD" 2026-10-26T09:00:00+08:00`.
 sections.json example: `[{"id":"sczA","title":"Schizophrenia, Criterion A: the HD-SB Network","fields":[{"id":"sczA","t":"table","label":"","c":["","Symptom","How Mark meets it","Status"]}]}]` (inserted after Discussion).
 Render check: `soffice --headless --convert-to pdf deck.pptx && pdftoppm -r 28 -png deck.pdf s` then view contact sheets.
+
+## tests/ — PsychInterview regression tests
+`bash tools/tests/run_all.sh /path/to/case-psychinterview` runs the main tests against an app checkout (fictional fixture `tests/fixtures/case_full.json`, outputs in `tests/out/`, not committed). Needs python3 + Playwright/Chromium, python-docx, node. See HANDOFF.md §5.
