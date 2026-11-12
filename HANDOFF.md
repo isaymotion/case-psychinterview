@@ -57,7 +57,7 @@ Passing: every `errors []`, no Traceback; "screens visited: 85 across 7 records"
 | Slides: 5 designs, pptx/pdf/Keynote, Google Slides, timeline slide, large text, formulation builder | Done (later sessions) |
 | Google Docs conversion of protocol export | **Checked 2026-11-12** through real Drive conversion: letterhead, both floating logos, genogram, lab table with red flags, salient/ddx/formulation/goals tables, page breaks all convert faithfully (7 pages both ways). Only defect was footer page numbers (large black); fixed in v24 (next row). |
 | v24 release (footer fix) | **Live**: PR #13 merged 2026-11-12 with the user's approval (cache `v24`, VERSION 'November 12, 2026'). |
-| Slide text sizing (v25) | **PR #14 open, awaiting the user's merge approval**: https://github.com/isaymotion/case-psychinterview/pull/14 (branch `slide-text-fit`, cache `v25`). She found exported slides tiny (14 pt on half-empty slides). Tests pass; all five designs checked visually. |
+| Slide text sizing (v25) | **Live**: PR #14 merged 2026-11-12 with the user's approval (cache `v25`). She found exported slides tiny (14 pt on half-empty slides). Tests pass; all five designs checked visually. |
 | Google Docs/Slides export | Live; **not yet confirmed by the user on a real iPad + Gmail** |
 | Google Slides fonts after conversion | Not yet checked |
 | Rename to PsychInterview | Done |
@@ -66,7 +66,7 @@ Passing: every `errors []`, no Traceback; "screens visited: 85 across 7 records"
 ## 7. Next steps
 - Ask whether the real Google export worked on her iPad. If error `redirect_uri_mismatch`: the Google Cloud client must list redirect URI `https://isaymotion.github.io/case-psychinterview/` exactly and JS origin `https://isaymotion.github.io`. If `access_denied`: add the Gmail to Audience → Test users.
 - Check Google Slides conversion fonts (upload a fixture pptx from `t_slides.py` output via Drive the same way as §5, export as PDF, compare). Other Word kinds (form layout, letters) share `FOOTER`, so they get the v24 fix too; spot-check one in Google Docs if time.
-- Merge PR #14 once she approves (v25). Release after that: cache `v26`, VERSION = release date.
+- Ask how the bigger slide text looks with a real case; she was offered a 16 pt floor if there are too many "(cont.)" slides. Next release: cache `v26`, VERSION = release date.
 
 ## 8. Pitfalls learned
 - `gh pr create` fails (GraphQL blocked). Use REST: `gh api repos/isaymotion/case-psychinterview/pulls -f base=main -f head=<branch> -f title=… -f body=…` then `gh api -X PUT repos/…/pulls/<n>/merge -f merge_method=merge`.
