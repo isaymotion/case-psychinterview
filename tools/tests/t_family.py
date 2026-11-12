@@ -30,7 +30,7 @@ with sync_playwright() as p:
             if k=='sex': pg.select_option(sel, v)
             else: pg.fill(sel, v)
     pg.click('[data-famtog="3"][data-fk="withPt"]'); pg.click('[data-famtog="4"][data-fk="withPt"]')
-    pg.click('[data-rad="parentsRel"][data-o="Married"]')
+    pg.select_option('select[data-f="parentsRel"]', 'Married')   # a grouped picker since v37 (was buttons)
     ids = pg.evaluate("Object.values(JSON.parse(localStorage.getItem('psyCaseApp.v1')||'{}').cases||{}).length")
     pg.wait_for_timeout(700)
     fam = lambda: pg.evaluate("(()=>{const s=JSON.parse(localStorage.getItem('psyCaseApp.v1')); return Object.values(s.cases)[0].data})()")
