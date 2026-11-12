@@ -6,7 +6,7 @@ module.exports = function(path){
   const code=s.slice(a,b).replace(/^if \(typeof module !== 'undefined'\).*$/mg,'');
   const vm=require('vm'); const ctx={console, TextEncoder, TextDecoder, DOMParser:undefined}; vm.createContext(ctx);
   vm.runInContext(code+'\n;this.__ok=1;', ctx);
-  for(const k of ['SECTIONS','genogramLayout','genogramSVG','labsDone','labFlag','extText','isFilled','SCHEMAS','DocxGen','draftMSE','caseDifferential','famMembers','LAB_PANELS'])
+  for(const k of ['SECTIONS','genogramLayout','genogramSVG','labsDone','labFlag','extText','isFilled','SCHEMAS','DocxGen','draftMSE','caseDifferential','famMembers','LAB_PANELS','ageYears','famSorted','famLinksOf','famLinkLine','FAMILY_RELS'])
     ctx[k] = vm.runInContext('typeof '+k+'!=="undefined"?'+k+':undefined', ctx);
   return ctx;
 };

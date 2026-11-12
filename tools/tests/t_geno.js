@@ -1,18 +1,29 @@
-const C=require('./load.js')(process.argv[2]);
-const d={ agesex:'34 / F', parentsRel:'Separated', ptRel:'Married', family:[
- {name:'Ramon', rel:'Father', age:'62', psych:true, cond:'Alcohol use'},
- {name:'Lourdes', rel:'Mother', age:'58'},
- {name:'Jun', rel:'Brother', age:'38'},
- {name:'Ana', rel:'Sister', age:'30', psych:true, cond:'MDD'},
- {name:'Mark', rel:'Husband', age:'36'},
- {name:'Bea', rel:'Daughter', age:'8'}, {name:'Migo', rel:'Son', age:'5'},
- {name:'Pedro', rel:'Paternal grandfather', status:'Deceased', age:'70', psych:true, cond:'Suicide'},
- {name:'Rosa', rel:'Paternal grandmother', age:'85'},
- {name:'Tito Ben', rel:'Paternal uncle', age:'60'},
- {name:'Lola Inday', rel:'Maternal grandmother', status:'Deceased'},
- {name:'Neighbor', rel:'Household member (not related)'}
-]};
-const G=C.genogramLayout(d);
-console.log('size', G.w.toFixed(2), G.h.toFixed(2), 'nodes', G.nodes.length, 'lines', G.lines.length, 'left', G.left);
-G.nodes.forEach(n=>console.log(n.name.padEnd(12), n.sex, n.x.toFixed(2), n.y.toFixed(2), n.dead?'dead':'', n.fill?'fill':'', n.pt?'PT':''));
-require('fs').writeFileSync(process.argv[3], C.genogramSVG(G, 60));
+// Genogram layout checks: node t_geno.js <index.html> <out folder>
+// Lays out every family in fixtures/families.json, writes an SVG of each, and checks the structure.
+const C=require('./load.js')(process.argv[2]); const fs=require('fs'), path=require('path');
+const cases=JSON.parse(fs.readFileSync(path.join(__dirname,'fixtures/families.json'),'utf8')), out=process.argv[3]||path.join(__dirname,'out');
+const errs=[]; const ok=(c,m)=>{ if(!c) errs.push(m); };
+const want={ sample:{nodes:6,left:0}, big:{nodes:21,left:1}, old:{nodes:12,left:0}, lone:{nodes:8,left:0}, solo:{nodes:3,left:2} };
+for(const k in cases){
+  const G=C.genogramLayout(cases[k], k==='sample'?{title:'Family genogram — Mark (October 2026)'}:{});
+  console.log(k.padEnd(7),'size',G.w.toFixed(1),'x',G.h.toFixed(1),'people',G.nodes.length,'pieces',G.prims.length,'not drawn',JSON.stringify(G.left));
+  ok(G.nodes.length===want[k].nodes, k+': people '+G.nodes.length); ok(G.left.length===want[k].left, k+': not drawn '+G.left);
+  const nums=[]; G.prims.forEach(p=>{ ['x','y','w','h','x1','y1','x2','y2'].forEach(q=>{ if(q in p) nums.push(p[q]); }); (p.pts||[]).forEach(q=>nums.push(q[0],q[1])); });
+  ok(nums.every(n=>typeof n==='number' && isFinite(n)), k+': a bad number in the drawing');
+  ok(nums.every(n=>n>=-0.01), k+': something is drawn off the picture');
+  // no two symbols overlap
+  G.nodes.forEach((a,i)=>G.nodes.forEach((b,j)=>{ if(j>i && Math.abs(a.x-b.x)<1.05 && Math.abs(a.y-b.y)<1.05) errs.push(k+': '+a.name+' overlaps '+b.name); }));
+  fs.writeFileSync(path.join(out,'geno_'+k+'.svg'), C.genogramSVG(G, 70));
+}
+// oldest to youngest: siblings and children are ordered by age, months and years mixed
+const row=(G,names)=>names.map(n=>G.nodes.find(x=>x.name===n)).map(n=>n.x);
+const inc=a=>a.every((v,i)=>!i||v>a[i-1]);
+const B=C.genogramLayout(cases.big);
+ok(inc(row(B,['Jun','Patient','Ana'])), 'siblings not oldest to youngest'); ok(inc(row(B,['Bea','Migo','Baby'])), 'children not oldest to youngest (8 mo should be last)');
+const shuffled=JSON.parse(JSON.stringify(cases.big)); shuffled.family.reverse();
+ok(inc(row(C.genogramLayout(shuffled),['Jun','Patient','Ana'])), 'order depends on the list order');
+shuffled.genoByAge=false; ok(!inc(row(C.genogramLayout(shuffled),['Jun','Patient','Ana'])), 'switching age order off had no effect');
+ok(Math.abs(C.ageYears('1 y 6 mo')-1.5)<1e-9 && Math.abs(C.ageYears('8 mo')-8/12)<1e-9 && C.ageYears('33')===33 && C.ageYears('62 y/o')===62 && C.ageYears('')===null, 'ageYears');
+const s=C.famSorted(shuffled).map(m=>m.name); ok(s.indexOf('Pedro')<s.indexOf('Ramon') && s.indexOf('Jun')<s.indexOf('Ana') && s.indexOf('Bea')<s.indexOf('Baby'), 'famSorted '+s);
+ok(C.famLinksOf(cases.big).length===5 && C.famLinksOf({family:[{id:'a',name:'A'}],famLinks:[{a:'pt',b:'zz',type:'Close'},{a:'pt',b:'pt',type:'Close'}]}).length===0, 'famLinksOf');
+console.log('errors', JSON.stringify(errs));

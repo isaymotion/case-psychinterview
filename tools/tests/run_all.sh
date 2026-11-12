@@ -10,4 +10,6 @@ echo "== case Word export, both layouts";                          timeout 180 p
 echo "== slides, 5 designs, pptx + pdf";                           timeout 300 python3 t_slides.py  "$T" "$APP" "$FX" "$OUT" | tail -2
 echo "== Google Docs/Slides export (Google is simulated)";         timeout 300 python3 t_google.py  "$T" "$APP" "$FX" 2>&1 | tail -2
 echo "== linked documents read new case fields";                   node t_linked.js "$APP/index.html" "$FX"
+echo "== genogram layout: five test families, age order";            node t_geno.js "$APP/index.html" "$OUT" | tail -1
+echo "== family editor, relationship lines, Word reopen, genogram slide"; timeout 300 python3 t_family.py "$T" "$APP" "$OUT" 2>&1 | tail -1
 echo "Passing = every 'errors' line is [] and no Traceback."

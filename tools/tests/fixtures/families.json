@@ -1,0 +1,381 @@
+{
+ "sample": {
+  "agesex": "33 / M",
+  "parentsRel": "Married",
+  "genoPtName": "Mark",
+  "genoPtOcc": "BS ME graduate",
+  "genoPtCond": "Schizophrenia; AUD, TUD (severe); CKD 3b",
+  "famLinks": [
+   {
+    "a": "pt",
+    "b": "fa",
+    "type": "Close but conflictual"
+   },
+   {
+    "a": "pt",
+    "b": "mo",
+    "type": "Very close / enmeshed"
+   },
+   {
+    "a": "pt",
+    "b": "ed",
+    "type": "Distant"
+   },
+   {
+    "a": "pt",
+    "b": "ex",
+    "type": "Cut off / estranged"
+   }
+  ],
+  "family": [
+   {
+    "id": "fa",
+    "name": "Gregorio",
+    "rel": "Father",
+    "age": "57",
+    "occ": "welder, sole earner",
+    "cond": "Uncontrolled hypertension; drinks with Mark (no AUD dx)",
+    "withPt": true
+   },
+   {
+    "id": "mo",
+    "name": "Carla",
+    "rel": "Mother",
+    "age": "58",
+    "occ": "housewife, caregiver",
+    "cond": "Diabetes on insulin",
+    "withPt": true
+   },
+   {
+    "id": "ed",
+    "name": "Edna",
+    "rel": "Sister",
+    "age": "28",
+    "occ": "only sibling",
+    "cond": "Works at NGCP"
+   },
+   {
+    "id": "ex",
+    "name": "",
+    "rel": "Former partner",
+    "sex": "Female",
+    "count": "5",
+    "occ": "separated"
+   },
+   {
+    "id": "ch",
+    "name": "",
+    "rel": "Child (sex not stated)",
+    "count": "7",
+    "occ": "high school to elementary age; video calls only"
+   }
+  ]
+ },
+ "big": {
+  "agesex": "34 / F",
+  "parentsRel": "Separated",
+  "ptRel": "Married",
+  "famLinks": [
+   {
+    "a": "pt",
+    "b": "ra",
+    "type": "Conflictual"
+   },
+   {
+    "a": "ra",
+    "b": "pt",
+    "type": "Abusive toward"
+   },
+   {
+    "a": "pt",
+    "b": "an",
+    "type": "Close"
+   },
+   {
+    "a": "pt",
+    "b": "mk",
+    "type": "Close"
+   },
+   {
+    "a": "ju",
+    "b": "an",
+    "type": "Distant"
+   }
+  ],
+  "family": [
+   {
+    "id": "ra",
+    "name": "Ramon",
+    "rel": "Father",
+    "age": "62",
+    "psych": true,
+    "cond": "Alcohol use disorder"
+   },
+   {
+    "id": "lo",
+    "name": "Lourdes",
+    "rel": "Mother",
+    "age": "58",
+    "withPt": true
+   },
+   {
+    "id": "st",
+    "name": "Nilo",
+    "rel": "Stepfather",
+    "age": "60",
+    "relStatus": "Living together"
+   },
+   {
+    "id": "hb",
+    "name": "Paolo",
+    "rel": "Maternal half-brother",
+    "age": "15"
+   },
+   {
+    "id": "ph",
+    "name": "Carmi",
+    "rel": "Paternal half-sister",
+    "age": "20"
+   },
+   {
+    "id": "ju",
+    "name": "Jun",
+    "rel": "Brother",
+    "age": "38"
+   },
+   {
+    "id": "jw",
+    "name": "Tess",
+    "rel": "Sibling's spouse / partner",
+    "sex": "Female",
+    "age": "36",
+    "of": "ju"
+   },
+   {
+    "id": "n1",
+    "name": "Kiko",
+    "rel": "Nephew",
+    "age": "9",
+    "of": "ju"
+   },
+   {
+    "id": "an",
+    "name": "Ana",
+    "rel": "Sister",
+    "age": "30",
+    "psych": true,
+    "cond": "MDD"
+   },
+   {
+    "id": "mk",
+    "name": "Mark",
+    "rel": "Husband",
+    "age": "36",
+    "withPt": true
+   },
+   {
+    "id": "xh",
+    "name": "Dan",
+    "rel": "Former husband",
+    "age": "40",
+    "relStatus": "Annulled / divorced"
+   },
+   {
+    "id": "k0",
+    "name": "Lia",
+    "rel": "Daughter",
+    "age": "14",
+    "of": "xh"
+   },
+   {
+    "id": "k1",
+    "name": "Bea",
+    "rel": "Daughter",
+    "age": "8",
+    "twin": true,
+    "withPt": true
+   },
+   {
+    "id": "k2",
+    "name": "Migo",
+    "rel": "Son",
+    "age": "8",
+    "twin": true,
+    "withPt": true
+   },
+   {
+    "id": "k3",
+    "name": "Baby",
+    "rel": "Son",
+    "age": "8 mo",
+    "withPt": true
+   },
+   {
+    "name": "Pedro",
+    "rel": "Paternal grandfather",
+    "status": "Deceased",
+    "age": "70",
+    "psych": true,
+    "cond": "Died by suicide"
+   },
+   {
+    "name": "Rosa",
+    "rel": "Paternal grandmother",
+    "age": "85"
+   },
+   {
+    "name": "Tito Ben",
+    "rel": "Paternal uncle",
+    "age": "60"
+   },
+   {
+    "name": "Lola Inday",
+    "rel": "Maternal grandmother",
+    "status": "Deceased"
+   },
+   {
+    "name": "Neighbor",
+    "rel": "Household member (not related)"
+   }
+  ]
+ },
+ "old": {
+  "agesex": "34 / F",
+  "parentsRel": "Separated",
+  "ptRel": "Married",
+  "family": [
+   {
+    "name": "Ramon",
+    "rel": "Father",
+    "age": "62",
+    "psych": true,
+    "cond": "Alcohol use"
+   },
+   {
+    "name": "Lourdes",
+    "rel": "Mother",
+    "age": "58"
+   },
+   {
+    "name": "Jun",
+    "rel": "Brother",
+    "age": "38"
+   },
+   {
+    "name": "Ana",
+    "rel": "Sister",
+    "age": "30",
+    "psych": true,
+    "cond": "MDD"
+   },
+   {
+    "name": "Mark",
+    "rel": "Husband",
+    "age": "36"
+   },
+   {
+    "name": "Bea",
+    "rel": "Daughter",
+    "age": "8"
+   },
+   {
+    "name": "Migo",
+    "rel": "Son",
+    "age": "5"
+   },
+   {
+    "name": "Pedro",
+    "rel": "Paternal grandfather",
+    "status": "Deceased",
+    "age": "70",
+    "psych": true,
+    "cond": "Suicide"
+   },
+   {
+    "name": "Rosa",
+    "rel": "Paternal grandmother",
+    "age": "85"
+   },
+   {
+    "name": "Tito Ben",
+    "rel": "Paternal uncle",
+    "age": "60"
+   },
+   {
+    "name": "Lola Inday",
+    "rel": "Maternal grandmother",
+    "status": "Deceased"
+   }
+  ]
+ },
+ "lone": {
+  "agesex": "19 / M",
+  "family": [
+   {
+    "name": "Nanay",
+    "rel": "Mother",
+    "age": "45",
+    "cond": "Hypertension",
+    "occ": "vendor"
+   },
+   {
+    "name": "Kuya",
+    "rel": "Brother",
+    "age": "22"
+   },
+   {
+    "name": "Bunso",
+    "rel": "Sister",
+    "age": "12"
+   },
+   {
+    "name": "Lola",
+    "rel": "Maternal grandmother",
+    "age": "70"
+   },
+   {
+    "name": "GF",
+    "rel": "Partner",
+    "sex": "Female",
+    "age": "19"
+   },
+   {
+    "name": "Baby",
+    "rel": "Daughter",
+    "age": "3 mo"
+   },
+   {
+    "name": "First",
+    "rel": "Son",
+    "age": "2",
+    "of": "none"
+   }
+  ]
+ },
+ "solo": {
+  "agesex": "50 / F",
+  "family": [
+   {
+    "name": "Jo",
+    "rel": "Son",
+    "age": "20"
+   },
+   {
+    "name": "Mae",
+    "rel": "Daughter",
+    "age": "25"
+   },
+   {
+    "name": "Lyn",
+    "rel": "Child's spouse / partner",
+    "sex": "Male",
+    "of": ""
+   },
+   {
+    "name": "Apo",
+    "rel": "Granddaughter",
+    "age": "1 y 6 mo"
+   }
+  ]
+ }
+}
