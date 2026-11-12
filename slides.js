@@ -383,7 +383,7 @@ function usePalette(cfg){
 // Text size: FS scales the reading text. FS0 is the deck's smallest size (1 = Normal, 1.3 = Large), set in generate();
 // each section then grows up to FS_MAX while it still fits on the same number of slides (see paginate)
 let FS=1, FS0=1, BODY=14, LABEL=12.5;
-let FS_MAX = 1.7;
+let FS_MAX = 2.3;
 const z = n => Math.round(n*FS*10)/10;
 const zs = n => Math.round(n*Math.min(FS,1.5)*10)/10;   // number tiles grow less than reading text
 const setFS = f => { FS=f; BODY=z(14); LABEL=z(12.5); };
@@ -483,18 +483,18 @@ let GENO_MAXH = 4.5;   // height of the content area, set per template
 function measure(b, w){
   switch(b.type){
     case 'facts': {
-      const n=b.items.length, cols = n<=4 ? n : n===5||n===6||n===9 ? 3 : 4;
+      const n=b.items.length, cols = b.wide && n>2 && n<=4 ? 2 : n<=4 ? n : n===5||n===6||n===9 ? 3 : 4;
       const cw=(w-GAP*(cols-1))/cols, rows=[];
-      for(let i=0;i<n;i+=cols){ const r=b.items.slice(i,i+cols); rows.push(Math.max(...r.map(it=>0.2+LH(LABEL)+0.04+lineCount(it.value,cw-0.28,BODY)*LH(BODY)))+0.02); }
+      for(let i=0;i<n;i+=cols){ const r=b.items.slice(i,i+cols); rows.push(Math.max(...r.map(it=>0.2+lineCount(it.label,cw-0.28,LABEL*1.1)*LH(LABEL)+0.04+lineCount(it.value,cw-0.28,BODY)*LH(BODY)))+0.02); }
       return { h: rows.reduce((a,x)=>a+x,0)+GAP*(rows.length-1), cols, cw, rows };
     }
     case 'text': {
-      const pt = b.feature ? z(18) : BODY;
+      const pt = b.feature ? Math.max(BODY, Math.min(z(18), 34)) : BODY;
       return { h: 0.22 + (b.label?LH(LABEL)+0.06:0) + parasHeight(textParas(b.text, pt, {plain:b.plain}), w-0.3) + 0.04, pt };
     }
     case 'cards': {
       const n=b.items.length, cw=(w-GAP*(n-1))/n;
-      return { h: Math.max(...b.items.map(it=>0.22+LH(LABEL)+0.06+parasHeight(textParas(it.text,BODY), cw-0.3)+0.04)), cw };
+      return { h: Math.max(...b.items.map(it=>0.22+lineCount(it.label,cw-0.3,LABEL*1.1)*LH(LABEL)+0.06+parasHeight(textParas(it.text,BODY), cw-0.3)+0.04)), cw };
     }
     case 'chips': {
       const ph=LH(z(12))+0.16, gapc=0.1; let x=0, lines=1;
@@ -789,13 +789,17 @@ function plan(data, opts){
    Each section is first laid out at the deck's smallest text size; then the text is enlarged as far as it can go
    (up to FS_MAX) without needing more slides, so short sections are not left with small text on an empty slide. */
 const atScale = b => b.type!=='mse' ? b : { ...b, rows: b.rows.map(r=>({ ...r, paras: r.paras.map(p=>({ ...p, runs: p.runs.map(x=> x.u ? { ...x, sz:z(x.u) } : x) })) })) };
-function layoutSection(tpl, sl, f){
+function layoutSection(tpl, sl, f, wide){
   setFS(f);
-  const A=tpl.area, out=[]; let over=false;
-  let queue=sl.blocks.map(atScale), page={...sl, fs:f, blocks:[], placed:[]}, y=A.y, n=0;
+  const A=tpl.area, out=[]; let over=false, tight=false;
+  // a word wider than its box (short facts in narrow boxes) means the text is too big for this layout
+  const wordIn = (t, pt, bold) => Math.max(0, ...String(t||'').split(/\s+/).map(x=>x.length))*pt/72*CHAR_EM*(bold?1.18:1.08);
+  let queue=sl.blocks.map(atScale).map(b=> wide && b.type==='facts' ? { ...b, wide:true } : b), page={...sl, fs:f, blocks:[], placed:[]}, y=A.y, n=0;
   const flush = () => { out.push(page); n++; page={...sl, fs:f, title: sl.title+' (cont.)', blocks:[], placed:[]}; y=A.y; };
   while(queue.length){
-    const b=queue.shift(), room=A.y+A.h-y, h=measure(b,A.w).h;
+    const b=queue.shift(), room=A.y+A.h-y, m=measure(b,A.w), h=m.h;
+    if(b.type==='facts' && b.items.some(it=>wordIn(it.value,BODY)>m.cw-0.3 || wordIn(it.label,LABEL,true)>m.cw-0.3)) tight=true;
+    if(b.type==='cards' && b.items.some(it=>wordIn(it.text,BODY)>m.cw-0.34 || wordIn(it.label,LABEL,true)>m.cw-0.34)) tight=true;
     if(h<=room){ page.placed.push({b, y}); y+=h+GAP; continue; }
     const sp = b.type==='text' ? splitText(b, A.w, room) : (b.type==='table'||b.type==='mse') ? splitRows(b, A.w, room, b.type) : null;
     if(sp && room>0.9){ page.placed.push({b:sp[0], y}); queue.unshift(sp[1]); flush(); continue; }
@@ -806,23 +810,28 @@ function layoutSection(tpl, sl, f){
     page.placed.push({b, y}); y+=h+GAP;
   }
   if(page.placed.length || !n) out.push(page);
-  return { pages: out, over };
+  return { pages: out, over, tight };
 }
 function paginate(tpl, slides){
   const out=[];
   slides.forEach(sl=>{
     if(sl.kind!=='content'){ out.push(sl); return; }
     let best=layoutSection(tpl, sl, FS0);
-    if(!best.over) for(let f=FS_MAX; f>FS0+0.01; f=Math.round((f-0.05)*100)/100){
-      const r=layoutSection(tpl, sl, f);
-      if(!r.over && r.pages.length<=best.pages.length){ best=r; break; }
+    // largest size that fits; three or four short facts may sit two to a row if that allows clearly bigger text
+    const grow = wide => { for(let f=FS_MAX; f>FS0+0.01; f=Math.round((f-0.05)*100)/100){
+      const r=layoutSection(tpl, sl, f, wide);
+      if(!r.over && !r.tight && r.pages.length<=best.pages.length) return { r, f };
+    } return null; };
+    if(!best.over){
+      const base=best, a=grow(false), w=sl.blocks.some(b=>b.type==='facts' && b.items.length>2 && b.items.length<=4) ? grow(true) : null;
+      if(w && w.f >= (a ? a.f : FS0)+0.25) best=w.r; else if(a) best=a.r;
     }
     // A page with room left (often a "(cont.)" page) grows on its own
     best.pages.forEach(pg=>{
       if(best.over){ out.push(pg); return; }
       for(let f=FS_MAX; f>pg.fs+0.01; f=Math.round((f-0.05)*100)/100){
         const r=layoutSection(tpl, { ...pg, blocks:pg.placed.map(x=>x.b) }, f);
-        if(!r.over && r.pages.length===1){ pg=r.pages[0]; break; }
+        if(!r.over && !r.tight && r.pages.length===1){ pg=r.pages[0]; break; }
       }
       out.push(pg);
     });
@@ -998,7 +1007,7 @@ function assemble(tpl, rendered, meta){
 
 /* Public: build the .pptx bytes. opts: { template (ArrayBuffer), templateCfg, title, presenter, patientAs, dividers, notes, include, date, textScale (smallest text: 1 = Normal, 1.3 = Large; sections with room grow up to FS_MAX) } */
 async function generate(data, opts){
-  FS0 = Math.min(1.6, Math.max(0.8, Number(opts.textScale)||1)); FS_MAX = Math.max(1.7, FS0+0.4); setFS(FS0);
+  FS0 = Math.min(1.6, Math.max(0.8, Number(opts.textScale)||1)); FS_MAX = Math.max(2.3, FS0+0.4); setFS(FS0);
   usePalette(opts.templateCfg || {});
   const tpl = await loadTemplate(opts.template, opts.templateCfg);
   GENO_MAXH = tpl.area.h;
