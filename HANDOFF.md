@@ -25,7 +25,7 @@
 - **Footers:** three templates in index.html: `FOOTER` (form layout + all letters), `FOOTER_P` (protocol), `footerSP()` (safety plan). Page numbers use complex fields (`fldChar` begin/instrText/separate/end), each run carrying grey `sz` formatting, plus `<w:rPr>` in the paragraph's `pPr`. Do not go back to `w:fldSimple`: Google Docs drops its formatting (since v24).
 - **Import:** `DocxImport.fileToData(file)` → `{kind, data, filled, missed, edited}`.
 - **Genogram:** `genogramLayout(d)` → `genogramSVG(G)`; slides draw it as editable shapes.
-- **Slides:** `CASE_FORMAT` in slides.js sets order; `NOT_SLIDES = ['enc','pres']`. Text size (v25): `textScale` is the floor (`FS0`; app passes 1.3 Normal = 18 pt body, 1.6 Large = 22 pt). `paginate()` lays each section out at the floor, then enlarges it (to `FS_MAX` = max(1.7, FS0+0.4)) while the slide count stays the same, then lets each page grow on its own; `page.fs` is applied in `renderSlide` with `setFS`. Sizes must go through `z()` (reading text) or `zs()` (number tiles); MSE runs carry `u:` (unscaled size) and are rescaled by `atScale`. `colWidths` keeps columns at least as wide as their longest word.
+- **Slides:** `CASE_FORMAT` in slides.js sets order; `NOT_SLIDES = ['enc','pres']`. Text size (v25): `textScale` is the floor (`FS0`; app passes 1.3 Normal = 18 pt body, 1.6 Large = 22 pt). `paginate()` lays each section out at the floor, then enlarges it (to `FS_MAX` = 2.3, i.e. 32 pt body, since v26; three or four short facts may go two to a row via `wide`; a size is rejected as `tight` when a word is wider than its box) while the slide count stays the same, then lets each page grow on its own; `page.fs` is applied in `renderSlide` with `setFS`. Sizes must go through `z()` (reading text) or `zs()` (number tiles); MSE runs carry `u:` (unscaled size) and are rescaled by `atScale`. `colWidths` keeps columns at least as wide as their longest word.
 - **Google export:** `GOOGLE_CLIENT_ID` in index.html (set). Redirect sign-in (no pop-up), scope `drive.file`, uploads to Drive folder "PsychInterview", converts to Google Docs/Slides. Google Cloud project is in "Testing" mode: only test users she lists can sign in.
 
 ## 4. Per-unit recipe (a feature or change)
@@ -58,6 +58,7 @@ Passing: every `errors []`, no Traceback; "screens visited: 85 across 7 records"
 | Google Docs conversion of protocol export | **Checked 2026-11-12** through real Drive conversion: letterhead, both floating logos, genogram, lab table with red flags, salient/ddx/formulation/goals tables, page breaks all convert faithfully (7 pages both ways). Only defect was footer page numbers (large black); fixed in v24 (next row). |
 | v24 release (footer fix) | **Live**: PR #13 merged 2026-11-12 with the user's approval (cache `v24`, VERSION 'November 12, 2026'). |
 | Slide text sizing (v25) | **Live**: PR #14 merged 2026-11-12 with the user's approval (cache `v25`). She found exported slides tiny (14 pt on half-empty slides). Tests pass; all five designs checked visually. |
+| Sparse slides bigger (v26) | **PR #15 open, awaiting the user's merge approval** (branch `sparse-slides-bigger`, cache `v26`): she asked for even larger text on slides with only a few boxes. Cap raised from 24 to 32 pt. Tests pass. |
 | Google Docs/Slides export | Live; **not yet confirmed by the user on a real iPad + Gmail** |
 | Google Slides fonts after conversion | Not yet checked |
 | Rename to PsychInterview | Done |
@@ -66,7 +67,7 @@ Passing: every `errors []`, no Traceback; "screens visited: 85 across 7 records"
 ## 7. Next steps
 - Ask whether the real Google export worked on her iPad. If error `redirect_uri_mismatch`: the Google Cloud client must list redirect URI `https://isaymotion.github.io/case-psychinterview/` exactly and JS origin `https://isaymotion.github.io`. If `access_denied`: add the Gmail to Audience → Test users.
 - Check Google Slides conversion fonts (upload a fixture pptx from `t_slides.py` output via Drive the same way as §5, export as PDF, compare). Other Word kinds (form layout, letters) share `FOOTER`, so they get the v24 fix too; spot-check one in Google Docs if time.
-- Ask how the bigger slide text looks with a real case; she was offered a 16 pt floor if there are too many "(cont.)" slides. Next release: cache `v26`, VERSION = release date.
+- Ask how the bigger slide text looks with a real case; she was offered a 16 pt floor if there are too many "(cont.)" slides. Merge PR #15 once she approves. Next release after that: cache `v27`, VERSION = release date.
 
 ## 8. Pitfalls learned
 - `gh pr create` fails (GraphQL blocked). Use REST: `gh api repos/isaymotion/case-psychinterview/pulls -f base=main -f head=<branch> -f title=… -f body=…` then `gh api -X PUT repos/…/pulls/<n>/merge -f merge_method=merge`.
