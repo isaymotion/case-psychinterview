@@ -3391,12 +3391,12 @@ const DocxImport = (() => {
           <div class="famrow">
             <label class="w2">Occupation / role<input type="text" data-fam="${i}" data-fk="occ" value="${h(m.occ)}" placeholder="For example: welder, sole earner" autocomplete="off"></label>
             <label class="w2">Condition / illness<input type="text" data-fam="${i}" data-fk="cond" value="${h(m.cond)}" placeholder="For example: MDD, alcohol use, hypertension" autocomplete="off"></label>
-            <label class="w1">How many<input type="text" inputmode="numeric" data-fam="${i}" data-fk="count" value="${h(m.count)}" placeholder="1" autocomplete="off"></label>
+            <label class="w2">Number of people (if a group)<input type="text" inputmode="numeric" data-fam="${i}" data-fk="count" value="${h(m.count)}" placeholder="Leave empty for one person" autocomplete="off"></label>
           </div>
           <label class="full">Description<textarea data-fam="${i}" data-fk="desc" placeholder="For example: a 62-year-old tricycle driver who drinks daily; distant from the patient.">${h(m.desc)}</textarea></label>
           <div class="tbl-actions"><button class="btn quiet" data-fammove="${i}" data-dir="-1" ${i===0?'disabled':''} aria-label="Move up">Move up</button><button class="btn quiet" data-fammove="${i}" data-dir="1" ${i===list.length-1?'disabled':''} aria-label="Move down">Move down</button><button class="btn quiet danger" data-famdel="${i}">Remove</button></div>
         </section>`; }).join('')}</div>
-      <span class="hint">"How many" lets one symbol stand for several people, for example 5 former partners or 7 children.</span>
+      <span class="hint">"Number of people" is only for a group: type 5 and one symbol stands for 5 former partners, or 7 for 7 children. Leave it empty for one person.</span>
       <div class="tools"><button class="btn" data-famadd="1">Add family member</button>${list.length>1?`<button class="btn quiet" data-famsort="1">Sort list by generation and age</button>`:''}
         <button class="chip" data-genotog="genoByAge" aria-pressed="${d.genoByAge!==false}">Genogram: siblings and children oldest to youngest</button></div>
       <div class="geno-wrap">
@@ -3416,7 +3416,7 @@ const DocxImport = (() => {
     const G = genogramLayout(d);
     if(!G) return '<p class="hint">The genogram appears here once you add family members.</p>';
     return `<p class="lab">Genogram</p><div class="geno">${genogramSVG(G, 60)}</div>
-      ${G.left.length?`<p class="hint">Not drawn (listed in the family profile only): ${h(G.left.join(', '))}. Relatives are drawn when the person who links them to the patient is added (for example, the father for paternal relatives) and chosen in their card. A person has room for two partners on the genogram: put several former partners in one symbol with "How many".</p>`:''}
+      ${G.left.length?`<p class="hint">Not drawn (listed in the family profile only): ${h(G.left.join(', '))}. Relatives are drawn when the person who links them to the patient is added (for example, the father for paternal relatives) and chosen in their card. A person has room for two partners on the genogram: put several former partners in one symbol with "Number of people".</p>`:''}
       ${G.linksLeft.length?`<p class="hint">Relationship lines not drawn because one of the two people is not on the genogram: ${h(G.linksLeft.join('; '))}.</p>`:''}
       <div class="tools"><button class="btn quiet" data-genosave="1">Save genogram as a picture</button></div>`;
   }
