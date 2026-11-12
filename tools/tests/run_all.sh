@@ -13,4 +13,5 @@ echo "== linked documents read new case fields";                   node t_linked
 echo "== genogram layout: five test families, age order";            node t_geno.js "$APP/index.html" "$OUT" | tail -1
 echo "== family editor, relationship lines, Word reopen, genogram slide"; timeout 300 python3 t_family.py "$T" "$APP" "$OUT" 2>&1 | tail -1
 echo "== home screen: sizes, search, delete one + undo, What's new";  timeout 300 python3 t_home.py "$T" "$APP" "$FX" "$OUT" 2>&1 | tail -1
+echo "== navigation: resume, back, find, blanks, patient documents";      timeout 300 python3 t_nav.py "$T" "$APP" "$FX" "$OUT" 2>&1 | tail -1
 echo "Passing = every 'errors' line is [] and no Traceback."
