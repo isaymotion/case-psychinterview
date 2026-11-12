@@ -3102,7 +3102,7 @@ const DocxImport = (() => {
   }
   function queueSave(){ setStatus('Saving…'); clearTimeout(saveTimer); saveTimer=setTimeout(persist, 400); }
   function setStatus(t){ const el=$('#status'); if(el) el.textContent=t; }
-  function toast(t, act, fn){ document.querySelectorAll('.toast').forEach(x=>x.remove()); const el=document.createElement('div'); el.className='toast'; el.setAttribute('role','status'); el.textContent=t; if(act){ el.classList.add('act'); const b=document.createElement('button'); b.textContent=act; b.onclick=()=>{ el.remove(); fn(); }; el.appendChild(b); } document.body.appendChild(el); setTimeout(()=>el.remove(), act?8000:3600); }
+  function toast(t, act, fn){ document.querySelectorAll('.toast').forEach(x=>x.remove()); const el=document.createElement('div'); el.className='toast'; el.setAttribute('role','status'); el.textContent=t; if(act){ el.classList.add('act'); const b=document.createElement('button'); b.textContent=act; b.onclick=()=>{ el.remove(); fn(); }; el.appendChild(b); } document.body.appendChild(el); setTimeout(()=>el.remove(), act?15000:3600); }
   const R = () => store.cases[cur];
   const D = () => R().data;
   const SECS = rec => SCHEMAS[(rec||R()).kind].sections;
@@ -3124,17 +3124,19 @@ const DocxImport = (() => {
   /* ----- What's new. Newest entry FIRST; id goes up by one each release (it is the key for the unseen badge).
      Add an entry on every release, with the cache number from sw.js as v. Types: feature (New), update (Improved), fix (Fixed). ----- */
   const CHANGELOG=[
+    {id:16, v:'v33', date:'2026-11-12', title:'More time to undo a delete', items:[
+      ['update','Undo now stays on screen for 15 seconds after deleting one record or all records (it was 8).']]},
     {id:15, v:'v32', date:'2026-11-12', title:'Light and dark, text size, and Undo for Delete all', items:[
       ['feature','Light or dark: the sun and moon button in the top bar switches between Match this device, Light and Dark.'],
       ['feature','Text size: tap Aa in the top bar for Small, Normal, Large or Larger. It applies to every screen and is remembered on this iPad.'],
-      ['feature','Delete all records now shows Undo for a few seconds, the same as deleting one record.']]},
+      ['feature','Delete all records now shows Undo, the same as deleting one record.']]},
     {id:14, v:'v31', date:'2026-11-12', title:'Great-grandparents and more partners on the genogram', items:[
       ['feature','Great-grandparents: add the grandparent first, then the great-grandfather or great-grandmother and choose whose parent they are.'],
       ['feature','Up to four partners for each person. The third and fourth are joined by a line that goes over the top, and their children hang from that line.']]},
     {id:13, v:'v30', date:'2026-11-12', title:'A new home screen', items:[
       ['feature','Home screen: new documents sit together on one side (or in one compact block when the iPad is upright), so your saved records are in view without scrolling.'],
       ['feature','Find a record: search by patient name, MRN or document type, or tap a chip to show one type only.'],
-      ['feature','Delete one record: tap the bin beside it. Undo appears for a few seconds in case of a slip.'],
+      ['feature','Delete one record: tap the bin beside it. Undo appears for 15 seconds in case of a slip.'],
       ['feature','What\'s new: this page. A number in the top bar shows updates you have not read yet.']]},
     {id:12, v:'v29', date:'2026-11-12', title:'Genogram in step with the Genogram app', items:[
       ['feature','Cousins, adopted and foster children, pregnancies and losses, and a separate substance use mark.'],
