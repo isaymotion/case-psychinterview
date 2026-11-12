@@ -937,6 +937,7 @@ const FAMILY_RELS = [
   { rel:'Grandson', sex:'M', role:'gchild', g:'Grandchildren' }, { rel:'Granddaughter', sex:'F', role:'gchild', g:'Grandchildren' },
   { rel:'Paternal grandfather', sex:'M', role:'pgf', g:'Grandparents' }, { rel:'Paternal grandmother', sex:'F', role:'pgm', g:'Grandparents' },
   { rel:'Maternal grandfather', sex:'M', role:'mgf', g:'Grandparents' }, { rel:'Maternal grandmother', sex:'F', role:'mgm', g:'Grandparents' },
+  { rel:'Great-grandfather', sex:'M', role:'ggp', g:'Great-grandparents' }, { rel:'Great-grandmother', sex:'F', role:'ggp', g:'Great-grandparents' },
   { rel:'Paternal uncle', sex:'M', role:'pside', g:'Aunts and uncles' }, { rel:'Paternal aunt', sex:'F', role:'pside', g:'Aunts and uncles' },
   { rel:'Maternal uncle', sex:'M', role:'mside', g:'Aunts and uncles' }, { rel:'Maternal aunt', sex:'F', role:'mside', g:'Aunts and uncles' },
   { rel:'Male cousin', sex:'M', role:'cousin', g:'Cousins', short:'Cousin' }, { rel:'Female cousin', sex:'F', role:'cousin', g:'Cousins', short:'Cousin' }, { rel:'Cousin (sex not stated)', sex:'', role:'cousin', g:'Cousins', short:'Cousin' },
@@ -948,7 +949,7 @@ const memberSex = m => relInfo(m.rel).sex || (m.sex==='Male' ? 'M' : m.sex==='Fe
 function patientSexOf(d){ const s=(/\b(f|female|babae)\b/i.test(str(d.agesex)) ? 'F' : /\b(m|male|lalaki)\b/i.test(str(d.agesex)) ? 'M' : 'U'); return s; }
 const famCount = m => { const n=parseInt(str(m && m.count), 10); return n>1 ? n : 0; };
 /* Who a member is attached to (roles that need a second person), and what the picker asks */
-const FAM_OF = { child:'Other parent', sibsp:'Spouse / partner of', nib:'Child of', chsp:'Spouse / partner of', gchild:'Child of', cousin:'Child of (aunt or uncle)' };
+const FAM_OF = { child:'Other parent', sibsp:'Spouse / partner of', nib:'Child of', chsp:'Spouse / partner of', gchild:'Child of', cousin:'Child of (aunt or uncle)', ggp:'Parent of (grandparent)' };
 const FAM_PARTNER_ROLES = ['spouse','exsp','sibsp','chsp','stepfa','stepmo'];
 const FAM_TWIN_ROLES = ['sib','phalf','mhalf','child','nib','gchild','cousin'];
 /* Someone's son or daughter (the same roles): how they joined the family, and pregnancies and losses */
@@ -964,7 +965,7 @@ const FAM_LINKS = [
   { type:'Close but conflictual', say:'close but conflictual' }, { type:'Cut off / estranged', say:'cut off (estranged)' },
   { type:'Abusive toward', say:'abusive toward', dir:true }
 ];
-const FAM_ROLE_RANK = ['pgf','pgm','mgf','mgm','pside','father','stepmo','mother','stepfa','mside','phalf','sib','mhalf','cousin','sibsp','spouse','exsp','child','nib','chsp','gchild','other'];
+const FAM_ROLE_RANK = ['ggp','pgf','pgm','mgf','mgm','pside','father','stepmo','mother','stepfa','mside','phalf','sib','mhalf','cousin','sibsp','spouse','exsp','child','nib','chsp','gchild','other'];
 /* Gives every family member a short permanent id, so links between members survive sorting and removing */
 function famIds(d){
   const list = Array.isArray(d.family) ? d.family : [];
@@ -1065,7 +1066,7 @@ function genoLinkPrims(base, type, k){
   return out;
 }
 
-/* Lays out the genogram in units of one symbol width: up to five generations (grandparents to grandchildren),
+/* Lays out the genogram in units of one symbol width: up to six generations (great-grandparents to grandchildren), up to four partners each,
    step-parents and half-siblings, former partners, siblings' families, cousins, twins, adopted and foster children,
    pregnancies and losses, grouped symbols (x5) and relationship lines. Every person's symbol carries their id.
    Returns { prims:[drawing pieces], nodes, lines, w, h, S, left:[names not drawn] } or null. opts.title adds a heading. */
@@ -1097,7 +1098,7 @@ function genogramLayout(d, opts){
     name:str(d.genoPtName)||'Patient', cond:str(d.genoPtCond), relText:'Index patient', x:0, y:0, gen:0, side:'', partners:[], kids:{} };
   const order = arr => d.genoByAge===false ? arr : famByAge(arr, n=>n.ageY);
   const couples = [], fams = [];
-  const addPartner = (h, p, status) => { if(h.partners.length>=2){ drop(p); return false; } h.partners.push(p); p.cstatus=status||''; p.partnerOf=h; return true; };
+  const addPartner = (h, p, status) => { if(h.partners.length>=4){ drop(p); return false; } h.partners.push(p); p.cstatus=status||''; p.partnerOf=h; return true; };
   const addKid = (h, pid, k) => { (h.kids[pid] = h.kids[pid]||[]).push(k); };
   const ghost = sex => ({ id:'g'+Math.random().toString(36).slice(2,6), ghost:true, sh:S, role:'ghost', sex, dead:false, fill:false, pt:false, count:0, age:'', inner:'?', ageY:null, name:'', cond:'', relText:'', x:0, y:0, gen:0, side:'', partners:[], kids:{}, lab:{ lines:[], w:0, h:0 } });
 
@@ -1130,6 +1131,9 @@ function genogramLayout(d, opts){
   if(!fa) by('pside').forEach(drop); if(!mo) by('mside').forEach(drop);
   const gpOf = (role, ok) => { const l=by(role); l.slice(ok?1:0).forEach(drop); return ok ? l[0]||null : null; };
   const pgf=gpOf('pgf',fa), pgm=gpOf('pgm',fa), mgf=gpOf('mgf',mo), mgm=gpOf('mgm',mo);
+  // great-grandparents: up to two above the grandparent chosen as their child
+  by('ggp').forEach(n=>{ const hosts=[pgf,pgm,mgf,mgm].filter(Boolean), of=str(n.m.of), h = hosts.find(x=>x.id===of) || (hosts.length===1 ? hosts[0] : null);
+    if(!h || (h.ggp && h.ggp.length>=2)){ drop(n); return; } (h.ggp = h.ggp||[]).push(n); });
   // cousins hang under the aunt or uncle who is their parent
   by('cousin').forEach(n=>{ const hosts=[...ps, ...ms], of=str(n.m.of), h = hosts.find(x=>x.id===of) || (hosts.length===1 ? hosts[0] : null);
     if(!h){ drop(n); return; } (h.cous = h.cous||[]).push(n); });
@@ -1153,20 +1157,25 @@ function genogramLayout(d, opts){
   /* --- a person with partners and children, laid out left to right; x is the left edge of each symbol --- */
   const shift = (ns, dx) => ns.forEach(n=>{ n.x+=dx; });
   function unit(h, gen){
-    h.gen=gen; const sub=[h], [p1,p2]=h.partners; let pl=null, pr=null;
-    if(p1 && p2){ pr=p1; pl=p2; } else if(p1){ if(h.first && !h.last) pl=p1; else pr=p1; }
+    // partners sit beside the person: the first on the right, the second on the left, a third and fourth further out on each side
+    h.gen=gen; const sub=[h], ps=h.partners; let pl=null, pr=null, pl2=null, pr2=null;
+    if(ps.length>=2){ pr=ps[0]; pl=ps[1]; pr2=ps[2]||null; pl2=ps[3]||null; } else if(ps[0]){ if(h.first && !h.last) pl=ps[0]; else pr=ps[0]; }
     [pl,pr].forEach(p=>{ if(p){ p.gen=gen; sub.push(p); couples.push({ a:h, b:p, status:p.cstatus }); } });
+    [[pl2,pl],[pr2,pr]].forEach(([p,inner])=>{ if(p){ p.gen=gen; sub.push(p); couples.push({ a:h, b:p, status:p.cstatus, over:inner }); } });
     let cur=0;
-    const blk = (ks, p) => { if(!ks || !ks.length) return null; const heads=order(ks), b=block(heads, gen+1); shift(b.nodes, cur);
-      const r={ c:cur+(b.c0+b.c1)/2, x0:cur, x1:cur+b.w }; cur+=b.w; sub.push(...b.nodes); fams.push({ a:h, b:p, kids:heads }); return r; };
-    const BL=blk(pl && h.kids[pl.id], pl), B0=blk(h.kids[''], null), BR=blk(pr && h.kids[pr.id], pr);
+    const blk = (ks, p, inner) => { if(!ks || !ks.length) return null; const heads=order(ks), b=block(heads, gen+1); shift(b.nodes, cur);
+      const r={ c:cur+(b.c0+b.c1)/2, x0:cur, x1:cur+b.w }; cur+=b.w; sub.push(...b.nodes); fams.push({ a:h, b:p, kids:heads, over:inner||null }); return r; };
+    const BL2=blk(pl2 && h.kids[pl2.id], pl2, pl), BL=blk(pl && h.kids[pl.id], pl), B0=blk(h.kids[''], null), BR=blk(pr && h.kids[pr.id], pr), BR2=blk(pr2 && h.kids[pr2.id], pr2, pr);
     if(B0) h.side = !pr ? 'R' : !pl ? 'L' : '';
     const dL = pl ? apart(h, pl) : 0, dR = pr ? apart(h, pr) : 0;
-    const hc = B0 ? B0.c : BL&&BR ? BL.x1 : BR ? BR.c-dR/2 : BL ? BL.c+dL/2 : 0;
+    const hc = B0 ? B0.c : BL&&BR ? BL.x1 : BR ? BR.c-dR/2 : BL ? BL.c+dL/2 : BL2&&BR2 ? (BL2.x1+BR2.x0)/2 : BR2 ? BR2.x0-dR : BL2 ? BL2.x1+dL : 0;
     h.x = hc-S/2;
     if(pr) pr.x = Math.max(hc+dR, BR ? 2*BR.c-hc : -1e9) - S/2;
     if(pl) pl.x = Math.min(hc-dL, BL ? 2*BL.c-hc : 1e9) - S/2;
-    const top = [h, pl, pr].filter(Boolean);
+    // the line to an outer partner's children drops between the inner and the outer partner
+    if(pr2) pr2.x = Math.max(pr.x+S/2+apart(pr, pr2), BR2 ? 2*BR2.c-(pr.x+S/2) : -1e9) - S/2;
+    if(pl2) pl2.x = Math.min(pl.x+S/2-apart(pl, pl2), BL2 ? 2*BL2.c-(pl.x+S/2) : 1e9) - S/2;
+    const top = [h, pl, pr, pl2, pr2].filter(Boolean);
     let lo = Math.min(0, ...top.map(n=>n.x+S/2-hw(n))), hi = Math.max(cur, ...top.map(n=>n.x+S/2+hw(n)));
     if(h.side==='R') hi = Math.max(hi, h.x+S+0.3+h.lab.w);
     if(h.side==='L') lo = Math.min(lo, h.x-0.3-h.lab.w);
@@ -1221,6 +1230,15 @@ function genogramLayout(d, opts){
     if(pR <= mL || !fa || !mo) break;
     extra += (pR - mL) + 0.05;
   }
+  // great-grandparents stand above their child (a grandparent); neighbouring couples are moved apart evenly so they do not overlap
+  { const gg = [pgf,pgm,mgf,mgm].filter(g=>g && g.ggp).map(g=>{ let [a,b]=g.ggp; if(b && a.sex==='F' && b.sex!=='F') [a,b]=[b,a];
+      const dd = b ? apart(a,b) : 0; return { g, a, b:b||null, dd, wl:dd/2+hw(a), wr:b ? dd/2+hw(b) : hw(a), want:cx(g) }; }).sort((p,q)=>p.want-q.want);
+    const F=[], B=[];
+    gg.forEach((f,i)=>{ F[i] = i ? Math.max(f.want, F[i-1]+gg[i-1].wr+f.wl+0.1) : f.want; });
+    for(let i=gg.length-1; i>=0; i--) B[i] = i<gg.length-1 ? Math.min(gg[i].want, B[i+1]-gg[i+1].wl-gg[i].wr-0.1) : gg[i].want;
+    gg.forEach((f,i)=>{ const mid=(F[i]+B[i])/2; setGen(f.a, -3);
+      if(f.b){ setGen(f.b, -3); f.a.x=mid-f.dd/2-S/2; f.b.x=mid+f.dd/2-S/2; couples.push({ a:f.a, b:f.b, status:'' }); } else f.a.x=mid-S/2;
+      fams.push({ a:f.a, b:f.b, kids:[f.g], lift:i%2 ? 0.22 : 0 }); }); }
   if(fa && mo) couples.push({ a:fa, b:mo, status:str(d.parentsRel) });
   if(stepmo) couples.push({ a:stepmo, b:fa, status:stepmo.cstatus });
   if(stepfa) couples.push({ a:mo, b:stepfa, status:stepfa.cstatus });
@@ -1250,22 +1268,28 @@ function genogramLayout(d, opts){
   // where the line to the children leaves a couple: midway, moved if a long label is in the way
   const dropX = (l, r) => { const mid=(l.x+S+r.x)/2, half = n => n.side || n.ghost ? S/2 : Math.max(S/2, n.lab.w/2), lo=cx(l)+half(l)+0.12, hi=cx(r)-half(r)-0.12;
     return lo>hi ? (lo+hi)/2 : Math.max(lo, Math.min(hi, mid)); };
-  couples.forEach(({a,b,status})=>{
-    const l = a.x<b.x ? a : b, r = l===a ? b : a, yy = l.y+S/2, mx = dropX(l, r);
-    L(l.x+S, yy, r.x, yy, status==='Living together');
-    const slash = off => L(mx+off-0.13, yy+0.24, mx+off+0.13, yy-0.24);
-    if(status==='Separated') slash(0);
-    if(status==='Annulled / divorced'){ slash(-0.09); slash(0.09); }
+  const ARC=0.34;   // how far above the symbols the line to a third or fourth partner runs
+  couples.forEach(({a,b,status,over})=>{
     used.couple.add(FAM_COUPLE.includes(status) ? status : 'Married');
     coupled.add(a.id+'|'+b.id); coupled.add(b.id+'|'+a.id);
+    const slashAt = (mx, yy) => { const slash = off => L(mx+off-0.13, yy+0.24, mx+off+0.13, yy-0.24);
+      if(status==='Separated') slash(0); if(status==='Annulled / divorced'){ slash(-0.09); slash(0.09); } };
+    if(over){   // an outer partner: the line goes up and over the partner in between
+      const dir = b.x>a.x ? 1 : -1, x1=cx(a)+dir*0.3, x2=cx(b)-dir*0.3, yt=a.y-ARC, l = over.x<b.x ? over : b, r = l===over ? b : over;
+      L(x1, a.y, x1, yt); L(x1, yt, x2, yt, status==='Living together'); L(x2, yt, x2, b.y);
+      slashAt((dropX(l, r)+x2)/2, yt); used.over=true; return; }
+    const l = a.x<b.x ? a : b, r = l===a ? b : a, yy = l.y+S/2, mx = dropX(l, r);
+    L(l.x+S, yy, r.x, yy, status==='Living together');
+    slashAt(mx, yy);
   });
   const isTwin = (n, kids, i) => n.twin || (n.pt && [kids[i-1], kids[i+1]].some(o=>o && o.twin && o.ageY!=null && o.ageY===n.ageY));
   let anyTwin = false;
-  fams.forEach(({a,b,kids,bare,lift})=>{
+  fams.forEach(({a,b,kids,bare,lift,over})=>{
     if(!kids.length) return;
     const ys = kids[0].y-DROP-(lift||0), xs = kids.map(cx);
     let lo = Math.min(...xs), hi = Math.max(...xs), top = null;
-    if(a && b && !bare){ const l = a.x<b.x ? a : b, r = l===a ? b : a; top = { x:dropX(l, r), y:l.y+S/2 }; }
+    if(a && b && over){ const l = over.x<b.x ? over : b, r = l===over ? b : over; top = { x:dropX(l, r), y:a.y-ARC }; }   // from the line that goes over the top
+    else if(a && b && !bare){ const l = a.x<b.x ? a : b, r = l===a ? b : a; top = { x:dropX(l, r), y:l.y+S/2 }; }
     else if(a && !bare) top = { x:cx(a), y:a.side ? a.y+S : a.y+S+0.14+a.lab.h };
     if(top){ lo=Math.min(lo, top.x); hi=Math.max(hi, top.x); L(top.x, top.y, top.x, ys); }
     // twins: lines that meet at one point on the bar
@@ -1287,7 +1311,7 @@ function genogramLayout(d, opts){
     if(A.gen===B.gen){
       const lft = A.x<B.x ? A : B, rgt = lft===A ? B : A, between = nodes.some(n=>n.gen===A.gen && n!==A && n!==B && cx(n)>cx(lft) && cx(n)<cx(rgt));
       if(!between){ const yy = lft.y+S/2 + (coupled.has(A.id+'|'+B.id) ? 0.27 : 0); base = [[lft.x+S+0.06, yy],[rgt.x-0.06, yy]]; }
-      else { const x1=cx(lft)+0.24, x2=cx(rgt)-0.24, y0=lft.y-0.05, yc=y0-0.42; base=[];
+      else { const x1=cx(lft)+0.24, x2=cx(rgt)-0.24, y0=lft.y-0.05, yc=y0-(coupled.has(A.id+'|'+B.id) ? 0.85 : 0.42); base=[];
         for(let i=0;i<=28;i++){ const t=i/28, u=1-t; base.push([u*u*u*x1+3*u*u*t*(x1+0.25)+3*u*t*t*(x2-0.25)+t*t*t*x2, u*u*u*y0+3*u*u*t*yc+3*u*t*t*yc+t*t*t*y0]); } }
       if(lft!==A) base.reverse();
     } else {
@@ -1366,6 +1390,7 @@ function genogramLayout(d, opts){
   if(used.couple.has('Living together')) key.push({ w:0.62, text:'Living together', draw:(x,y)=>seg(x,y,true) });
   if(used.couple.has('Separated')) key.push({ w:0.62, text:'Separated', draw:(x,y)=>{ seg(x,y); sl(x,y,0); } });
   if(used.couple.has('Annulled / divorced')) key.push({ w:0.62, text:'Annulled / divorced', draw:(x,y)=>{ seg(x,y); sl(x,y,-0.06); sl(x,y,0.06); } });
+  if(used.over) key.push({ w:0.62, text:'Third or fourth partner (line over the top)', draw:(x,y)=>{ [[x+0.06,y+0.3,x+0.06,y+0.08],[x+0.06,y+0.08,x+0.56,y+0.08],[x+0.56,y+0.08,x+0.56,y+0.3]].forEach(q=>prims.push({ t:'line', x1:q[0], y1:q[1], x2:q[2], y2:q[3], c:INK, w:0.04 })); } });
   const vseg = (x,y,dash) => prims.push({ t:'line', x1:x+0.31, y1:y+0.02, x2:x+0.31, y2:y+0.32, c:INK, w:0.04, dash });
   if(used.bond.has('Adopted')) key.push({ w:0.62, text:'Adopted (dashed line to the child)', draw:(x,y)=>vseg(x,y,true) });
   if(used.bond.has('Foster')) key.push({ w:0.62, text:'Foster child (dotted line)', draw:(x,y)=>vseg(x,y,'dot') });
@@ -3085,6 +3110,9 @@ const DocxImport = (() => {
   /* ----- What's new. Newest entry FIRST; id goes up by one each release (it is the key for the unseen badge).
      Add an entry on every release, with the cache number from sw.js as v. Types: feature (New), update (Improved), fix (Fixed). ----- */
   const CHANGELOG=[
+    {id:14, v:'v31', date:'2026-11-12', title:'Great-grandparents and more partners on the genogram', items:[
+      ['feature','Great-grandparents: add the grandparent first, then the great-grandfather or great-grandmother and choose whose parent they are.'],
+      ['feature','Up to four partners for each person. The third and fourth are joined by a line that goes over the top, and their children hang from that line.']]},
     {id:13, v:'v30', date:'2026-11-12', title:'A new home screen', items:[
       ['feature','Home screen: new documents sit together on one side (or in one compact block when the iPad is upright), so your saved records are in view without scrolling.'],
       ['feature','Find a record: search by patient name, MRN or document type, or tap a chip to show one type only.'],
@@ -3623,7 +3651,7 @@ const DocxImport = (() => {
     const sibsAll = list.filter(m=>['sib','phalf','mhalf'].includes(role(m))), kidsAll = list.filter(m=>role(m)==='child'), partners = list.filter(m=>['spouse','exsp'].includes(role(m)));
     const ofOpts = m => { const r=role(m);
       if(r==='child') return [['','Current spouse / partner (or the first partner listed)'], ...partners.map(p=>[p.id, who(p)]), ['none','Not listed (patient only)']];
-      const hosts = (r==='sibsp' || r==='nib') ? sibsAll : r==='cousin' ? list.filter(x=>['pside','mside'].includes(role(x))) : kidsAll;
+      const hosts = (r==='sibsp' || r==='nib') ? sibsAll : r==='cousin' ? list.filter(x=>['pside','mside'].includes(role(x))) : r==='ggp' ? list.filter(x=>['pgf','pgm','mgf','mgm'].includes(role(x))) : kidsAll;
       return [['', hosts.length===1 ? who(hosts[0]) : 'Choose…'], ...(hosts.length===1 ? [] : hosts.map(p=>[p.id, who(p)]))]; };
     const people = [['pt', (str(d.genoPtName)||'Patient')+' (patient)'], ...list.filter(m=>str(m.name)||str(m.rel)).map(m=>[m.id, who(m)])];
     const links = Array.isArray(d.famLinks) ? d.famLinks : (d.famLinks = []);
@@ -3696,7 +3724,7 @@ const DocxImport = (() => {
     const G = genogramLayout(d);
     if(!G) return '<p class="hint">The genogram appears here once you add family members.</p>';
     return `<p class="lab">Genogram</p><div class="geno">${genogramSVG(G, 60)}</div>
-      ${G.left.length?`<p class="hint">Not drawn (listed in the family profile only): ${h(G.left.join(', '))}. Relatives are drawn when the person who links them to the patient is added (for example, the father for paternal relatives) and chosen in their card. A person has room for two partners on the genogram: put several former partners in one symbol with "Number of people".</p>`:''}
+      ${G.left.length?`<p class="hint">Not drawn (listed in the family profile only): ${h(G.left.join(', '))}. Relatives are drawn when the person who links them to the patient is added (for example, the father for paternal relatives) and chosen in their card. A person has room for four partners on the genogram: put more in one symbol with "Number of people".</p>`:''}
       ${G.linksLeft.length?`<p class="hint">Relationship lines not drawn because one of the two people is not on the genogram: ${h(G.linksLeft.join('; '))}.</p>`:''}
       <div class="tools"><button class="btn quiet" data-genosave="1">Save genogram as a picture</button><button class="btn quiet" data-genofile="1">Save as a Genogram app file</button></div>`;
   }
