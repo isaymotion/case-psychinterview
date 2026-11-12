@@ -454,6 +454,8 @@ a.btn{display:inline-flex;align-items:center;text-decoration:none}
 .pt-more{display:block;width:100%;border:0;border-top:1px solid var(--line);background:none;min-height:44px;color:var(--blue);font-weight:600;font-size:14.5px;border-radius:0 0 14px 14px}
 .tidy{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 12px;padding:10px 14px;border-radius:12px;font-size:14.5px;background:#FBF0D9;color:#5E3C08}
 .tidy span{flex:1 1 260px}
+.tidy.bk{background:var(--wash);color:var(--ink-2);border:1px solid var(--line)}
+.tidy.bk strong{color:var(--ink)}
 @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .tidy{background:rgba(224,182,108,.16);color:#E0B66C} }
 @media (max-width:640px){ .sortbox{margin-left:0} .sortbox .l{display:none} .doc .meter{display:none} }
 /* dark top bar inside a record (v36) */
@@ -3317,6 +3319,10 @@ const DocxImport = (() => {
   /* ----- What's new. Newest entry FIRST; id goes up by one each release (it is the key for the unseen badge).
      Add an entry on every release, with the cache number from sw.js as v. Types: feature (New), update (Improved), fix (Fixed). ----- */
   const CHANGELOG=[
+    {id:24, v:'v41', date:'2026-11-13', title:'Word file without the name, and a backup reminder', items:[
+      ['feature','Export Word file for a case now asks how to show the patient: full name, initials or “Patient A”. Choose initials or Patient A for a case conference or teaching copy: the name and MRN are replaced everywhere in the file, including the genogram and the file name. Names of relatives or places typed into the text are not changed, so read the file before sharing it.'],
+      ['feature','Backup reminder: the home screen tells you when records have changed and the last backup is 14 or more days old. Tap Not now to hide it for a week.'],
+      ['update','A Word file made without the name does not mark the record as exported, because it is not the chart copy.']]},
     {id:23, v:'v40', date:'2026-11-13', title:'Genogram: years, medical illness and a note under the chart', items:[
       ['feature','Year of birth and year of death for each family member, shown under the name on the genogram (1950–2020).'],
       ['feature','Medical illness: a chip on the patient and on each family member adds a small cross beside the symbol, separate from the shading for a psychiatric disorder.'],
@@ -3499,6 +3505,15 @@ const DocxImport = (() => {
     const n=Math.floor((Date.now()-rec.exported)/DAY);
     return `<span class="tag ${isStale(rec)?'warn':'ok'}">Exported ${n===0?'today':n===1?'yesterday':n+' days ago'}</span>`;
   }
+  /* backup reminder (v40): shown when records have changed since the last backup and that backup (or, with none yet, the oldest record)
+     is BACKUP_DAYS old. "Not now" hides it for SNOOZE_DAYS (store.last.backupSnooze). */
+  const BACKUP_DAYS=14, SNOOZE_DAYS=7;
+  function backupDue(list){
+    const at=store.last.backupAt||0, changed=list.filter(c=>c.updated>at).length;
+    if(!changed || Date.now()-(store.last.backupSnooze||0) < SNOOZE_DAYS*DAY) return null;
+    const since = at || Math.min(...list.map(c=>c.created||c.updated)), days=Math.floor((Date.now()-since)/DAY);
+    return days>=BACKUP_DAYS ? { days, changed, never:!at } : null;
+  }
   const HOME_SORTS={edited:'Last edited', name:'Patient name', created:'Date created'};
   const PT_SHOW=8;   // a patient with more documents than this shows the newest six and a "Show more" button
 
@@ -3530,6 +3545,7 @@ const DocxImport = (() => {
     const lastRec = store.cases[store.last.lastOpen], lastSec = lastRec && SECS(lastRec)[secAt(lastRec)];
     const sortBy = HOME_SORTS[store.last.homeSort] ? store.last.homeSort : 'edited', byPt = store.last.homeView!=='docs';
     const list = Object.values(store.cases).sort((a,b)=> sortBy==='name' ? (recTitle(a).localeCompare(recTitle(b)) || b.updated-a.updated) : sortBy==='created' ? b.created-a.created : b.updated-a.updated);
+    const due = backupDue(list);
     const fresh = unseenNews(), kinds = Object.keys(KIND_PLURAL).filter(k=>list.some(c=>c.kind===k)), stale = list.filter(isStale).length;
     if(homeK!=='all' && !kinds.includes(homeK) && !(homeK==='old' && stale)) homeK='all';
     const attrs = c => `class="${'k-'+c.kind}" data-kind="${c.kind}"${isStale(c)?' data-old="1"':''} data-s="${h((recTitle(c)+' '+recKind(c)+' '+str(c.data.mrn)).toLowerCase())}"`;
@@ -3572,6 +3588,7 @@ const DocxImport = (() => {
               <label class="sortbox"><span class="l">Sort by</span><select id="sort" aria-label="Sort by">${Object.entries(HOME_SORTS).map(([k,v])=>`<option value="${k}"${k===sortBy?' selected':''}>${v}</option>`).join('')}</select></label></div>`:''}
             ${kinds.length>1||stale?`<div class="fchips" role="group" aria-label="Show">${['all',...kinds,...(stale?['old']:[])].map(k=>`<button class="fchip" data-k="${k}" aria-pressed="${homeK===k}">${k==='all'?'All':k==='old'?'Ready to delete':KIND_PLURAL[k]}<b>${k==='all'?list.length:k==='old'?stale:list.filter(c=>c.kind===k).length}</b></button>`).join('')}</div>`:''}
             ${stale?`<div class="tidy"><span><strong>${stale} record${stale===1?' was':'s were'} exported ${CLEAN_DAYS} or more days ago</strong> and not edited since. Check that the Word file is in your hospital's approved storage, then delete the record here.</span><button class="btn sm" id="tidy">Show ${stale===1?'it':'them'}</button></div>`:''}
+            ${due?`<div class="tidy bk" id="bkNudge"><span><strong>${due.never?'No backup has been saved from this iPad yet':'The last backup is '+due.days+' days old'}</strong>${due.never?', and the oldest record is '+due.days+' days old':', and '+due.changed+' record'+(due.changed===1?' has':'s have')+' changed since'}. A backup file is the only copy if this iPad is lost or reset. Keep it in your hospital's approved storage.</span><button class="btn sm" id="bkNow">Save a backup file</button><button class="btn sm quiet" id="bkLater">Not now</button></div>`:''}
             ${list.length ? `<ul class="cases">${byPt ? homeGroups(list).map((g,gi)=> g.pt && g.recs.length>1 ? group(g,gi) : g.recs.map(card).join('')).join('') : list.map(card).join('')}</ul>
               <p class="nomatch" id="nomatch" hidden>No record matches. Clear the search or choose <strong>All</strong>.</p>`
               : `<p class="empty">Nothing here yet. Tap <strong>New case</strong> to start an interview, or <strong>Open Word file</strong> to continue one you exported.</p>`}
@@ -3609,6 +3626,7 @@ const DocxImport = (() => {
       const nm=$('#nomatch'); if(nm) nm.hidden = n>0; };
     { const groups = byPt ? homeGroups(list) : []; document.querySelectorAll('[data-expall]').forEach(b=>b.onclick=()=>exportPatient(groups[+b.dataset.expall].recs)); }
     const bs=$('#bkSave'); if(bs) bs.onclick=backupSave;
+    { const n=$('#bkNow'), l=$('#bkLater'); if(n) n.onclick=backupSave; if(l) l.onclick=()=>{ store.last.backupSnooze=Date.now(); persist(); $('#bkNudge').remove(); toast('The backup reminder will come back in '+SNOOZE_DAYS+' days.'); }; }
     { const on=(q,fn)=>{ const b=$(q); if(b) b.onclick=fn; };
       on('#lockSet', ()=>lockSheet('set')); on('#lockChange', ()=>lockSheet('change')); on('#lockOff', ()=>lockSheet('off')); on('#lockNow', ()=>showLock());
       const li=$('#lockIdle'); if(li) li.onchange=()=>{ store.last.lock.idle=+li.value; persist(); toast('Locks after '+li.value+' minute'+(li.value==='1'?'':'s')+' without use.'); }; }
@@ -3762,7 +3780,7 @@ const DocxImport = (() => {
         s2.querySelector('.sheet').innerHTML=`<h3>Backup ready</h3><p>${h(name)}<br>${n} record${n===1?'':'s'}, ${p1?'password-protected':'<strong>not</strong> password-protected'}.</p><div class="tools"><button class="btn primary" id="bkShare">Share</button><button class="btn quiet" data-close>Done</button></div>`;
         s2.querySelector('[data-close]').onclick=()=>{ close(); if(!cur) renderHome(); };
         const sh=s2.querySelector('#bkShare'); sh.focus();
-        sh.onclick=async ()=>{ if(await saveFile(bytes, name, 'application/json', 'Backup saved: '+name)){ store.last.backupAt=Date.now(); persist(); } };
+        sh.onclick=async ()=>{ if(await saveFile(bytes, name, 'application/json', 'Backup saved: '+name)){ store.last.backupAt=Date.now(); persist(); const n=$('#bkNudge'); if(n) n.remove(); } };
       };
     });
   }
@@ -4647,8 +4665,11 @@ const DocxImport = (() => {
   const DOCX_TYPE = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', PPTX_TYPE = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
   const today = () => new Date().toISOString().slice(0,10);
   const fileBase = (d, kind) => (str(d.patient)||str(d.patientName)||(kind==='ho'?(str(d.unit)||'Unit'):'')||'Patient').replace(/[^\w\- ]+/g,' ').trim().replace(/\s+/g,'_').slice(0,50) || 'Patient';
-  async function docxFor(rec, layout){
-    const d = rec.data;
+  /* showAs 'initials' or 'alias' (cases only): the name and MRN are replaced in a copy of the data before anything is built,
+     so the text, the genogram picture, the file name and the data embedded in the file all carry the replacement. */
+  async function docxFor(rec, layout, showAs){
+    const hide = rec.kind==='case' && (showAs==='initials'||showAs==='alias') && typeof CaseSlides!=='undefined';
+    const d = hide ? CaseSlides.deidentify(rec.data, showAs).d : rec.data;
     if(rec.kind==='case'){ let geno=null; try{ geno = await genogramPNG(d); }catch(e){ geno=null; }
       return { bytes: DocxGen.build(d, 'case', { layout, geno }), name: `${fileBase(d,'case')}_${layout==='protocol'?'Case_Protocol':'Case'}_${today()}.docx` }; }
     const hd = rec.kind==='pn' && /^\d+$/.test(str(d.hday)) ? '_HD'+str(d.hday) : '';
@@ -4716,10 +4737,10 @@ const DocxImport = (() => {
     sheet(`<h3>Saving to ${what}</h3><p id="gstat">Creating the file…</p>`, (s,c)=>{ close=c; box=s; });
     const stat = t => { const el = box && box.querySelector('#gstat'); if(el) el.textContent = t; };
     try{
-      const f = slides ? await slidesFor(rec, intent.pres) : await docxFor(rec, intent.layout);
+      const f = slides ? await slidesFor(rec, intent.pres) : await docxFor(rec, intent.layout, intent.showAs);
       stat('Uploading to your Google Drive…');
       const res = await gUpload(f.bytes, f.name, slides ? PPTX_TYPE : DOCX_TYPE, slides ? 'application/vnd.google-apps.presentation' : 'application/vnd.google-apps.document', token);
-      if(!slides) markExported(rec.id);
+      if(!slides && !(intent.showAs && intent.showAs!=='full')) markExported(rec.id);
       box.querySelector('.sheet').innerHTML = `<h3>Saved to ${what}</h3><p><strong>${h(res.name||f.name)}</strong> is in the <strong>PsychInterview</strong> folder of your Google Drive. Check the layout there; ${slides?'Google Slides may swap fonts it does not have.':'Google Docs may move pictures a little.'}</p>
         <div class="tools">${res.webViewLink ? `<a class="btn primary" href="${h(res.webViewLink)}" target="_blank" rel="noopener">Open in ${what}</a>` : ''}<button class="btn quiet" data-close>Done</button></div>`;
       box.querySelector('[data-close]').onclick = close;
@@ -4819,7 +4840,12 @@ const DocxImport = (() => {
     if(rec.kind!=='case') return exportFile();
     persist();
     const last = store.last.caseLayout==='form' ? 'form' : 'protocol';
+    const canHide = typeof CaseSlides!=='undefined' && !!str(D().patient), ini = canHide ? CaseSlides.deidentify(D(),'initials').label : '';
+    let showAs='full';
     sheet(`<h3>Export Word file</h3>
+      ${canHide?`<div class="field"><span class="lab" id="l-wm">Show the patient as</span>
+        <div class="seg" role="group" aria-labelledby="l-wm"><button data-wm="full" aria-pressed="true">Full name</button><button data-wm="initials" aria-pressed="false">Initials (${h(ini)})</button><button data-wm="alias" aria-pressed="false">“Patient A”</button></div>
+        <p class="warn-box" id="wmwarn" hidden>For a case conference or teaching copy. The name and MRN are replaced everywhere in the file, including the genogram. Read the file before sharing it: names of relatives, places, schools or employers typed into the text are not changed. Keep the full-name file for the chart.</p></div>`:''}
       <ul class="pick">
         <li><button data-lay="protocol"><strong>Case presentation protocol</strong><span>The hospital's format, with the letterhead, for printing and case conferences.${last==='protocol'?' Last used.':''}</span></button></li>
         <li><button data-lay="form"><strong>Case form (app format)</strong><span>Every field in labeled tables. Best for checking entries and for editing in Word before opening the file in the app again.${last==='form'?' Last used.':''}</span></button></li>
@@ -4830,18 +4856,17 @@ const DocxImport = (() => {
     (s2, close)=>{
       s2.querySelector('[data-close]').onclick=close;
       { const sb=s2.querySelector('#seeBlanks'); if(sb) sb.onclick=()=>{ close(); blanksSheet(); }; }
+      s2.querySelectorAll('[data-wm]').forEach(b=>b.onclick=()=>{ showAs=b.dataset.wm; s2.querySelectorAll('[data-wm]').forEach(x=>x.setAttribute('aria-pressed', x===b)); s2.querySelector('#wmwarn').hidden = showAs==='full'; });
       s2.querySelectorAll('[data-lay]').forEach(b=>b.onclick=async ()=>{
         const lay=b.dataset.lay; store.last.caseLayout=lay; persist();
-        s2.querySelectorAll('[data-lay]').forEach(x=>x.disabled=true); b.querySelector('strong').textContent='Creating…';
-        let geno=null; try{ geno = await genogramPNG(D()); }catch(e){ geno=null; }
-        const bytes = DocxGen.build(D(), 'case', { layout:lay, geno });
-        const d=D(), base=(str(d.patient)||'Patient').replace(/[^\w\- ]+/g,' ').trim().replace(/\s+/g,'_').slice(0,50) || 'Patient';
-        const name = `${base}_${lay==='protocol'?'Case_Protocol':'Case'}_${new Date().toISOString().slice(0,10)}.docx`;
+        s2.querySelectorAll('[data-lay],[data-wm]').forEach(x=>x.disabled=true); b.querySelector('strong').textContent='Creating…';
+        const { bytes, name } = await docxFor(R(), lay, showAs);
         // Sharing needs a fresh tap on the iPad, so the file waits for one
         s2.querySelector('.sheet').innerHTML = `<h3>Word file ready</h3><p>${h(name)}</p><div class="tools"><button class="btn primary" id="wshare">Share</button>${gReady()?'<button class="btn" id="wgoogle">Save to Google Docs</button>':''}<button class="btn quiet" data-close>Done</button></div>`;
         s2.querySelector('[data-close]').onclick=close;
-        const wg=s2.querySelector('#wgoogle'); if(wg) wg.onclick=()=>{ close(); gStart({ rec:cur, what:'doc', layout:lay }); };
-        const sh=s2.querySelector('#wshare'); { const rid=cur; sh.onclick=async ()=>{ if(await saveFile(bytes, name, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'Word file created: '+name)) markExported(rid); }; } sh.focus();
+        const wg=s2.querySelector('#wgoogle'); if(wg) wg.onclick=()=>{ close(); gStart({ rec:cur, what:'doc', layout:lay, showAs }); };
+        // a copy without the name is not the chart copy, so it does not count as "exported"
+        const sh=s2.querySelector('#wshare'); { const rid=cur; sh.onclick=async ()=>{ if(await saveFile(bytes, name, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'Word file created: '+name) && showAs==='full') markExported(rid); }; } sh.focus();
       });
     });
   }
