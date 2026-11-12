@@ -12,7 +12,7 @@ with sync_playwright() as p:
       for(const t of CaseSlides.TEMPLATES){
         const buf = await (await fetch(t.file)).arrayBuffer();
         const avail = CaseSlides.availableSections(d, SECTIONS).map(x=>x.id);
-        const r = await CaseSlides.generate(d, { template:buf, templateCfg:t, title:d.caseTitle, presenter:d.preparedBy, patientAs:'initials', dividers:true, notes:true, include:avail });
+        const r = await CaseSlides.generate(d, { template:buf, templateCfg:t, textScale:(window.__ts||1.3), title:d.caseTitle, presenter:d.preparedBy, patientAs:'initials', dividers:true, notes:true, include:avail });
         let pdf=null; if(t.pdf) pdf = b64(await CasePDF.render(r.deck, { backgrounds:t.pdf.backgrounds, fonts:'fonts/', title:'x' }));
         out[t.id] = { count:r.count, pptx:b64(r.bytes), pdf, avail };
       }

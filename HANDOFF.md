@@ -25,7 +25,7 @@
 - **Footers:** three templates in index.html: `FOOTER` (form layout + all letters), `FOOTER_P` (protocol), `footerSP()` (safety plan). Page numbers use complex fields (`fldChar` begin/instrText/separate/end), each run carrying grey `sz` formatting, plus `<w:rPr>` in the paragraph's `pPr`. Do not go back to `w:fldSimple`: Google Docs drops its formatting (since v24).
 - **Import:** `DocxImport.fileToData(file)` → `{kind, data, filled, missed, edited}`.
 - **Genogram:** `genogramLayout(d)` → `genogramSVG(G)`; slides draw it as editable shapes.
-- **Slides:** `CASE_FORMAT` in slides.js sets order; `NOT_SLIDES = ['enc','pres']`.
+- **Slides:** `CASE_FORMAT` in slides.js sets order; `NOT_SLIDES = ['enc','pres']`. Text size (v25): `textScale` is the floor (`FS0`; app passes 1.3 Normal = 18 pt body, 1.6 Large = 22 pt). `paginate()` lays each section out at the floor, then enlarges it (to `FS_MAX` = max(1.7, FS0+0.4)) while the slide count stays the same, then lets each page grow on its own; `page.fs` is applied in `renderSlide` with `setFS`. Sizes must go through `z()` (reading text) or `zs()` (number tiles); MSE runs carry `u:` (unscaled size) and are rescaled by `atScale`. `colWidths` keeps columns at least as wide as their longest word.
 - **Google export:** `GOOGLE_CLIENT_ID` in index.html (set). Redirect sign-in (no pop-up), scope `drive.file`, uploads to Drive folder "PsychInterview", converts to Google Docs/Slides. Google Cloud project is in "Testing" mode: only test users she lists can sign in.
 
 ## 4. Per-unit recipe (a feature or change)
@@ -43,7 +43,7 @@ git fetch origin dev-tools && git worktree add ../dt origin/dev-tools
 pip install python-docx --break-system-packages      # playwright + Chromium are preinstalled
 bash ../dt/tools/tests/run_all.sh "$PWD"               # runs against the clone
 ```
-Passing: every `errors []`, no Traceback; "screens visited: 85 across 7 records"; slides 5 designs generated (~41–42 slides for the fixture); Google test shows sign-in with the real client id; linked-documents lines print differential, admitDx with "Rule out:", labs with (L) flags. Exported test files land in `../dt/tools/tests/out/` (case_protocol.docx, case_form.docx, reg_*.docx).
+Passing: every `errors []`, no Traceback; "screens visited: 85 across 7 records"; slides 5 designs generated (44–50 slides for the fixture at Normal size; `t_slides.py` passes textScale 1.3 like the app); Google test shows sign-in with the real client id; linked-documents lines print differential, admitDx with "Rule out:", labs with (L) flags. Exported test files land in `../dt/tools/tests/out/` (case_protocol.docx, case_form.docx, reg_*.docx).
 - Docx validation: `python3 /mnt/skills/public/docx/scripts/office/validate.py file.docx`. Render: `soffice --headless --convert-to pdf file.docx && pdftoppm -jpeg -r 50 file.pdf p`.
 - **Real Google Docs conversion check** (uses her connected Google Drive; fixture only, no patient data): copy the docx under the working dir (file references from /tmp are refused), `Google_Drive create_file` with `base64Content: sha256:<hash>:<abs path>` and the docx mime type (it converts to a Google Doc), then `download_file_content` with `exportMimeType: application/pdf` (result is saved to a JSON file; base64-decode `content`), render with pdftoppm and compare with the soffice render. Trash the test file afterwards.
 - Other tests in `tools/tests/`: `t_roundtrip.py scripts work live fx` (needs an older app copy as `live`), `t_oldfields.py`, `t_portrait.py`, `t_ui1.py`, `t_geno.js`, `t_name.py`. Each takes the tests folder as argv[1].
@@ -57,6 +57,7 @@ Passing: every `errors []`, no Traceback; "screens visited: 85 across 7 records"
 | Slides: 5 designs, pptx/pdf/Keynote, Google Slides, timeline slide, large text, formulation builder | Done (later sessions) |
 | Google Docs conversion of protocol export | **Checked 2026-11-12** through real Drive conversion: letterhead, both floating logos, genogram, lab table with red flags, salient/ddx/formulation/goals tables, page breaks all convert faithfully (7 pages both ways). Only defect was footer page numbers (large black); fixed in v24 (next row). |
 | v24 release (footer fix) | **Live**: PR #13 merged 2026-11-12 with the user's approval (cache `v24`, VERSION 'November 12, 2026'). |
+| Slide text sizing (v25) | **PR #14 open, awaiting the user's merge approval**: https://github.com/isaymotion/case-psychinterview/pull/14 (branch `slide-text-fit`, cache `v25`). She found exported slides tiny (14 pt on half-empty slides). Tests pass; all five designs checked visually. |
 | Google Docs/Slides export | Live; **not yet confirmed by the user on a real iPad + Gmail** |
 | Google Slides fonts after conversion | Not yet checked |
 | Rename to PsychInterview | Done |
@@ -65,7 +66,7 @@ Passing: every `errors []`, no Traceback; "screens visited: 85 across 7 records"
 ## 7. Next steps
 - Ask whether the real Google export worked on her iPad. If error `redirect_uri_mismatch`: the Google Cloud client must list redirect URI `https://isaymotion.github.io/case-psychinterview/` exactly and JS origin `https://isaymotion.github.io`. If `access_denied`: add the Gmail to Audience → Test users.
 - Check Google Slides conversion fonts (upload a fixture pptx from `t_slides.py` output via Drive the same way as §5, export as PDF, compare). Other Word kinds (form layout, letters) share `FOOTER`, so they get the v24 fix too; spot-check one in Google Docs if time.
-- Release after v24: cache `v25`, VERSION = release date.
+- Merge PR #14 once she approves (v25). Release after that: cache `v26`, VERSION = release date.
 
 ## 8. Pitfalls learned
 - `gh pr create` fails (GraphQL blocked). Use REST: `gh api repos/isaymotion/case-psychinterview/pulls -f base=main -f head=<branch> -f title=… -f body=…` then `gh api -X PUT repos/…/pulls/<n>/merge -f merge_method=merge`.
@@ -74,6 +75,7 @@ Passing: every `errors []`, no Traceback; "screens visited: 85 across 7 records"
 - Pages build status API is blocked; just tell the user to wait 1–2 min and reopen the app.
 - docx schema order: `<w:jc>` comes after the other pPr items she uses; `<w:rPr>` (paragraph-mark formatting) goes after `<w:jc>`. Validate after any docx change.
 - Google Docs ignores formatting on runs inside `w:fldSimple`; use complex fields.
+- When judging slide text size, read `sz=` values from the pptx XML; small contact-sheet thumbnails are misleading.
 - Hidden rail in portrait: test scripts must use `textContent`, not `innerText`.
 - Playwright: start the local server inside the test (`serve.py`), not with `&` in bash (gets killed).
 - Lab cards need `minmax(400px,…)` or names truncate in portrait.
