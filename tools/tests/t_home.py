@@ -51,6 +51,32 @@ with sync_playwright() as p:
     # delete from inside a record also offers undo
     pg.once('dialog', lambda d: d.accept()); pg.click('[data-open="r7"]'); pg.click('#del'); pg.wait_for_selector('.toast button')
     check(pg.evaluate(N)==6, 'editor delete'); pg.click('.toast button'); check(pg.evaluate(N)==7, 'editor delete undone')
+    # delete all, undo, then delete all for good on a throwaway page at the end
+    pg.once('dialog', lambda d: d.accept()); pg.click('#back') if pg.locator('#back').count() else None; pg.click('#wipe'); pg.wait_for_selector('.toast button')
+    check(pg.evaluate(N)==0 and pg.locator('.empty').count()==1, 'delete all empties the list'); pg.screenshot(path=os.path.join(out,'home-undo-all.png'))
+    pg.click('.toast button'); check(pg.evaluate(N)==7 and pg.locator('.cases li').count()==7, 'undo brings all records back')
+    pg.once('dialog', lambda d: d.dismiss()); pg.click('#wipe'); check(pg.evaluate(N)==7, 'cancelling delete all keeps everything')
+    # theme button: match device -> light -> dark -> match device; forced dark on a light device really is dark
+    BG="getComputedStyle(document.body).backgroundColor"; TH="document.documentElement.getAttribute('data-theme')"
+    light=pg.evaluate(BG); pg.click('#theme'); check(pg.evaluate(TH)=='light' and pg.evaluate(BG)==light, 'theme: light')
+    pg.click('#theme'); check(pg.evaluate(TH)=='dark' and pg.evaluate(BG)=='rgb(14, 21, 29)', 'theme: forced dark '+pg.evaluate(BG))
+    check(pg.evaluate("getComputedStyle(document.querySelector('.fchip[aria-pressed=true]')).color")=='rgb(14, 21, 29)', 'forced dark copies component rules')
+    pg.wait_for_timeout(200); pg.screenshot(path=os.path.join(out,'home-forced-dark.png'))
+    pg.reload(); pg.wait_for_timeout(300); check(pg.evaluate(TH)=='dark', 'theme remembered'); pg.click('#theme'); check(pg.evaluate(TH) is None, 'theme: back to match device')
+    q=page(1180,820,'dark'); q.click('#theme'); check(q.evaluate(BG)==light, 'forced light on a dark device'); q.click('#theme'); q.click('#theme'); q.close()
+    # text size: every size, no sideways scroll on home or inside a case at three widths; remembered
+    pg.click('#aa'); pg.wait_for_selector('[data-size]'); pg.click('[data-size="3"]'); pg.screenshot(path=os.path.join(out,'look-sheet.png')); pg.click('[data-close]')
+    check(pg.evaluate("getComputedStyle(document.body).zoom")=='1.25', 'Larger text applied')
+    for i in range(4):
+        pg.evaluate("i=>{const s=JSON.parse(localStorage.getItem('psyCaseApp.v1')); s.last.textSize=i; localStorage.setItem('psyCaseApp.v1',JSON.stringify(s));}", i)
+        for w,hh in [(1180,820),(820,1180),(390,844)]:
+            q=page(w,hh); check(q.evaluate("document.documentElement.scrollWidth<=window.innerWidth"), f'size {i} at {w}: home scrolls sideways')
+            if i==3: q.screenshot(path=os.path.join(out,f'home-larger-{w}.png'))
+            q.click('[data-open="c1"]'); q.wait_for_timeout(150); check(q.evaluate("document.documentElement.scrollWidth<=window.innerWidth"), f'size {i} at {w}: case scrolls sideways')
+            if w==1180: check(q.evaluate("(()=>{const r=document.querySelector('#rail').getBoundingClientRect(); return r.bottom<=window.innerHeight+1})()"), f'size {i}: section list taller than the screen')
+            if i==3: q.screenshot(path=os.path.join(out,f'case-larger-{w}.png'))
+            q.click('#back') if q.locator('#back').is_visible() else None; q.close()
+    pg.evaluate("()=>{const s=JSON.parse(localStorage.getItem('psyCaseApp.v1')); s.last.textSize=1; localStorage.setItem('psyCaseApp.v1',JSON.stringify(s));}"); pg.reload(); pg.wait_for_timeout(300)
     # What's new
     pg.click('#news'); pg.wait_for_selector('.news-entry')
     check(pg.locator('.news-entry.is-new').count()==1, 'one entry marked new'); pg.screenshot(path=os.path.join(out,'news.png'))
