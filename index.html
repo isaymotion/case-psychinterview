@@ -436,6 +436,15 @@ a.btn{display:inline-flex;align-items:center;text-decoration:none}
 .tidy span{flex:1 1 260px}
 @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .tidy{background:rgba(224,182,108,.16);color:#E0B66C} }
 @media (max-width:640px){ .sortbox{margin-left:0} .sortbox .l{display:none} .doc .meter{display:none} }
+/* backup and restore, export all for a patient (v35) */
+.backup{margin:14px 0 0;padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:var(--paper)}
+.backup h3{font:600 16px/1.3 var(--sans);margin:0 0 4px}
+.backup p{margin:0 0 10px;font-size:14.5px;color:var(--ink-2)}
+.backup .row{display:flex;gap:10px;flex-wrap:wrap}
+.pwrow{display:grid;gap:10px;margin:0 0 12px}
+.pwrow label{display:block;font-weight:600;font-size:15px}
+.pwrow input{margin-top:4px}
+.sheet .err{color:var(--risk);font-weight:600;min-height:1.4em;margin:0 0 8px}
 /* theme and text size (v31). Forced dark is generated at start-up from the dark media rules (forceDark in the script). */
 :root[data-theme="light"]{color-scheme:light} :root[data-theme="dark"]{color-scheme:dark}
 body{zoom:var(--tz,1)}
@@ -2888,7 +2897,7 @@ const DocxGen = (() => {
     }
     return zip([['[Content_Types].xml',CT],['_rels/.rels',RELS],['word/_rels/document.xml.rels',DOCRELS],['word/document.xml',buildDocument(d, kind)],['word/styles.xml',STYLES],['word/footer1.xml',FOOTER]]);
   }
-  return { build, textPrint };
+  return { build, textPrint, zip };
 })();
 if (typeof module !== 'undefined') module.exports = DocxGen;
 
@@ -3157,6 +3166,10 @@ const DocxImport = (() => {
   /* ----- What's new. Newest entry FIRST; id goes up by one each release (it is the key for the unseen badge).
      Add an entry on every release, with the cache number from sw.js as v. Types: feature (New), update (Improved), fix (Fixed). ----- */
   const CHANGELOG=[
+    {id:18, v:'v35', date:'2026-11-12', title:'Backup, restore and Export all', items:[
+      ['feature','Backup: save every record on this iPad to one file, with an optional password. Find it under the record list on the home screen.'],
+      ['feature','Restore: bring records back from a backup file, on this or another iPad. It only adds records or replaces older copies, and can be undone.'],
+      ['feature','Export all: a patient card has a button that creates the Word files for all of that patient\'s documents in one go.']]},
     {id:17, v:'v34', date:'2026-11-12', title:'Records grouped by patient', items:[
       ['feature','By patient: a patient with several documents now has one card listing them, with a + Progress note button. Switch to All documents for the flat list.'],
       ['feature','Sort the list by last edited, patient name or date created.'],
@@ -3333,7 +3346,7 @@ const DocxImport = (() => {
       const cases=g.recs.filter(c=>c.kind==='case').length, extra=g.recs.length>PT_SHOW ? g.recs.length-6 : 0;
       return `<li class="pt" data-g="${gi}"><div class="pt-head"><i class="kic pt-ic">${ic('person')}</i>
                 <span class="who"><strong>${h(recTitle(lead))}</strong><span>${mrn?'MRN '+h(mrn)+'. ':''}${h(counts.charAt(0).toUpperCase()+counts.slice(1))}</span></span>
-                ${src?`<button class="btn sm" data-newpn="${src.id}">+ Progress note</button>`:''}</div>
+                ${src?`<button class="btn sm" data-newpn="${src.id}">+ Progress note</button>`:''}<button class="btn sm" data-expall="${gi}">Export all</button></div>
                 ${cases>1?`<p class="pt-note">${cases} cases are saved for this patient. If one is a duplicate, open it to check, then delete it with its bin.</p>`:''}
                 ${g.recs.map((c,i)=>doc(c,i,g.recs.length)).join('')}
                 ${extra?`<button class="pt-more" data-more>Show ${extra} more</button>`:''}</li>`; };
@@ -3362,6 +3375,10 @@ const DocxImport = (() => {
               <p class="nomatch" id="nomatch" hidden>No record matches. Clear the search or choose <strong>All</strong>.</p>`
               : `<p class="empty">Nothing here yet. Tap <strong>New case</strong> to start an interview, or <strong>Open Word file</strong> to continue one you exported.</p>`}
             <div class="privacy"><strong>Where your data lives.</strong> Records are saved only in this app on this iPad; nothing is uploaded anywhere. Export the Word file to your hospital's approved storage, then delete the record here.</div>
+            <div class="backup"><h3>Backup</h3>
+              <p>${list.length?'Save every record on this iPad to one file, as a safety copy or to move to another iPad. ':''}${store.last.backupAt?'Last backup saved '+h(when(store.last.backupAt))+'.':list.length?'No backup has been saved from this iPad yet.':'Have a backup file from this app? Bring its records back here.'}</p>
+              <div class="row">${list.length?'<button class="btn" id="bkSave">Save a backup file</button>':''}<button class="btn" id="bkOpen">Restore from a backup file</button></div>
+              <input type="file" id="bkFile" accept=".json,application/json" hidden></div>
             ${list.length?`<div class="foot"><button class="btn quiet danger" id="wipe">Delete all records</button></div>`:''}
           </section>
         </div>
@@ -3383,6 +3400,9 @@ const DocxImport = (() => {
       document.querySelectorAll('.cases [data-s]').forEach(el=>{ const ok=(homeK==='all' || (homeK==='old' ? !!el.dataset.old : el.dataset.kind===homeK)) && (!q||el.dataset.s.includes(q)) && !(all && el.dataset.extra && !el.parentNode.dataset.all); el.hidden=!ok; if(ok) n++; });
       document.querySelectorAll('.cases li.pt').forEach(li=>{ li.hidden=!li.querySelector('.doc:not([hidden])'); const m=li.querySelector('[data-more]'); if(m) m.hidden=!all || !!li.dataset.all; });
       const nm=$('#nomatch'); if(nm) nm.hidden = n>0; };
+    { const groups = byPt ? homeGroups(list) : []; document.querySelectorAll('[data-expall]').forEach(b=>b.onclick=()=>exportPatient(groups[+b.dataset.expall].recs)); }
+    const bs=$('#bkSave'); if(bs) bs.onclick=backupSave;
+    $('#bkOpen').onclick=()=>{ const i=$('#bkFile'); i.onchange=e=>{ const f=e.target.files[0]; e.target.value=''; if(f) backupOpen(f); }; i.click(); };
     document.querySelectorAll('[data-more]').forEach(b=>b.onclick=()=>{ b.parentNode.dataset.all='1'; filter(); });
     const q=$('#q'); if(q) q.oninput=()=>{ homeQ=q.value; filter(); }; else homeQ='';
     const pick=k=>{ homeK=k; document.querySelectorAll('.fchip').forEach(x=>x.setAttribute('aria-pressed', x.dataset.k===k)); filter(); };
@@ -3395,6 +3415,111 @@ const DocxImport = (() => {
       toast('Deleted all '+list.length+' record'+(list.length===1?'':'s')+'.', 'Undo', ()=>{ store.cases=Object.assign({}, kept, store.cases); persist(); if(!cur) renderHome(); }); } };
     window.scrollTo(0,0);
   }
+  /* ----- export every document of one patient: one share with all the Word files, or one zip where the device cannot share several ----- */
+  async function exportPatient(recs){
+    let close, box; sheet(`<h3>Export all documents</h3><p id="xstat">Creating ${recs.length} Word files…</p>`, (s2,c)=>{ box=s2; close=c; });
+    await new Promise(r=>setTimeout(r,30));
+    const lay = store.last.caseLayout==='form' ? 'form' : 'protocol', files=[], used={};
+    try{
+      for(const rec of recs){ const f=await docxFor(rec, lay); let name=f.name; if(used[name]){ used[name]++; name=name.replace(/\.docx$/, '_'+used[name]+'.docx'); } else used[name]=1; files.push({name, bytes:f.bytes, id:rec.id}); }
+    }catch(e){ close(); toast('The files could not be created. Export the documents one at a time.'); return; }
+    const lead=recs.find(c=>c.kind==='case')||recs[0], zipName=`${fileBase(lead.data, lead.kind)}_All_documents_${today()}.zip`;
+    const many = files.map(f=>new File([f.bytes], f.name, {type:DOCX_TYPE})), canMany = !!(navigator.canShare && navigator.canShare({files:many}));
+    box.querySelector('.sheet').innerHTML = `<h3>${files.length} Word files ready</h3>
+      <ul class="small">${files.map(f=>`<li>${h(f.name)}</li>`).join('')}</ul>
+      <p class="small">${canMany?'Share sends them together; choose Save to Files to keep them in one folder.':'They are saved together as one zip file: '+h(zipName)+'.'}${recs.some(c=>c.kind==='case')?' The case uses the '+(lay==='form'?'case form':'hospital protocol')+' layout, the one last used.':''}</p>
+      <div class="tools"><button class="btn primary" id="xshare">${canMany?'Share':'Save zip file'}</button><button class="btn quiet" data-close>Done</button></div>`;
+    box.querySelector('[data-close]').onclick=close;
+    const sh=box.querySelector('#xshare'); sh.focus();
+    sh.onclick=async ()=>{
+      let ok=false;
+      if(canMany){ try{ await navigator.share({files:many, title:fileBase(lead.data, lead.kind)}); ok=true; }catch(err){ if(err && err.name==='AbortError') return; } }
+      if(!ok) ok = await saveFile(DocxGen.zip(files.map(f=>[f.name, f.bytes])), zipName, 'application/zip', 'Zip file created: '+zipName);
+      if(ok){ files.forEach(f=>markExported(f.id)); close(); if(!cur) renderHome(); }
+    };
+  }
+
+  /* ----- backup and restore. File: { app:'psychinterview', kind:'backup', format:1, made, version, count, cases }
+     or, with a password, the same header with enc:{ kdf:'PBKDF2-SHA256', iter, salt, iv, data } in place of cases
+     (AES-GCM over the JSON of cases; base64 fields). Restoring only ADDS: a record already here is replaced only by a newer copy. ----- */
+  const B64 = { enc:u8=>{ let s=''; for(let i=0;i<u8.length;i+=0x8000) s+=String.fromCharCode.apply(null, u8.subarray(i,i+0x8000)); return btoa(s); }, dec:t=>Uint8Array.from(atob(t), c=>c.charCodeAt(0)) };
+  const BK_ITER=250000;
+  async function bkKey(pw, salt, iter){
+    const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveKey']);
+    return crypto.subtle.deriveKey({name:'PBKDF2', salt, iterations:iter, hash:'SHA-256'}, base, {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']);
+  }
+  function backupSave(){
+    const n=Object.keys(store.cases).length, canEnc = !!(window.crypto && crypto.subtle);
+    sheet(`<h3>Save a backup file</h3>
+      <p>The file holds all ${n} record${n===1?'':'s'} on this iPad, with every patient detail in them. Keep it only in your hospital's approved storage.</p>
+      ${canEnc?`<div class="pwrow"><label>Password for the file (recommended)<input type="password" id="bk1" autocomplete="new-password"></label><label>Type it again<input type="password" id="bk2" autocomplete="new-password"></label></div>
+      <p class="small">With a password the file cannot be read without it. There is no way to recover a forgotten password. Leave both boxes empty to save without one.</p>`:'<p class="small">This device cannot password-protect the file, so it will be saved as plain text.</p>'}
+      <p class="err" id="bkErr" role="alert"></p>
+      <div class="tools end"><button class="btn quiet" data-close>Cancel</button><button class="btn primary" id="bkGo">Create backup</button></div>`,
+    (s2,close)=>{
+      s2.querySelector('[data-close]').onclick=close;
+      s2.querySelector('#bkGo').onclick=async ()=>{
+        const p1=canEnc?s2.querySelector('#bk1').value:'', p2=canEnc?s2.querySelector('#bk2').value:'', err=s2.querySelector('#bkErr');
+        if(p1!==p2){ err.textContent='The two passwords do not match.'; return; }
+        if(p1 && p1.length<6){ err.textContent='Use at least 6 characters.'; return; }
+        persist();
+        const out={ app:'psychinterview', kind:'backup', format:1, made:new Date().toISOString(), version:VERSION, count:n };
+        try{
+          if(p1){ const salt=crypto.getRandomValues(new Uint8Array(16)), iv=crypto.getRandomValues(new Uint8Array(12)), key=await bkKey(p1, salt, BK_ITER);
+            const data=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, new TextEncoder().encode(JSON.stringify(store.cases))));
+            out.enc={ alg:'AES-GCM', kdf:'PBKDF2-SHA256', iter:BK_ITER, salt:B64.enc(salt), iv:B64.enc(iv), data:B64.enc(data) }; }
+          else out.cases=store.cases;
+        }catch(e){ err.textContent='The backup could not be created on this device.'; return; }
+        const bytes=new TextEncoder().encode(JSON.stringify(out)), name=`PsychInterview_Backup_${today()}.json`;
+        // Sharing needs a fresh tap on the iPad, so the file waits for one
+        s2.querySelector('.sheet').innerHTML=`<h3>Backup ready</h3><p>${h(name)}<br>${n} record${n===1?'':'s'}, ${p1?'password-protected':'<strong>not</strong> password-protected'}.</p><div class="tools"><button class="btn primary" id="bkShare">Share</button><button class="btn quiet" data-close>Done</button></div>`;
+        s2.querySelector('[data-close]').onclick=()=>{ close(); if(!cur) renderHome(); };
+        const sh=s2.querySelector('#bkShare'); sh.focus();
+        sh.onclick=async ()=>{ if(await saveFile(bytes, name, 'application/json', 'Backup saved: '+name)){ store.last.backupAt=Date.now(); persist(); } };
+      };
+    });
+  }
+  async function backupOpen(file){
+    let j; try{ j=JSON.parse(await file.text()); }catch(e){ j=null; }
+    if(!j || j.app!=='psychinterview' || j.kind!=='backup' || !(j.cases || j.enc)){ toast('That is not a PsychInterview backup file.'); return; }
+    if(j.format>1){ toast('This backup was made by a newer version of the app. Update the app, then try again.'); return; }
+    const merge = cases => {
+      const inc = Object.values(cases||{}).filter(c=>c && typeof c.id==='string' && /^[\w-]{1,64}$/.test(c.id) && c.data && typeof c.data==='object' && SCHEMAS[c.kind||'case']);   // ids go into the page, so only plain ones; unknown kinds are skipped
+      if(!inc.length){ toast('The backup has no records in it.'); return; }
+      const add = inc.filter(c=>!store.cases[c.id]), newer = inc.filter(c=>store.cases[c.id] && (c.updated||0) > (store.cases[c.id].updated||0)), same = inc.length-add.length-newer.length;
+      sheet(`<h3>Restore from backup</h3>
+        <p>Backup made ${h(when(j.made))}, with ${inc.length} record${inc.length===1?'':'s'}.</p>
+        <ul class="small"><li><strong>${add.length}</strong> not on this iPad: will be added.</li>
+          <li><strong>${newer.length}</strong> newer than the copy on this iPad: will replace it.</li>
+          <li><strong>${same}</strong> already here, the same or newer: left as they are.</li></ul>
+        <p class="small">Nothing on this iPad is deleted. Records made here since the backup stay.</p>
+        <div class="tools end"><button class="btn quiet" data-close>Cancel</button>${add.length+newer.length?'<button class="btn primary" id="bkDo">Restore</button>':''}</div>`,
+      (s2,close)=>{
+        s2.querySelector('[data-close]').onclick=close;
+        const go=s2.querySelector('#bkDo'); if(go) go.onclick=()=>{
+          const before=Object.assign({}, store.cases);
+          add.concat(newer).forEach(c=>{ c.kind=c.kind||'case'; splitLegacyPatient(c.data); ((c.data||{}).rows||[]).forEach(splitLegacyPatient); store.cases[c.id]=c; });
+          persist(); close(); renderHome();
+          toast('Restored '+(add.length+newer.length)+' record'+(add.length+newer.length===1?'':'s')+'.', 'Undo', ()=>{ store.cases=before; persist(); if(!cur) renderHome(); });
+        };
+      });
+    };
+    if(!j.enc){ merge(j.cases); return; }
+    sheet(`<h3>Backup password</h3><p>This backup is password-protected. Made ${h(when(j.made))}${j.count?', '+j.count+' record'+(j.count===1?'':'s'):''}.</p>
+      <div class="pwrow"><label>Password<input type="password" id="bkPw" autocomplete="off"></label></div><p class="err" id="bkErr" role="alert"></p>
+      <div class="tools end"><button class="btn quiet" data-close>Cancel</button><button class="btn primary" id="bkGo">Open</button></div>`,
+    (s2,close)=>{
+      s2.querySelector('[data-close]').onclick=close; const inp=s2.querySelector('#bkPw'); inp.focus();
+      const go=async ()=>{
+        try{ const key=await bkKey(inp.value, B64.dec(j.enc.salt), j.enc.iter||BK_ITER);
+          const plain=await crypto.subtle.decrypt({name:'AES-GCM', iv:B64.dec(j.enc.iv)}, key, B64.dec(j.enc.data));
+          const cases=JSON.parse(new TextDecoder().decode(plain)); close(); merge(cases); }
+        catch(e){ s2.querySelector('#bkErr').textContent='That password did not open the file.'; inp.select(); }
+      };
+      s2.querySelector('#bkGo').onclick=go; inp.onkeydown=e=>{ if(e.key==='Enter') go(); };
+    });
+  }
+
   /* Delete one record. The record is kept in memory for a few seconds so a slip can be undone. */
   function removeRec(id){
     const rec=store.cases[id]; if(!rec) return;
