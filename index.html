@@ -320,6 +320,105 @@ a.btn{display:inline-flex;align-items:center;text-decoration:none}
 @media (max-width:600px){ .bar .hide-sm{display:none} .meter{width:80px} .bar h1{font-size:17px} }
 @media (prefers-reduced-motion:reduce){ .rail{transition:none} }
 
+
+/* ----- home screen, What's new, single delete (v30) ----- */
+:root{--night:#1B2D45;--gold:#F2B84B;--good:#2F7A6B}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){--night:#0A1118;--good:#7FCBB9} }
+.ic{width:22px;height:22px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.bar.top{background:var(--night);border-bottom-color:transparent;color:#fff}
+.bar.top h1{color:#fff}
+.btn.ghost{display:inline-flex;align-items:center;gap:8px;background:transparent;border-color:rgba(255,255,255,.3);color:#fff}
+.btn.ghost:active{background:rgba(255,255,255,.12)}
+.btn.ghost .ic{width:20px;height:20px}
+.badge{min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--gold);color:#1B2A3A;font:700 12px/20px var(--sans);text-align:center}
+.k-case{--k:var(--blue)} .k-pn{--k:#2F7A6B} .k-dc{--k:#7A4E7E} .k-mc{--k:#8A5A12} .k-ca{--k:#4E5A96} .k-ho{--k:#9E3A38} .k-sp{--k:#1F7A8C}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .k-pn{--k:#7FCBB9} :root:not([data-theme="light"]) .k-dc{--k:#D2A6D6} :root:not([data-theme="light"]) .k-mc{--k:#E0B66C} :root:not([data-theme="light"]) .k-ca{--k:#A9B4EA} :root:not([data-theme="light"]) .k-ho{--k:#E39A97} :root:not([data-theme="light"]) .k-sp{--k:#7CC7D6} }
+.kic{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;flex:none;color:var(--k);background:color-mix(in srgb,var(--k) 14%,transparent)}
+.home{max-width:1180px;padding:26px 20px 60px}
+.hero{margin:0 0 18px}
+.hero h2{margin:0}
+.hero .sub{margin:4px 0 0;color:var(--ink-3);font-size:15px}
+.news-strip{display:flex;width:100%;align-items:center;gap:12px;text-align:left;background:var(--wash);border:1px solid var(--line);border-radius:12px;padding:10px 16px;margin:0 0 22px;min-height:48px;font-size:15px;color:var(--ink-2)}
+.news-strip .ic{color:var(--blue)}
+.news-strip strong{color:var(--ink)}
+.news-strip .go{margin-left:auto;color:var(--blue);font-weight:600;white-space:nowrap}
+.home-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:30px;align-items:start}
+.home-grid>*{min-width:0}
+.sec-h{font:600 13px/1.2 var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);margin:0 0 10px}
+.starts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0}
+.starts .grp{display:none}
+.starts button{display:flex;flex-direction:column;align-items:flex-start;gap:10px;text-align:left;background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:14px;min-height:98px;box-shadow:0 1px 2px rgba(20,40,60,.05);transition:transform .08s ease,border-color .15s ease}
+.starts button:active{transform:scale(.98)}
+@media (hover:hover){ .starts button:hover,.cases li:hover{border-color:var(--blue)} }
+.starts .tx{display:block;min-width:0}
+.starts button strong{display:block;font-size:16px;line-height:1.25;color:var(--ink)}
+.starts .s{display:none;font-size:13.5px;line-height:1.35;color:var(--ink-3);margin-top:2px}
+.starts #new{grid-column:span 2;flex-direction:row;align-items:center;gap:14px}
+.starts #new .kic{width:46px;height:46px;border-radius:13px;background:rgba(255,255,255,.2);color:#fff}
+.starts #new strong{font-size:19px}
+.starts #new .s{display:block;opacity:.9}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .starts #new .kic{background:rgba(14,21,29,.14);color:#0E151D} }
+.recs-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 10px}
+.recs-head .sec-h{margin:0;flex:1 0 auto}
+.search{position:relative;flex:1 1 220px;max-width:340px}
+.search input{padding-left:40px;border-radius:999px;min-height:44px}
+.search .ic{position:absolute;left:13px;top:50%;transform:translateY(-50%);width:18px;height:18px;color:var(--ink-3);pointer-events:none}
+.fchips{display:flex;gap:8px;overflow-x:auto;padding:2px 0 12px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.fchips::-webkit-scrollbar{display:none}
+.fchip{flex:none;border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:0 14px;min-height:44px;font-size:14.5px;white-space:nowrap;color:var(--ink-2)}
+.fchip b{font-weight:500;color:var(--ink-3);margin-left:5px}
+.fchip[aria-pressed="true"]{background:var(--blue);border-color:var(--blue);color:#fff}
+.fchip[aria-pressed="true"] b{color:inherit;opacity:.8}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .fchip[aria-pressed="true"]{color:#0E151D} }
+.cases{display:grid;gap:10px;border-top:0}
+.cases li{display:flex;align-items:stretch;background:var(--paper);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 1px 2px rgba(20,40,60,.05);transition:border-color .15s ease}
+.cases li[hidden]{display:none}
+.cases button.open{flex:1;min-width:0;gap:14px;padding:13px 4px 13px 14px}
+.cases .who .kind{color:var(--k)}
+.cases button.rm{flex:none;width:52px;display:grid;place-items:center;background:none;border:0;color:var(--ink-3)}
+.cases button.rm:active{color:var(--risk);background:var(--risk-wash)}
+@media (hover:hover){ .cases button.rm:hover{color:var(--risk)} }
+.empty{padding:28px 22px;background:var(--paper);border:1px dashed var(--line);border-radius:14px}
+.nomatch{padding:18px 4px;color:var(--ink-2)}
+.btn.danger-solid{background:var(--risk);border-color:var(--risk);color:#fff}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .btn.danger-solid{color:#0E151D} }
+.sheet .tools.end{display:flex;justify-content:flex-end;gap:10px;margin-top:6px}
+.toast.act{display:flex;align-items:center;gap:14px;padding:8px 8px 8px 18px}
+.toast button{background:none;border:0;color:var(--gold);font-weight:700;min-height:44px;padding:0 12px;border-radius:8px}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .toast button{color:#8A5A12} }
+.credit .linkbtn{background:none;border:0;padding:0;color:var(--blue);text-decoration:underline;font-size:inherit;min-height:44px}
+@media (min-width:1000px){
+  .home-grid{grid-template-columns:330px minmax(0,1fr);gap:36px}
+  .starts{display:flex;flex-direction:column;gap:8px}
+  .starts .grp{display:block;font-size:13px;font-weight:600;color:var(--ink-3);margin:8px 0 0}
+  .starts button{flex-direction:row;align-items:center;gap:12px;min-height:58px;padding:9px 12px}
+  .starts .s{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .starts .tx{flex:1}
+  .starts #new{min-height:72px}
+}
+@media (min-width:1000px) and (min-height:720px){ .start{position:sticky;top:calc(var(--bar) + 20px + env(safe-area-inset-top,0px))} }
+@media (max-width:640px){
+  .starts{grid-template-columns:1fr 1fr}
+  .bar.top .lbl,.news-strip .d{display:none}
+  .bar.top .btn.ghost{padding:9px 11px}
+  .cases .meter{display:none}
+}
+/* What's new */
+.news{max-width:860px;margin:0 auto;padding:28px 20px 60px}
+.news h2{font:600 30px/1.2 var(--serif);margin:8px 0 6px}
+.news .lead{color:var(--ink-2);margin:0 0 22px}
+.news-new{display:inline-block;font:700 11.5px/1 var(--sans);text-transform:uppercase;letter-spacing:.05em;color:#1B2A3A;background:var(--gold);border-radius:10px;padding:4px 8px}
+.news-entry{display:grid;grid-template-columns:170px minmax(0,1fr);gap:8px 26px;padding:22px 0;border-top:1px solid var(--line)}
+.news-date{font-size:14.5px;font-weight:600;color:var(--ink-3);display:flex;flex-direction:column;gap:5px;align-items:flex-start}
+.news-entry.is-new .news-date{color:var(--ink)}
+.news-date small{font-weight:500;font-size:13px}
+.news-body h3{font:600 19px/1.3 var(--sans);margin:0 0 10px}
+.news-body ul{list-style:none;margin:0;padding:0;display:grid;gap:9px}
+.news-body li{display:grid;grid-template-columns:92px minmax(0,1fr);gap:12px;align-items:baseline;line-height:1.5}
+.news-type{font:700 11.5px/1.2 var(--sans);text-transform:uppercase;letter-spacing:.05em;color:var(--c,var(--ink-3))}
+.news-type.feature{--c:var(--blue)} .news-type.update{--c:var(--good)} .news-type.fix{--c:var(--risk)}
+@media (max-width:640px){ .news-entry{grid-template-columns:1fr} .news-date{flex-direction:row;flex-wrap:wrap;align-items:center;gap:10px} .news-body li{grid-template-columns:1fr;gap:2px} }
+@media (prefers-reduced-motion:reduce){ .starts button,.cases li{transition:none} }
 </style>
 </head>
 <body>
@@ -2964,7 +3063,7 @@ const DocxImport = (() => {
   }
   function queueSave(){ setStatus('Saving…'); clearTimeout(saveTimer); saveTimer=setTimeout(persist, 400); }
   function setStatus(t){ const el=$('#status'); if(el) el.textContent=t; }
-  function toast(t){ document.querySelectorAll('.toast').forEach(x=>x.remove()); const el=document.createElement('div'); el.className='toast'; el.setAttribute('role','status'); el.textContent=t; document.body.appendChild(el); setTimeout(()=>el.remove(), 3600); }
+  function toast(t, act, fn){ document.querySelectorAll('.toast').forEach(x=>x.remove()); const el=document.createElement('div'); el.className='toast'; el.setAttribute('role','status'); el.textContent=t; if(act){ el.classList.add('act'); const b=document.createElement('button'); b.textContent=act; b.onclick=()=>{ el.remove(); fn(); }; el.appendChild(b); } document.body.appendChild(el); setTimeout(()=>el.remove(), act?8000:3600); }
   const R = () => store.cases[cur];
   const D = () => R().data;
   const SECS = rec => SCHEMAS[(rec||R()).kind].sections;
@@ -2983,42 +3082,121 @@ const DocxImport = (() => {
     const f=s.querySelector('button'); if(f) f.focus();
   }
 
+  /* ----- What's new. Newest entry FIRST; id goes up by one each release (it is the key for the unseen badge).
+     Add an entry on every release, with the cache number from sw.js as v. Types: feature (New), update (Improved), fix (Fixed). ----- */
+  const CHANGELOG=[
+    {id:13, v:'v30', date:'2026-11-12', title:'A new home screen', items:[
+      ['feature','Home screen: new documents sit together on one side (or in one compact block when the iPad is upright), so your saved records are in view without scrolling.'],
+      ['feature','Find a record: search by patient name, MRN or document type, or tap a chip to show one type only.'],
+      ['feature','Delete one record: tap the bin beside it. Undo appears for a few seconds in case of a slip.'],
+      ['feature','What\'s new: this page. A number in the top bar shows updates you have not read yet.']]},
+    {id:12, v:'v29', date:'2026-11-12', title:'Genogram in step with the Genogram app', items:[
+      ['feature','Cousins, adopted and foster children, pregnancies and losses, and a separate substance use mark.'],
+      ['feature','Opens and saves Genogram app files, so a family drawn in either app can be used in the other.']]},
+    {id:11, v:'v27, v28', date:'2026-11-12', title:'Genogram rebuilt', items:[
+      ['feature','Relationship lines between family members; step and half families; former partners; siblings\' families and grandchildren.'],
+      ['feature','Twins, several people in one symbol, a lives-with-patient marker, and a labelled key.'],
+      ['update','Family members are ordered by age automatically. The genogram can be saved as a picture.'],
+      ['update','"How many" is now "Number of people (if a group)".']]},
+    {id:10, v:'v25, v26', date:'2026-11-12', title:'Bigger text on slides', items:[
+      ['update','Slide text grows to fill each slide; slides with only a few facts go up to 32 pt.']]},
+    {id:9, v:'v24', date:'2026-11-12', title:'Page numbers in Google Docs', items:[
+      ['fix','Footer page numbers stay small and grey when a Word export is opened in Google Docs.']]},
+    {id:8, date:'2026-10-26', title:'Formulation builder', items:[
+      ['feature','Section 25 has a builder for the biopsychosocial formulation.']]},
+    {id:7, date:'2026-10-25', title:'Works with the DSM-5-TR Study Companion', items:[
+      ['feature','Receive case material sent from the DSM-5-TR Study Companion; anticipated questions go to the speaker notes.'],
+      ['feature','Hospitalization timeline slide.'],
+      ['feature','Slides: Normal or Large text.']]},
+    {id:6, date:'2026-10-23', title:'Hospital protocol format, Google export, new name', items:[
+      ['update','The case form and the Word export follow the hospital\'s case presentation protocol, with a genogram drawn by the app.'],
+      ['feature','Save to Google Docs and Google Slides.'],
+      ['update','The app is now called PsychInterview.']]},
+    {id:5, date:'2026-10-14', title:'More slide designs', items:[
+      ['feature','Purple, Spheres, Unicorn and Pedia slide designs.']]},
+    {id:4, date:'2026-10-07', title:'Case presentation slides', items:[
+      ['feature','Build case presentation slides from a case (Colorful design); save as PowerPoint, PDF or for Keynote.'],
+      ['update','Patient name and MRN are separate fields.'],
+      ['update','New app icon.']]},
+    {id:3, date:'2026-10-02', title:'Safety plan', items:[
+      ['feature','Six-step safety plan the patient takes home, in English or Filipino.']]},
+    {id:2, date:'2026-10-01', title:'Handover sheet', items:[
+      ['feature','On-call handover sheet: one printable page of active inpatients.']]},
+    {id:1, date:'2026-09-30', title:'First version', items:[
+      ['feature','Case interview and mental status examination form with Word export.'],
+      ['feature','Open an exported Word file to continue an old case.'],
+      ['feature','Progress note, discharge summary, medical certificate and clinical abstract.']]}
+  ];
+  const NEWS_TYPE={feature:'New', update:'Improved', fix:'Fixed'};
+  const unseenNews = () => store.last.newsSeen==null ? CHANGELOG.slice(0,1) : CHANGELOG.filter(e=>e.id>store.last.newsSeen);
+  const longDate = iso => new Date(iso+'T12:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+  const ICONS={
+    case:'<rect x="6" y="4.5" width="12" height="16" rx="2"/><path d="M9.5 4.5v-1h5v1M9 10h6M9 13.5h6M9 17h3.5"/>',
+    pn:'<path d="M5 19.5h14M7 15.5l8.8-8.8a1.6 1.6 0 0 1 2.3 2.3L9.3 17.8l-2.8.7z"/>',
+    dc:'<path d="M10 4.5H7a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h3M14.5 8.5 18 12l-3.5 3.5M18 12H9.5"/>',
+    ho:'<path d="M5 9h13l-3-3M19 15H6l3 3"/>',
+    mc:'<circle cx="12" cy="9.5" r="4.5"/><path d="M9.3 13.3 8 20l4-2 4 2-1.3-6.7"/>',
+    ca:'<path d="M7.5 3.5h6l4 4v11a2 2 0 0 1-2 2h-8a2 2 0 0 1-2-2v-13a2 2 0 0 1 2-2z"/><path d="M13.5 3.5v4h4M8.5 12h7M8.5 15.5h7"/>',
+    sp:'<path d="M12 3.5l7 2.6v5.2c0 4.3-2.8 7.6-7 9.2-4.2-1.6-7-4.9-7-9.2V6.1z"/><path d="M9.2 12l2 2 3.6-4"/>',
+    bin:'<path d="M5 7h14M10 7V4.8h4V7M7 7l.8 12a1.5 1.5 0 0 0 1.5 1.4h5.4a1.5 1.5 0 0 0 1.5-1.4L17 7M10.3 10.5v6M13.7 10.5v6"/>',
+    find:'<circle cx="11" cy="11" r="6"/><path d="M15.5 15.5 20 20"/>',
+    news:'<path d="M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9L12 17.5l-1.9-5.1L5 10.5l5.1-1.9zM18.5 16v4M16.5 18h4"/>',
+    file:'<path d="M4 7.5a2 2 0 0 1 2-2h3.5l2 2H18a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/>'
+  };
+  const ic = n => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n]}</svg>`;
+  const STARTS=[
+    {g:'During the admission'},
+    {id:'new', k:'case', t:'New case', s:'Initial interview and MSE'},
+    {id:'newpn', k:'pn', t:'Progress note', s:'Follow-up visit'},
+    {id:'newdc', k:'dc', t:'Discharge summary', s:'End of admission'},
+    {g:'On call'},
+    {id:'newho', k:'ho', t:'Handover sheet', s:'Active inpatients on one page'},
+    {g:'Documents for the patient'},
+    {id:'newmc', k:'mc', t:'Medical certificate', s:'Diagnosis, dates of care, signatures'},
+    {id:'newca', k:'ca', t:'Clinical abstract', s:'For claims, referrals and transfers'},
+    {id:'newsp', k:'sp', t:'Safety plan', s:'Six steps the patient takes home'}
+  ];
+  const KIND_PLURAL={case:'Cases', pn:'Progress notes', dc:'Discharge summaries', ho:'Handovers', mc:'Certificates', ca:'Abstracts', sp:'Safety plans'};
+  let homeQ='', homeK='all';
+
   /* ----- home ----- */
   function renderHome(){
     cur=null; document.title='PsychInterview';
     const list = Object.values(store.cases).sort((a,b)=>b.updated-a.updated);
+    const fresh = unseenNews(), kinds = Object.keys(KIND_PLURAL).filter(k=>list.some(c=>c.kind===k));
+    if(homeK!=='all' && !kinds.includes(homeK)) homeK='all';
     document.body.innerHTML = `
-      <header class="bar"><img class="logo" src="icon-192.png" alt="" width="36" height="36"><h1>PsychInterview</h1>
-        <button class="btn" id="imp">Open Word file</button>
+      <header class="bar top"><img class="logo" src="icon-192.png" alt="" width="36" height="36"><h1>PsychInterview</h1>
+        <button class="btn ghost" id="news" aria-label="What's new${fresh.length?', '+fresh.length+' unread':''}">${ic('news')}<span class="lbl">What's new</span>${fresh.length?`<span class="badge">${fresh.length}</span>`:''}</button>
+        <button class="btn ghost" id="imp" aria-label="Open Word file">${ic('file')}<span class="lbl">Open Word file</span></button>
         <input type="file" id="impFile" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden></header>
       <main class="home">
-        <h2>Patient records</h2>
-        <p class="starts-label">During the admission</p>
-        <div class="starts">
-          <button id="new"><strong>New case</strong><span>Initial interview and MSE</span></button>
-          <button id="newpn"><strong>New progress note</strong><span>Follow-up visit, built from the case or last note</span></button>
-          <button id="newdc"><strong>New discharge summary</strong><span>End of admission, built from the case and notes</span></button>
+        <div class="hero"><h2>Patient records</h2>
+          <p class="sub">${list.length ? list.length+' record'+(list.length===1?'':'s')+' saved on this iPad' : 'Nothing saved on this iPad yet'}</p></div>
+        ${fresh.length?`<button class="news-strip" id="newsStrip">${ic('news')}<span><strong>${h(fresh[0].title)}.</strong> <span class="d">${h(longDate(fresh[0].date))}</span></span><span class="go">See what's new ›</span></button>`:''}
+        <div class="home-grid">
+          <section class="start" aria-label="Start a new document">
+            <p class="sec-h">Start something new</p>
+            <div class="starts">${STARTS.map(x=>x.g ? `<p class="grp">${h(x.g)}</p>` : `<button id="${x.id}" class="k-${x.k}"><i class="kic">${ic(x.k)}</i><span class="tx"><strong>${h(x.t)}</strong><span class="s">${h(x.s)}</span></span></button>`).join('')}</div>
+          </section>
+          <section class="recs" aria-label="Saved records">
+            <div class="recs-head"><p class="sec-h">Saved records</p>
+              ${list.length>1?`<label class="search">${ic('find')}<input type="search" id="q" placeholder="Search name, MRN or type" aria-label="Search records" value="${h(homeQ)}" autocomplete="off"></label>`:''}</div>
+            ${kinds.length>1?`<div class="fchips" role="group" aria-label="Show">${['all',...kinds].map(k=>`<button class="fchip" data-k="${k}" aria-pressed="${homeK===k}">${k==='all'?'All':KIND_PLURAL[k]}<b>${k==='all'?list.length:list.filter(c=>c.kind===k).length}</b></button>`).join('')}</div>`:''}
+            ${list.length ? `<ul class="cases">${list.map(c=>{
+              const n=SECS(c).length, p=progress(c), pct=Math.round(p/n*100);
+              return `<li class="k-${c.kind}" data-kind="${c.kind}" data-s="${h((recTitle(c)+' '+recKind(c)+' '+str(c.data.mrn)).toLowerCase())}"><button class="open" data-open="${c.id}"><i class="kic">${ic(c.kind)}</i>
+                <span class="who"><span class="kind">${h(recKind(c))}</span><strong>${h(recTitle(c))}</strong>
+                <span>${str(c.data.mrn)?'MRN '+h(str(c.data.mrn))+'. ':''}${h(str(c.data.datetime))}${str(c.data.datetime)?'. ':''}Edited ${h(when(c.updated))}</span></span>
+                <span class="meter">${p} of ${n} sections<i><b style="width:${pct}%"></b></i></span></button>
+                <button class="rm" data-del="${c.id}" aria-label="Delete ${h(recTitle(c))}, ${h(recKind(c))}">${ic('bin')}</button></li>`;}).join('')}</ul>
+              <p class="nomatch" id="nomatch" hidden>No record matches. Clear the search or choose <strong>All</strong>.</p>`
+              : `<p class="empty">Nothing here yet. Tap <strong>New case</strong> to start an interview, or <strong>Open Word file</strong> to continue one you exported.</p>`}
+            <div class="privacy"><strong>Where your data lives.</strong> Records are saved only in this app on this iPad; nothing is uploaded anywhere. Export the Word file to your hospital's approved storage, then delete the record here.</div>
+            ${list.length?`<div class="foot"><button class="btn quiet danger" id="wipe">Delete all records</button></div>`:''}
+          </section>
         </div>
-        <p class="starts-label">On call</p>
-        <div class="starts">
-          <button id="newho"><strong>New handover sheet</strong><span>One printable page of active inpatients</span></button>
-        </div>
-        <p class="starts-label">Documents for the patient</p>
-        <div class="starts">
-          <button id="newmc"><strong>New medical certificate</strong><span>Diagnosis, dates of care, and signatures</span></button>
-          <button id="newca"><strong>New clinical abstract</strong><span>Summary of the admission for claims, referrals, and transfers</span></button>
-          <button id="newsp"><strong>New safety plan</strong><span>Six-step plan the patient takes home</span></button>
-        </div>
-        ${list.length ? `<ul class="cases">${list.map(c=>{
-          const n=SECS(c).length, p=progress(c), pct=Math.round(p/n*100);
-          return `<li><button class="open" data-open="${c.id}">
-            <span class="who"><span class="kind ${c.kind}">${h(recKind(c))}</span><strong>${h(recTitle(c))}</strong>
-            <span>${str(c.data.mrn)?'MRN '+h(str(c.data.mrn))+'. ':''}${h(str(c.data.datetime))}${str(c.data.datetime)?'. ':''}Edited ${h(when(c.updated))}</span></span>
-            <span class="meter">${p} of ${n} sections<i><b style="width:${pct}%"></b></i></span></button></li>`;}).join('')}</ul>`
-          : `<p class="empty">Nothing here yet. Tap <strong>New case</strong> to start an interview, or <strong>Open Word file</strong> to continue one you exported.</p>`}
-        <div class="privacy"><strong>Where your data lives.</strong> Records are saved only in this app on this iPad; nothing is uploaded anywhere. Export the Word file to your hospital's approved storage, then delete the record here.</div>
-        ${list.length?`<div class="foot"><button class="btn quiet danger" id="wipe">Delete all records</button></div>`:''}
-        <footer class="credit"><img class="logo" src="icon-192.png" alt="PsychInterview app icon" width="56" height="56"><p>Web app developed in 2026 by Isabella Navarro, MD.</p><p>Latest version ${VERSION}.</p><p><a href="mailto:isaymotion@gmail.com">isaymotion@gmail.com</a></p></footer>
+        <footer class="credit"><img class="logo" src="icon-192.png" alt="PsychInterview app icon" width="56" height="56"><p>Web app developed in 2026 by Isabella Navarro, MD.</p><p>Latest version ${VERSION}. <button class="linkbtn" id="newsLink">What's new</button></p><p><a href="mailto:isaymotion@gmail.com">isaymotion@gmail.com</a></p></footer>
       </main>`;
     $('#new').onclick = newCase;
     $('#newpn').onclick = chooseProgressSource;
@@ -3028,8 +3206,48 @@ const DocxImport = (() => {
     $('#newho').onclick = newHandover;
     $('#newsp').onclick = chooseSafetySource;
     $('#imp').onclick = ()=>{ pickFile(importFile); };
+    ['#news','#newsStrip','#newsLink'].forEach(q=>{ const b=$(q); if(b) b.onclick=renderNews; });
     document.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>openRec(b.dataset.open));
+    document.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>askDelete(b.dataset.del));
+    const filter=()=>{ const q=homeQ.trim().toLowerCase(); let n=0;
+      document.querySelectorAll('.cases li').forEach(li=>{ const ok=(homeK==='all'||li.dataset.kind===homeK) && (!q||li.dataset.s.includes(q)); li.hidden=!ok; if(ok) n++; });
+      const nm=$('#nomatch'); if(nm) nm.hidden = n>0; };
+    const q=$('#q'); if(q) q.oninput=()=>{ homeQ=q.value; filter(); }; else homeQ='';
+    document.querySelectorAll('.fchip').forEach(b=>b.onclick=()=>{ homeK=b.dataset.k; document.querySelectorAll('.fchip').forEach(x=>x.setAttribute('aria-pressed', x===b)); filter(); });
+    filter();
     const w=$('#wipe'); if(w) w.onclick=()=>{ if(confirm('Delete ALL records from this iPad? This cannot be undone.')){ store.cases={}; persist(); renderHome(); } };
+    window.scrollTo(0,0);
+  }
+  /* Delete one record. The record is kept in memory for a few seconds so a slip can be undone. */
+  function removeRec(id){
+    const rec=store.cases[id]; if(!rec) return;
+    delete store.cases[id]; persist(); renderHome();
+    toast('Deleted: '+recTitle(rec)+'.', 'Undo', ()=>{ store.cases[id]=rec; persist(); if(!cur) renderHome(); });
+  }
+  function askDelete(id){
+    const rec=store.cases[id]; if(!rec) return;
+    sheet(`<h3>Delete this record?</h3>
+      <p><strong>${h(recTitle(rec))}</strong><br>${h(recKind(rec))}. Edited ${h(when(rec.updated))}</p>
+      <p>It is removed from this iPad only. Word files and slides you already exported are not affected. Export it first if you still need a copy.</p>
+      <div class="tools end"><button class="btn" data-no>Cancel</button><button class="btn danger-solid" data-yes>Delete</button></div>`,
+      (s,close)=>{ s.querySelector('[data-no]').onclick=close; s.querySelector('[data-yes]').onclick=()=>{ close(); removeRec(id); }; });
+  }
+  /* ----- What's new ----- */
+  function renderNews(){
+    cur=null; document.title="What's new | PsychInterview";
+    const fresh=new Set(unseenNews().map(e=>e.id));
+    document.body.innerHTML = `
+      <header class="bar top"><button class="btn ghost" id="back" aria-label="Back to records">‹ Records</button><h1>What's new</h1></header>
+      <main class="news">
+        <h2>What's new</h2>
+        <p class="lead">Changes to PsychInterview, newest first. Entries marked <span class="news-new">New</span> were added since you last opened this page.</p>
+        ${CHANGELOG.map(e=>`<article class="news-entry${fresh.has(e.id)?' is-new':''}">
+          <div class="news-date"><time datetime="${e.date}">${h(longDate(e.date))}</time>${e.v?`<small>Version ${h(e.v.replace(/v/g,''))}</small>`:''}${fresh.has(e.id)?'<span class="news-new">New</span>':''}</div>
+          <div class="news-body"><h3>${h(e.title)}</h3><ul>${e.items.map(([ty,tx])=>`<li><span class="news-type ${ty}">${NEWS_TYPE[ty]}</span><span>${h(tx)}</span></li>`).join('')}</ul></div></article>`).join('')}
+        <footer class="credit"><p>Suggestions and corrections: <a href="mailto:isaymotion@gmail.com">isaymotion@gmail.com</a></p></footer>
+      </main>`;
+    $('#back').onclick = renderHome;
+    store.last.newsSeen = CHANGELOG[0].id; persist();
     window.scrollTo(0,0);
   }
   function pickFile(cb, multi){ const i=$('#impFile'); i.multiple=!!multi; i.onchange=e=>{ const fs=Array.from(e.target.files); e.target.value=''; if(fs.length) cb(multi?fs:fs[0]); }; i.click(); }
@@ -3370,7 +3588,7 @@ const DocxImport = (() => {
     $('#back').onclick = ()=>{ persist(); renderHome(); };
     $('#menu').onclick = ()=>{ const r=$('#rail'); const o=r.classList.toggle('open'); $('#menu').setAttribute('aria-expanded',o); };
     if($('#rem')) $('#rem').onclick = showReminders;
-    $('#del').onclick = ()=>{ if(confirm('Delete this record from this iPad? Export it first if you need a copy.')){ delete store.cases[cur]; persist(); renderHome(); } };
+    $('#del').onclick = ()=>{ if(confirm('Delete this record from this iPad? Export it first if you need a copy.')){ removeRec(cur); } };
     $('#export').onclick = exportDocx;
     if($('#pres')) $('#pres').onclick = presentationSheet;
     renderRail(); renderSection();
