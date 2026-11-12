@@ -3,7 +3,7 @@
 const C=require('./load.js')(process.argv[2]); const fs=require('fs'), path=require('path');
 const cases=JSON.parse(fs.readFileSync(path.join(__dirname,'fixtures/families.json'),'utf8')), out=process.argv[3]||path.join(__dirname,'out');
 const errs=[]; const ok=(c,m)=>{ if(!c) errs.push(m); };
-const want={ sample:{nodes:6,left:0}, big:{nodes:21,left:1}, old:{nodes:12,left:0}, lone:{nodes:8,left:0}, solo:{nodes:3,left:2} };
+const want={ sample:{nodes:6,left:0}, big:{nodes:22,left:0}, old:{nodes:12,left:0}, lone:{nodes:8,left:0}, solo:{nodes:3,left:2} };   // v42 (Genogram 1.7.0): other relatives, household members and pets are drawn in a last row, so big has 22 people and nobody left out
 for(const k in cases){
   const G=C.genogramLayout(cases[k], k==='sample'?{title:'Family genogram — Mark (October 2026)'}:{});
   console.log(k.padEnd(7),'size',G.w.toFixed(1),'x',G.h.toFixed(1),'people',G.nodes.length,'pieces',G.prims.length,'not drawn',JSON.stringify(G.left));
