@@ -26,7 +26,7 @@ with sync_playwright() as p:
     check(pg.locator('.empty').count()==1 and pg.locator('#wipe').count()==0, 'empty state')
     pg.screenshot(path=os.path.join(out,'home-empty.png'))
     pg.evaluate(SEED, data); pg.reload(); pg.wait_for_timeout(300)
-    check(pg.locator('.cases li').count()==8, 'eight records listed')
+    check(pg.locator('[data-open]').count()==8, 'eight records listed')
     check(pg.locator('#news .badge').inner_text()=='1', 'first visit: one unread entry')
     # no tile, card or bar button may be clipped or overflow the page
     for name,(w,hh,sc) in {'landscape':(1180,820,'light'),'portrait':(820,1180,'light'),'phone':(390,844,'light'),'dark':(1180,820,'dark'),'portrait-dark':(820,1180,'dark')}.items():
@@ -35,11 +35,47 @@ with sync_playwright() as p:
         small=q.evaluate("Array.from(document.querySelectorAll('.starts button,.cases button,.bar button,.fchip')).filter(e=>{const r=e.getBoundingClientRect(); return r.height<43.5||r.width<43.5}).map(e=>e.id||e.className)")
         check(not small, name+': tap targets under 44px '+str(small))
         q.screenshot(path=os.path.join(out,f'home-{name}.png'), full_page=(name!='landscape')); q.close()
+    # by patient: one card for the six Dela Cruz documents; the handover and the other patient stand alone
+    check(pg.locator('li.pt').count()==1 and pg.locator('li.pt .doc').count()==6 and pg.locator('.cases > li:not(.pt)').count()==2, 'grouped by patient')
+    check('MRN 004512' in pg.locator('.pt-head').inner_text() and 'progress note' in pg.locator('.pt-head .who').inner_text().lower(), 'patient card heading')
+    pg.click('[data-view="docs"]'); check(pg.locator('li.pt').count()==0 and pg.locator('.cases > li').count()==8, 'All documents view')
+    pg.reload(); pg.wait_for_timeout(300); check(pg.locator('li.pt').count()==0, 'view remembered')
+    pg.select_option('#sort','name'); first=pg.locator('.cases > li strong').first.inner_text(); check(first.startswith('Dela Cruz'), 'sort by name: '+first)
+    pg.select_option('#sort','created'); first=pg.locator('.cases > li strong').first.inner_text(); check(first.startswith('Zeta'), 'sort by date created: '+first)
+    pg.select_option('#sort','edited'); pg.click('[data-view="pt"]'); check(pg.locator('li.pt').count()==1, 'back to By patient')
+    # + Progress note on the patient card starts a note from the newest case or note, then delete it again
+    pg.click('[data-newpn]'); pg.wait_for_selector('#back'); check('Dela Cruz' in pg.locator('#title').inner_text(), 'note started from the patient card'); pg.click('#back')
+    check(pg.evaluate(N)==9, 'new note saved'); new=pg.evaluate("Object.values(JSON.parse(localStorage.getItem('psyCaseApp.v1')).cases).sort((a,b)=>b.created-a.created)[0].id")
+    pg.click(f'[data-del="{new}"]'); pg.click('[data-yes]'); pg.wait_for_selector('.toast button'); pg.evaluate("document.querySelector('.toast').remove()"); check(pg.evaluate(N)==8, 'extra note removed')
+    # exported marks and the clean-up flag
+    SET="([id,days,edited])=>{const s=JSON.parse(localStorage.getItem('psyCaseApp.v1')); s.cases[id].exported=Date.now()-days*864e5; s.cases[id].updated=edited?Date.now():1; localStorage.setItem('psyCaseApp.v1',JSON.stringify(s));}"
+    pg.evaluate(SET,['c2',9,False]); pg.evaluate(SET,['r2',0,False]); pg.evaluate(SET,['r3',9,True]); pg.reload(); pg.wait_for_timeout(300)
+    check('Exported 9 days ago' in pg.locator('[data-open="c2"]').inner_text() and pg.locator('[data-open="c2"] .tag.warn').count()==1, 'stale record flagged')
+    check('Exported today' in pg.locator('[data-open="r2"]').inner_text(), 'exported today')
+    check('Edited since export' in pg.locator('[data-open="r3"]').inner_text(), 'edited since export')
+    check(pg.locator('.tidy').count()==1 and pg.locator('.fchip[data-k="old"] b').inner_text()=='1', 'clean-up reminder counts one')
+    pg.screenshot(path=os.path.join(out,'home-patients.png'))
+    pg.click('#tidy'); check(pg.locator('.cases [data-s]:not([hidden])').count()==1 and pg.locator('li.pt').is_hidden(), 'Ready to delete chip shows only that record'); pg.click('.fchip[data-k="all"]')
+    # exporting from inside a record marks it
+    pg.click('[data-open="r4"]'); pg.wait_for_selector('#export')
+    with pg.expect_download():
+        pg.click('#export'); pg.wait_for_timeout(200)
+        if pg.locator('#wshare').count(): pg.click('#wshare')
+    pg.wait_for_timeout(300)
+    if pg.locator('.sheet [data-close]').count(): pg.locator('.sheet [data-close]').first.click()
+    pg.click('#back')
+    check('Exported today' in pg.locator('[data-open="r4"]').inner_text(), 'export marks the record: '+pg.locator('[data-open="r4"]').inner_text()[:80])
+    # duplicate MRN notice
+    pg.click('#new'); pg.wait_for_selector('[data-f="mrn"]'); pg.fill('[data-f="mrn"]','99 0042'); pg.locator('[data-f="mrn"]').blur(); pg.wait_for_selector('.sheet [data-go]')
+    check('Zeta Testcase' in pg.locator('.sheet').inner_text(), 'duplicate MRN notice names the other case'); pg.screenshot(path=os.path.join(out,'dup-mrn.png'))
+    pg.click('.sheet [data-close]'); pg.click('#back'); check(pg.locator('.pt-note').count()==1 and pg.locator('li.pt').count()==2, 'two cases under one patient are flagged')
+    dup=pg.evaluate("Object.values(JSON.parse(localStorage.getItem('psyCaseApp.v1')).cases).sort((a,b)=>b.created-a.created)[0].id")
+    pg.click(f'[data-del="{dup}"]'); pg.click('[data-yes]'); pg.wait_for_selector('.toast button'); pg.evaluate("document.querySelector('.toast').remove()"); check(pg.evaluate(N)==8, 'duplicate removed')
     # search and chips
-    pg.fill('#q','99-0042'); check(pg.locator('.cases li:not([hidden])').count()==1, 'search by MRN')
+    pg.fill('#q','99-0042'); check(pg.locator('.cases [data-s]:not([hidden])').count()==1, 'search by MRN')
     pg.fill('#q','zzz'); check(pg.locator('#nomatch').is_visible(), 'no-match message')
-    pg.fill('#q',''); pg.click('.fchip[data-k="case"]'); check(pg.locator('.cases li:not([hidden])').count()==2, 'Cases chip')
-    pg.click('.fchip[data-k="all"]'); check(pg.locator('.cases li:not([hidden])').count()==8, 'All chip')
+    pg.fill('#q',''); pg.click('.fchip[data-k="case"]'); check(pg.locator('.cases [data-s]:not([hidden])').count()==2, 'Cases chip')
+    pg.click('.fchip[data-k="all"]'); check(pg.locator('.cases [data-s]:not([hidden])').count()==8, 'All chip')
     # delete one: cancel, delete, undo, delete for good
     pg.click('[data-del="c2"]'); pg.wait_for_selector('.sheet'); pg.screenshot(path=os.path.join(out,'home-delete.png'))
     pg.click('[data-no]'); check(pg.evaluate(N)==8, 'cancel keeps the record')
@@ -54,7 +90,7 @@ with sync_playwright() as p:
     # delete all, undo, then delete all for good on a throwaway page at the end
     pg.once('dialog', lambda d: d.accept()); pg.click('#back') if pg.locator('#back').count() else None; pg.click('#wipe'); pg.wait_for_selector('.toast button')
     check(pg.evaluate(N)==0 and pg.locator('.empty').count()==1, 'delete all empties the list'); pg.screenshot(path=os.path.join(out,'home-undo-all.png'))
-    pg.click('.toast button'); check(pg.evaluate(N)==7 and pg.locator('.cases li').count()==7, 'undo brings all records back')
+    pg.click('.toast button'); check(pg.evaluate(N)==7 and pg.locator('[data-open]').count()==7, 'undo brings all records back')
     pg.once('dialog', lambda d: d.dismiss()); pg.click('#wipe'); check(pg.evaluate(N)==7, 'cancelling delete all keeps everything')
     # theme button: match device -> light -> dark -> match device; forced dark on a light device really is dark
     BG="getComputedStyle(document.body).backgroundColor"; TH="document.documentElement.getAttribute('data-theme')"
