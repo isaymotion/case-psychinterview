@@ -3,6 +3,9 @@
       because iOS may clear a web view's storage when space runs low. If the web view's copy is gone, it is restored.
    2. navigator.share / canShare with files go to the native share sheet (Word, PowerPoint, PDF, backup files).
    3. window.PINative.sub: the monthly subscription (StoreKit). Free users may create FREE_LIMIT patients.
+   4. PINative.bio / bioCheck(): Face ID or Touch ID for the passcode lock.
+   5. PINative.docs: files in the app's Documents folder (Files > On My iPad > PsychInterview), for automatic backups
+      and the user's own slide templates. PINative.incoming(): files opened in the app from Files or Mail.
    Then it loads the app's own scripts (window.PI_SCRIPTS) in order. */
 (function () {
   'use strict';
@@ -18,7 +21,7 @@
   }
   if (!C || !C.isNativePlatform || !C.isNativePlatform() || !C.registerPlugin) { loadApp(); return; }
   var Prefs = C.registerPlugin('Preferences'), Files = C.registerPlugin('Filesystem'), Share = C.registerPlugin('Share'),
-      IAP = C.registerPlugin('NativePurchases');
+      IAP = C.registerPlugin('NativePurchases'), Bio = C.registerPlugin('NativeBiometric');
 
   /* 1. storage mirror */
   var SP = Storage.prototype, rawSet = SP.setItem, rawDel = SP.removeItem;
@@ -37,7 +40,7 @@
 
   /* 2. share sheet */
   function toB64(buf) {
-    var bytes = new Uint8Array(buf), out = '', i, step = 0x8000;
+    var bytes = buf instanceof Uint8Array ? buf : new Uint8Array(buf), out = '', i, step = 0x8000;
     for (i = 0; i < bytes.length; i += step) out += String.fromCharCode.apply(null, bytes.subarray(i, i + step));
     return btoa(out);
   }
@@ -95,6 +98,34 @@
     refresh: check,
     price: loadPrice
   };
+  /* 4. Face ID / Touch ID */
+  window.PINative.bio = false;
+  window.PINative.bioCheck = function (reason) {
+    return Bio.verifyIdentity({ reason: reason, title: 'PsychInterview', useFallback: false }).then(function () { return true; }, function () { return false; });
+  };
+  var bioReady = Bio.isAvailable({ useFallback: false }).then(function (r) { window.PINative.bio = !!(r && r.isAvailable); }, function () {});
+
+  /* 5. files */
+  function fromB64(t) { var b = atob(t), u = new Uint8Array(b.length), i; for (i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; }
+  function asBytes(d) { return typeof d === 'string' ? new TextEncoder().encode(d) : (d instanceof Uint8Array ? d : new Uint8Array(d)); }
+  window.PINative.docs = {
+    write: function (path, data) { return Files.writeFile({ path: path, data: toB64(asBytes(data)), directory: 'DOCUMENTS', recursive: true }); },
+    read: function (path) { return Files.readFile({ path: path, directory: 'DOCUMENTS' }).then(function (r) { return fromB64(r.data); }); },
+    list: function (dir) { return Files.readdir({ path: dir, directory: 'DOCUMENTS' }).then(function (r) { return (r.files || []).map(function (f) { return typeof f === 'string' ? { name: f } : f; }); }, function () { return []; }); },
+    remove: function (path) { return Files.deleteFile({ path: path, directory: 'DOCUMENTS' }).catch(function () {}); }
+  };
+  window.PINative.incoming = function () {   // [{name, bytes}], each file handed over once
+    return Files.readdir({ path: 'Incoming', directory: 'CACHE' }).then(function (r) {
+      var names = (r.files || []).map(function (f) { return typeof f === 'string' ? f : f.name; });
+      return Promise.all(names.map(function (n) {
+        var p = 'Incoming/' + n;
+        return Files.readFile({ path: p, directory: 'CACHE' }).then(function (g) {
+          return Files.deleteFile({ path: p, directory: 'CACHE' }).catch(function () {}).then(function () { return { name: n, bytes: fromB64(g.data) }; });
+        }, function () { return null; });
+      }));
+    }, function () { return []; }).then(function (a) { return a.filter(Boolean); });
+  };
+
   IAP.addListener('transactionUpdated', function () { check(); }).catch(function () {});
   document.addEventListener('visibilitychange', function () { if (!document.hidden) check(); });
 
@@ -102,5 +133,5 @@
     .then(function () { return Prefs.get({ key: SUBKEY }); }).then(function (g) { state.active = !!(g && g.value === '1'); }, function () {})
     .then(function () { return Promise.race([check(), new Promise(function (ok) { setTimeout(ok, 2500); })]); })
     .then(function () { state.ready = true; loadPrice(); });
-  Promise.all([restore().catch(function () {}), subReady]).then(loadApp, loadApp);
+  Promise.all([restore().catch(function () {}), subReady, bioReady]).then(loadApp, loadApp);
 })();

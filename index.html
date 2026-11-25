@@ -495,6 +495,11 @@ a.btn{display:inline-flex;align-items:center;text-decoration:none}
 .pwrow{display:grid;gap:10px;margin:0 0 12px}
 .pwrow label{display:block;font-weight:600;font-size:15px}
 .pwrow input{margin-top:4px}
+.autobk{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}.autobk h4{margin:0 0 4px}
+.chk{display:flex;gap:8px;align-items:center;margin:6px 0 10px}
+.mytpl{list-style:none;padding:0;margin:8px 0}.mytpl li{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line)}
+.lhprev{display:flex;gap:10px;align-items:center;justify-content:center;text-align:center;font-size:.85em;padding:8px;border:1px solid var(--line);border-radius:8px;margin:8px 0}
+.lhlogos{align-items:center;gap:8px;margin:6px 0}.lhlogos img{vertical-align:middle}
 .subterms{font-size:.85em;color:var(--ink-2);line-height:1.45}
 .sheet .err{color:var(--risk);font-weight:600;min-height:1.4em;margin:0 0 8px}
 /* theme and text size (v31). Forced dark is generated at start-up from the dark media rules (forceDark in the script). */
@@ -2672,10 +2677,10 @@ const DocxGen = (() => {
     const splitItems = t => str(t).split(/\n+|;\s*/).map(x=>x.trim().replace(/^[-•*]\s*/,'')).filter(Boolean);
 
     // Letterhead: logo, institution, logo
-    const LH = PROTOCOL_HEAD;
-    LH.lines.forEach((l,i)=>{
+    const LH = (typeof window!=='undefined' && window.PI_LETTERHEAD) || PROTOCOL_HEAD;
+    (LH.lines.length ? LH.lines : (LH.logoLeft||LH.logoRight ? [{t:''}] : [])).forEach((l,i)=>{
       let xml = P([T(l.t, { b:l.b, sz:l.sz||22 })], { align:'center' });
-      if(i===0) xml = xml.replace('</w:pPr>', '</w:pPr>'+anchorRun('rIdLogoL', 0.73, -104773, 50165, 201, 'Logo left')+anchorRun('rIdLogoR', 0.81, 5132070, -10793, 202, 'Logo right'));
+      if(i===0) xml = xml.replace('</w:pPr>', '</w:pPr>'+(LH.logoLeft?anchorRun('rIdLogoL', 0.73, -104773, 50165, 201, 'Logo left'):'')+(LH.logoRight?anchorRun('rIdLogoR', 0.81, 5132070, -10793, 202, 'Logo right'):''));
       B.push(xml);
     });
     B.push(P([T('CASE PRESENTATION PROTOCOL', { b:true, u:true })], { align:'center', before:240 }));
@@ -3086,7 +3091,8 @@ const DocxGen = (() => {
       const doc = built.xml, files = [];
       const imgs = [];
       if(ex.geno) imgs.push(['rIdGeno','media/genogram.png', ex.geno.bytes]);
-      if(protocol){ imgs.push(['rIdLogoL','media/logo-left.png', b64bytes(PROTOCOL_HEAD.logoLeft)]); imgs.push(['rIdLogoR','media/logo-right.png', b64bytes(PROTOCOL_HEAD.logoRight)]); }
+      const LHD = (typeof window!=='undefined' && window.PI_LETTERHEAD) || PROTOCOL_HEAD;
+      if(protocol){ if(LHD.logoLeft) imgs.push(['rIdLogoL','media/logo-left.png', b64bytes(LHD.logoLeft)]); if(LHD.logoRight) imgs.push(['rIdLogoR','media/logo-right.png', b64bytes(LHD.logoRight)]); }
       const ct = CT.replace('<Default Extension="xml" ContentType="application/xml"/>','<Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/>')
         .replace('</Types>','<Override PartName="/docProps/custom.xml" ContentType="application/vnd.openxmlformats-officedocument.custom-properties+xml"/>'+(protocol?'<Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/>':'')+'</Types>');
       const rels = RELS.replace('</Relationships>','<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/custom-properties" Target="docProps/custom.xml"/></Relationships>');
@@ -3730,10 +3736,13 @@ const DocxImport = (() => {
             <div class="backup"><h3>Backup</h3>
               <p>${list.length?'Save every record on this iPad to one file, as a safety copy or to move to another iPad. ':''}${store.last.backupAt?'Last backup saved '+h(when(store.last.backupAt))+'.':list.length?'No backup has been saved from this iPad yet.':'Have a backup file from this app? Bring its records back here.'}</p>
               <div class="row">${list.length?'<button class="btn" id="bkSave">Save a backup file</button>':''}<button class="btn" id="bkOpen">Restore from a backup file</button></div>
+              ${PIN()?autoBkCard():''}
               <input type="file" id="bkFile" accept=".json,application/json" hidden></div>
+            ${PIN()?myTplCard()+letterheadCard():''}
             ${subCard()}
             ${canLock()?`<div class="backup" id="lockCard"><h3>Passcode lock</h3>
               ${lockOn()?`<p><strong>On.</strong> The app asks for the passcode when it opens and after <select id="lockIdle" aria-label="Lock after">${LOCK_IDLE.map(m=>`<option value="${m}"${m===lockIdle()?' selected':''}>${m} minute${m===1?'':'s'}</option>`).join('')}</select> without use.</p>
+              ${PIN()&&PIN().bio?`<label class="chk"><input type="checkbox" id="lockBioOn"${store.last.lock.bio?' checked':''}> Unlock with Face ID or Touch ID (the passcode still works)</label>`:''}
               <div class="row"><button class="btn" id="lockNow">Lock now</button><button class="btn" id="lockChange">Change passcode</button><button class="btn" id="lockOff">Turn off</button></div>`
               :`<p>Ask for a passcode when the app opens and after a few minutes without use. It keeps a casual look out on a shared iPad. It does not encrypt the records, so keep the iPad's own passcode on as well.</p>
               <div class="row"><button class="btn" id="lockSet">Turn on passcode lock</button></div>`}</div>`:''}
@@ -3761,9 +3770,11 @@ const DocxImport = (() => {
       const nm=$('#nomatch'); if(nm) nm.hidden = n>0; };
     { const groups = byPt ? homeGroups(list) : []; document.querySelectorAll('[data-expall]').forEach(b=>b.onclick=()=>exportPatient(groups[+b.dataset.expall].recs)); }
     const bs=$('#bkSave'); if(bs) bs.onclick=backupSave;
+    wireAutoBk(); wireMyTpl(); wireLetterhead();
     { const n=$('#bkNow'), l=$('#bkLater'); if(n) n.onclick=backupSave; if(l) l.onclick=()=>{ store.last.backupSnooze=Date.now(); persist(); $('#bkNudge').remove(); toast('The backup reminder will come back in '+SNOOZE_DAYS+' days.'); }; }
     { const on=(q,fn)=>{ const b=$(q); if(b) b.onclick=fn; };
       on('#lockSet', ()=>lockSheet('set')); on('#lockChange', ()=>lockSheet('change')); on('#lockOff', ()=>lockSheet('off')); on('#lockNow', ()=>showLock());
+      const lbo=$('#lockBioOn'); if(lbo) lbo.onchange=async()=>{ if(lbo.checked && !(await PIN().bioCheck('Turn on Face ID or Touch ID unlock'))){ lbo.checked=false; return; } store.last.lock.bio=lbo.checked; persist(); toast(lbo.checked?'Face ID or Touch ID can now unlock the app.':'Face ID and Touch ID unlock is off.'); };
       const li=$('#lockIdle'); if(li) li.onchange=()=>{ store.last.lock.idle=+li.value; persist(); toast('Locks after '+li.value+' minute'+(li.value==='1'?'':'s')+' without use.'); }; }
     $('#bkOpen').onclick=()=>{ const i=$('#bkFile'); i.onchange=e=>{ const f=e.target.files[0]; e.target.value=''; if(f) backupOpen(f); }; i.click(); };
     document.querySelectorAll('[data-more]').forEach(b=>b.onclick=()=>{ b.parentNode.dataset.all='1'; filter(); });
@@ -3816,6 +3827,7 @@ const DocxImport = (() => {
     const base=await crypto.subtle.importKey('raw', new TextEncoder().encode(pin), 'PBKDF2', false, ['deriveBits']);
     return B64.enc(new Uint8Array(await crypto.subtle.deriveBits({name:'PBKDF2', salt:B64.dec(salt), iterations:LOCK_ITER, hash:'SHA-256'}, base, 256)));
   }
+  const bioOn = () => !!(PIN() && PIN().bio && store.last.lock && store.last.lock.bio);   // App Store version only
   const pinMatches = async pin => pinOK(pin) && (await pinHash(pin, store.last.lock.salt))===store.last.lock.hash;
   function showLock(){
     if(locked || !lockOn()) return; locked=true; if(cur) persist();
@@ -3830,8 +3842,10 @@ const DocxImport = (() => {
       el.innerHTML=`<form class="lock-card" autocomplete="off"><img src="icon-192.png" alt="" width="72" height="72"><h2>PsychInterview is locked</h2>
         <label for="lockPin">Enter your passcode</label><input id="lockPin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="off">
         <p class="err" id="lockErr" role="alert"></p><button class="btn primary" type="submit">Unlock</button>
+        ${bioOn()?'<button class="btn" type="button" id="lockBio">Unlock with Face ID or Touch ID</button>':''}
         <button class="linkbtn" type="button" id="lockForgot">Forgot passcode?</button></form>`;
-      const pin=el.querySelector('#lockPin'), err=el.querySelector('#lockErr'); pin.focus();
+      const pin=el.querySelector('#lockPin'), err=el.querySelector('#lockErr'), lb=el.querySelector('#lockBio');
+      if(lb){ const askBio=()=>PIN().bioCheck('Unlock PsychInterview').then(ok=>{ if(ok && locked) unlock(); }); lb.onclick=askBio; setTimeout(askBio, 300); } else pin.focus();
       el.querySelector('form').onsubmit=async e=>{ e.preventDefault();
         const wait=Math.ceil((lockUntil-Date.now())/1000); if(wait>0){ err.textContent='Too many tries. Wait '+wait+' seconds.'; return; }
         if(await pinMatches(pin.value)){ unlock(); return; }
@@ -3888,6 +3902,151 @@ const DocxImport = (() => {
     const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveKey']);
     return crypto.subtle.deriveKey({name:'PBKDF2', salt, iterations:iter, hash:'SHA-256'}, base, {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']);
   }
+  async function backupBytes(pw){
+    const out={ app:'psychinterview', kind:'backup', format:1, made:new Date().toISOString(), version:VERSION, count:Object.keys(store.cases).length };
+    if(pw){ const salt=crypto.getRandomValues(new Uint8Array(16)), iv=crypto.getRandomValues(new Uint8Array(12)), key=await bkKey(pw, salt, BK_ITER);
+      const data=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, new TextEncoder().encode(JSON.stringify(store.cases))));
+      out.enc={ alg:'AES-GCM', kdf:'PBKDF2-SHA256', iter:BK_ITER, salt:B64.enc(salt), iv:B64.enc(iv), data:B64.enc(data) }; }
+    else out.cases=store.cases;
+    return new TextEncoder().encode(JSON.stringify(out));
+  }
+
+  /* ----- App Store version: automatic daily backups, password-protected, in Files > On My iPad > PsychInterview > Backups.
+     That folder is also part of the device's own iCloud or computer backup. The newest AUTO_KEEP files are kept.
+     store.last.autoBk = { pw, at } (at = when the last automatic backup was written). ----- */
+  const AUTO_KEEP=7, AUTO_DIR='Backups';
+  function autoBkCard(){
+    const a=store.last.autoBk;
+    return `<div class="autobk"><h4>Automatic backup</h4>${a
+      ? `<p><strong>On.</strong> Once a day, when records have changed, a password-protected backup is saved in Files &gt; On My iPad (or On My Mac) &gt; PsychInterview &gt; Backups. The newest ${AUTO_KEEP} are kept.${a.at?' Last one: '+h(when(a.at))+'.':''}</p>
+         <div class="row"><button class="btn" id="abNow">Back up now</button><button class="btn" id="abOff">Turn off</button></div>`
+      : `<p>Save a password-protected backup every day, automatically, in the Files app. It is also included in the device's own iCloud backup.</p>
+         <div class="row"><button class="btn" id="abOn">Turn on automatic backup</button></div>`}</div>`;
+  }
+  function wireAutoBk(){
+    const on=(q,fn)=>{ const b=$(q); if(b) b.onclick=fn; };
+    on('#abOff', ()=>{ delete store.last.autoBk; persist(); renderHome(); toast('Automatic backup is off. Backups already saved are kept.'); });
+    on('#abNow', async ()=>{ toast(await autoBackup(true) ? 'Backup saved in Files > PsychInterview > Backups.' : 'The backup could not be saved.'); renderHome(); });
+    on('#abOn', ()=>sheet(`<h3>Automatic backup</h3>
+      <p>Choose a password for the backup files. You need it to restore a backup, on this device or another one. <strong>It cannot be recovered if forgotten.</strong></p>
+      <div class="pwrow"><label>Password<input type="password" id="ab1" autocomplete="new-password"></label><label>Type it again<input type="password" id="ab2" autocomplete="new-password"></label></div>
+      <p class="err" id="abErr" role="alert"></p>
+      <div class="tools end"><button class="btn quiet" data-close>Cancel</button><button class="btn primary" id="abGo">Turn on</button></div>`, (s2,close)=>{
+        s2.querySelector('[data-close]').onclick=close;
+        s2.querySelector('#abGo').onclick=async()=>{ const p1=s2.querySelector('#ab1').value, p2=s2.querySelector('#ab2').value, err=s2.querySelector('#abErr');
+          if(p1.length<6){ err.textContent='Use at least 6 characters.'; return; }
+          if(p1!==p2){ err.textContent='The two passwords do not match.'; return; }
+          store.last.autoBk={ pw:p1, at:0 }; persist(); close();
+          toast(await autoBackup(true) ? 'Automatic backup is on. The first backup is saved.' : 'Automatic backup is on.'); renderHome(); };
+      }));
+  }
+  async function autoBackup(force){
+    const a=store.last.autoBk, n=PIN(); if(!a || !n || !n.docs || !(window.crypto && crypto.subtle)) return false;
+    const recs=Object.values(store.cases);
+    if(!force && (Date.now()-(a.at||0) < 20*3600e3 || !recs.some(c=>(c.updated||0) > (a.at||0)))) return false;
+    try{
+      const name=`PsychInterview_Backup_${today()}.json`;
+      await n.docs.write(AUTO_DIR+'/'+name, await backupBytes(a.pw));
+      a.at=Date.now(); persist();
+      const old=(await n.docs.list(AUTO_DIR)).map(f=>f.name).filter(x=>/^PsychInterview_Backup_.*\.json$/.test(x)).sort().reverse().slice(AUTO_KEEP);
+      for(const f of old) await n.docs.remove(AUTO_DIR+'/'+f);
+      return true;
+    }catch(e){ return false; }
+  }
+
+  /* ----- App Store version: the user's own PowerPoint templates. The .pptx is kept in Files > PsychInterview > Templates;
+     its slides are never used, only its design (masters, layouts, theme). store.last.myTpl = [{ id, name, file }].
+     PDF slides from these templates get the theme's background color (drawing the artwork needs a computer). ----- */
+  const MYTPL_DIR='Templates';
+  function syncMyTpl(){
+    if(!PIN() || typeof CaseSlides==='undefined') return;
+    const T=CaseSlides.TEMPLATES;
+    for(let i=T.length-1;i>=0;i--) if(T[i].custom) T.splice(i,1);
+    (store.last.myTpl||[]).forEach(m=>T.push({ id:m.id, name:m.name, note:'Your own template. PDF slides use its background color only.', custom:m.file,
+      bodyFont:'+mn-lt', headFont:'+mj-lt', charEm:0.55, slideNumbers:true, pdf:{ backgrounds:null, titleFont:'body' } }));
+  }
+  function myTplCard(){
+    const L=store.last.myTpl||[];
+    return `<div class="backup" id="myTplCard"><h3>Your slide templates</h3>
+      <p>Add any PowerPoint file to use its design for case presentation slides. Only the design is used: the slides in it are ignored.</p>
+      ${L.length?`<ul class="mytpl">${L.map(m=>`<li><span>${h(m.name)}</span><button class="btn sm quiet" data-tpldel="${h(m.id)}">Remove</button></li>`).join('')}</ul>`:''}
+      <div class="row"><button class="btn" id="tplAdd">Add a PowerPoint template</button></div>
+      <input type="file" id="tplFile" accept=".pptx,.potx,application/vnd.openxmlformats-officedocument.presentationml.presentation" hidden></div>`;
+  }
+  async function addMyTpl(name, bytes){
+    try{ await CaseSlides._test.loadTemplate(bytes.slice ? bytes.slice(0) : bytes, {}); }
+    catch(e){ toast(e && e.message==='old-ios' ? 'Update iOS to use your own templates.' : 'That file could not be used as a template. Choose a PowerPoint (.pptx) file.'); return false; }
+    const id='u'+newId(), file=id+'.pptx', label=String(name||'Template').replace(/\.(pptx|potx)$/i,'').slice(0,40) || 'Template';
+    try{ await PIN().docs.write(MYTPL_DIR+'/'+file, new Uint8Array(bytes)); }catch(e){ toast('The template could not be saved.'); return false; }
+    (store.last.myTpl = store.last.myTpl||[]).push({ id, name:label, file }); persist(); syncMyTpl();
+    toast('Template added: '+label+'. Choose it under Slide design.'); return true;
+  }
+  function wireMyTpl(){
+    const a=$('#tplAdd'); if(!a) return;
+    a.onclick=()=>{ const i=$('#tplFile'); i.onchange=async e=>{ const f=e.target.files[0]; e.target.value=''; if(f && await addMyTpl(f.name, await f.arrayBuffer())) renderHome(); }; i.click(); };
+    document.querySelectorAll('[data-tpldel]').forEach(b=>b.onclick=async()=>{ const L=store.last.myTpl||[], m=L.find(x=>x.id===b.dataset.tpldel); if(!m) return;
+      store.last.myTpl=L.filter(x=>x!==m); persist(); syncMyTpl(); await PIN().docs.remove(MYTPL_DIR+'/'+m.file); toast('Template removed: '+m.name+'.'); renderHome(); });
+  }
+
+  /* ----- App Store version: the letterhead on the Case presentation protocol (Word). store.last.lh = { lines:[{t,b}], logoLeft, logoRight }
+     (logos as base64 PNG). With none set, the protocol starts without a letterhead. ----- */
+  function applyLetterhead(){ if(PIN()) window.PI_LETTERHEAD = store.last.lh || { lines:[], logoLeft:null, logoRight:null }; }
+  function letterheadCard(){
+    const L=store.last.lh, has=L && (L.lines.length||L.logoLeft||L.logoRight);
+    const img=(b,alt)=>b?`<img src="data:image/png;base64,${b}" alt="${alt}" width="40" height="40">`:'';
+    return `<div class="backup" id="lhCard"><h3>Letterhead</h3>
+      <p>Your hospital's name and logos at the top of the Case presentation protocol (Word).</p>
+      ${has?`<div class="lhprev">${img(L.logoLeft,'Left logo')}<div>${L.lines.map(l=>l.b?`<strong>${h(l.t)}</strong>`:h(l.t)).join('<br>')}</div>${img(L.logoRight,'Right logo')}</div>`:'<p class="small">No letterhead yet.</p>'}
+      <div class="row"><button class="btn" id="lhEdit">${has?'Edit letterhead':'Add a letterhead'}</button></div></div>`;
+  }
+  function toPngB64(file, max){   // any picture → PNG, at most max px on its longer side
+    return new Promise((ok, bad)=>{ const u=URL.createObjectURL(file), im=new Image();
+      im.onload=()=>{ const k=Math.min(1, max/Math.max(im.width, im.height)), c=document.createElement('canvas'); c.width=Math.round(im.width*k); c.height=Math.round(im.height*k);
+        c.getContext('2d').drawImage(im,0,0,c.width,c.height); URL.revokeObjectURL(u); ok(c.toDataURL('image/png').split(',')[1]); };
+      im.onerror=()=>{ URL.revokeObjectURL(u); bad(new Error('img')); }; im.src=u; });
+  }
+  function wireLetterhead(){
+    const e=$('#lhEdit'); if(!e) return;
+    e.onclick=()=>{
+      const L=JSON.parse(JSON.stringify(store.last.lh || { lines:[], logoLeft:null, logoRight:null }));
+      const txt=L.lines.map(l=>l.b?'*'+l.t:l.t).join('\n');
+      sheet(`<h3>Letterhead</h3>
+        <label class="field"><span class="lab">Lines, top to bottom</span><span class="hint">One line each. Start a line with * to make it bold.</span><textarea id="lhLines" rows="5">${h(txt)}</textarea></label>
+        <div class="row lhlogos"><span>Left logo <span id="lhL"></span></span><button class="btn sm" id="lhLPick">Choose</button><button class="btn sm quiet" id="lhLDel">Remove</button></div>
+        <div class="row lhlogos"><span>Right logo <span id="lhR"></span></span><button class="btn sm" id="lhRPick">Choose</button><button class="btn sm quiet" id="lhRDel">Remove</button></div>
+        <input type="file" id="lhImg" accept="image/*" hidden>
+        <p class="small"><button class="linkbtn" id="lhMM">Use the MMWGH letterhead</button></p>
+        <div class="tools end"><button class="btn quiet" data-close>Cancel</button><button class="btn primary" id="lhSave">Save</button></div>`, (s2, close)=>{
+        s2.querySelector('[data-close]').onclick=close;
+        const show=()=>{ ['L','R'].forEach(k=>{ const b=L['logo'+(k==='L'?'Left':'Right')]; s2.querySelector('#lh'+k).innerHTML=b?`<img src="data:image/png;base64,${b}" alt="" width="32" height="32">`:'(none)'; }); };
+        show();
+        const pick=key=>()=>{ const i=s2.querySelector('#lhImg'); i.onchange=async ev=>{ const f=ev.target.files[0]; ev.target.value=''; if(!f) return;
+          try{ L[key]=await toPngB64(f, 600); show(); }catch(err){ toast('That picture could not be read.'); } }; i.click(); };
+        s2.querySelector('#lhLPick').onclick=pick('logoLeft'); s2.querySelector('#lhRPick').onclick=pick('logoRight');
+        s2.querySelector('#lhLDel').onclick=()=>{ L.logoLeft=null; show(); }; s2.querySelector('#lhRDel').onclick=()=>{ L.logoRight=null; show(); };
+        s2.querySelector('#lhMM').onclick=()=>{ L.logoLeft=PROTOCOL_HEAD.logoLeft; L.logoRight=PROTOCOL_HEAD.logoRight;
+          s2.querySelector('#lhLines').value=PROTOCOL_HEAD.lines.map(l=>l.b?'*'+l.t:l.t).join('\n'); show(); };
+        s2.querySelector('#lhSave').onclick=()=>{
+          L.lines=s2.querySelector('#lhLines').value.split('\n').map(x=>x.trim()).filter(Boolean).map(x=>x[0]==='*'?{t:x.slice(1).trim(), b:true}:{t:x});
+          store.last.lh=L; persist(); applyLetterhead(); close(); toast('Letterhead saved.'); renderHome(); };
+      });
+    };
+  }
+
+  /* ----- App Store version: "Open in PsychInterview" from Files, Mail or another app.
+     Word file → opened as a record; backup (.json) → restore; PowerPoint → added as a slide template. ----- */
+  async function checkIncoming(){
+    const n=PIN(); if(!n || !n.incoming) return;
+    const got=await n.incoming();
+    for(const f of got){
+      const ext=(f.name.split('.').pop()||'').toLowerCase();
+      if(ext==='docx') await importFile(new File([f.bytes], f.name, {type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'}));
+      else if(ext==='json') await backupOpen(new File([f.bytes], f.name, {type:'application/json'}));
+      else if(ext==='pptx' || ext==='potx'){ if(await addMyTpl(f.name, f.bytes.buffer.slice(f.bytes.byteOffset, f.bytes.byteOffset+f.bytes.byteLength)) && !cur) renderHome(); }
+      else toast('PsychInterview cannot open '+f.name+'.');
+    }
+  }
+
   function backupSave(){
     const n=Object.keys(store.cases).length, canEnc = !!(window.crypto && crypto.subtle);
     sheet(`<h3>Save a backup file</h3>
@@ -3903,14 +4062,8 @@ const DocxImport = (() => {
         if(p1!==p2){ err.textContent='The two passwords do not match.'; return; }
         if(p1 && p1.length<6){ err.textContent='Use at least 6 characters.'; return; }
         persist();
-        const out={ app:'psychinterview', kind:'backup', format:1, made:new Date().toISOString(), version:VERSION, count:n };
-        try{
-          if(p1){ const salt=crypto.getRandomValues(new Uint8Array(16)), iv=crypto.getRandomValues(new Uint8Array(12)), key=await bkKey(p1, salt, BK_ITER);
-            const data=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, new TextEncoder().encode(JSON.stringify(store.cases))));
-            out.enc={ alg:'AES-GCM', kdf:'PBKDF2-SHA256', iter:BK_ITER, salt:B64.enc(salt), iv:B64.enc(iv), data:B64.enc(data) }; }
-          else out.cases=store.cases;
-        }catch(e){ err.textContent='The backup could not be created on this device.'; return; }
-        const bytes=new TextEncoder().encode(JSON.stringify(out)), name=`PsychInterview_Backup_${today()}.json`;
+        let bytes; try{ bytes=await backupBytes(p1); }catch(e){ err.textContent='The backup could not be created on this device.'; return; }
+        const name=`PsychInterview_Backup_${today()}.json`;
         // Sharing needs a fresh tap on the iPad, so the file waits for one
         s2.querySelector('.sheet').innerHTML=`<h3>Backup ready</h3><p>${h(name)}<br>${n} record${n===1?'':'s'}, ${p1?'password-protected':'<strong>not</strong> password-protected'}.</p><div class="tools"><button class="btn primary" id="bkShare">Share</button><button class="btn quiet" data-close>Done</button></div>`;
         s2.querySelector('[data-close]').onclick=()=>{ close(); if(!cur) renderHome(); };
@@ -5054,6 +5207,7 @@ const DocxImport = (() => {
   const tplCache = {};
   async function templateBytes(t){
     if(tplCache[t.id]) return tplCache[t.id];
+    if(t.custom){ const u=await PIN().docs.read(MYTPL_DIR+'/'+t.custom); return (tplCache[t.id] = u.buffer.slice(u.byteOffset, u.byteOffset+u.byteLength)); }
     const r = await fetch(t.file); if(!r.ok) throw new Error('no-template');
     return (tplCache[t.id] = await r.arrayBuffer());
   }
@@ -5251,6 +5405,9 @@ const DocxImport = (() => {
   document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='hidden' && cur) persist(); });
   if('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(()=>{});
   addSample();
+  if(PIN()){ syncMyTpl(); applyLetterhead();
+    whenUnlocked(()=>{ setTimeout(()=>autoBackup(false), 3000); setTimeout(checkIncoming, 600); });
+    document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='hidden') autoBackup(false); else if(!locked) setTimeout(checkIncoming, 300); }); }
   applyLook();
   if(lockOn()){ document.body.innerHTML=''; showLock(); }   // nothing about a patient is drawn until the passcode is in
   whenUnlocked(()=>{ if(/^#\/(r\/|news$)/.test(location.hash)) route(); else renderHome(); checkInbox(); });
