@@ -495,6 +495,7 @@ a.btn{display:inline-flex;align-items:center;text-decoration:none}
 .pwrow{display:grid;gap:10px;margin:0 0 12px}
 .pwrow label{display:block;font-weight:600;font-size:15px}
 .pwrow input{margin-top:4px}
+.subterms{font-size:.85em;color:var(--ink-2);line-height:1.45}
 .sheet .err{color:var(--risk);font-weight:600;min-height:1.4em;margin:0 0 8px}
 /* theme and text size (v31). Forced dark is generated at start-up from the dark media rules (forceDark in the script). */
 :root[data-theme="light"]{color-scheme:light} :root[data-theme="dark"]{color-scheme:dark}
@@ -3340,6 +3341,37 @@ const DocxImport = (() => {
   let store = load();
   let cur = null, secIdx = 0, saveTimer = null;
 
+  /* App Store version: a made-up sample patient on first launch, to try every feature. It does not count as a free patient. */
+  function addSample(){
+    if(store.last.sampleAdded || Object.keys(store.cases).length) return;
+    const id='sample'+newId(), now=Date.now();
+    store.cases[id] = {id, kind:'case', sample:true, created:now, updated:now, data:{
+      patient:'Reyes, Andrea M. (sample patient)', mrn:'SAMPLE-0001', datetime:when(now), agesex:'24 / F', location:'Outpatient clinic',
+      interviewer:'', attending:'', marital:'Single', occupation:'Call-center agent', referred:'Self, at the urging of her older sister', livingwith:'Older sister and brother-in-law',
+      idsummary:'This is a made-up patient for practice. Edit, export or delete her freely.',
+      cc:'"I can\'t sleep and I feel like I\'m failing at everything."',
+      informant:'Patient and older sister', reliability:'Good',
+      onset:'About 3 months ago', hpi:'Three months ago, after a demotion at work, she began waking at 3 AM and could not return to sleep. Over the next weeks she lost interest in going out with friends, ate less (about 3 kg weight loss), and found it hard to focus on calls. She cries most days and feels guilty about being a burden to her sister. Two weeks ago she started having thoughts that it would be easier not to wake up, without plan or intent. No manic or psychotic symptoms.',
+      priorDx:'None', hosp:'None', pastMeds:'None',
+      pastAttempts:'None', protective:'Close to her sister; religious faith; wants to finish her nursing course',
+      medhx:'No known medical illness', allergies:'No known drug allergies',
+      famhx:'Mother: treated for depression in her 30s.',
+      living:'Lives in a rented apartment in Quezon City.', religion:'Roman Catholic, attends Mass weekly', eduwork:'College undergraduate (2 years of nursing); call-center agent for 3 years.',
+      appNarr:'Thin young woman, neatly dressed, appropriate grooming, poor eye contact, cooperative.',
+      speechNarr:'Soft, slow, decreased in amount; normal articulation.', thoughtNarr:'Goal-directed and coherent.',
+      si:'Passive', si__d:'Passive death wishes for 2 weeks; no plan, intent or preparatory acts.', hi:'None',
+      mood:'"Malungkot" (sad)', affectNarr:'Constricted, tearful at times', congruence:'Congruent',
+      insight:'Partial', judgment:'Fair',
+      mseNarr:'Alert, oriented to time, place and person. Depressed mood with constricted, congruent affect. No perceptual disturbances. Passive suicidal ideation without plan. Partial insight, fair judgment.',
+      positives:['Early-morning awakening','Anhedonia and weight loss','Guilt and passive death wishes','Family history of depression'],
+      negatives:['No manic or psychotic symptoms','No substance use','No prior suicide attempt'],
+      primaryDx:'Major depressive disorder, single episode, moderate', differential:'Adjustment disorder with depressed mood; persistent depressive disorder',
+      suicideRisk:'Moderate', violenceRisk:'Low',
+      psychosocialNotes:'Psychoeducation for patient and sister; safety plan; supportive psychotherapy.', followup:'Return in 1 week, or sooner if thoughts of self-harm worsen.'
+    }};
+    store.last.sampleAdded = now; persist();
+  }
+
   function load(){
     try{ const s = JSON.parse(localStorage.getItem(KEY)); if(s && s.cases){ Object.values(s.cases).forEach(c=>{ c.kind=c.kind||'case'; splitLegacyPatient(c.data); ((c.data||{}).rows||[]).forEach(splitLegacyPatient); }); s.last=s.last||{}; return s; } }catch(e){}
     return {cases:{}, last:{}};
@@ -3360,6 +3392,47 @@ const DocxImport = (() => {
   const recTitle = rec => rec.kind==='ho' ? ((str(rec.data.unit)||'On-call handover')+', '+(rec.data.rows||[]).length+' patient'+((rec.data.rows||[]).length===1?'':'s')) : str(rec.data.patient) || str(rec.data.patientName) || ('Untitled '+SCHEMAS[rec.kind].name.toLowerCase());
   const recKind = rec => rec.kind==='pn' ? ('Progress note'+(str(rec.data.hday)?', hospital day '+str(rec.data.hday):'')) : rec.kind==='dc' ? ('Discharge summary'+(str(rec.data.dischargeDate)?', '+str(rec.data.dischargeDate):'')) : rec.kind==='mc' ? ('Medical certificate'+(str(rec.data.certDate)?', '+str(rec.data.certDate):'')) : rec.kind==='ca' ? ('Clinical abstract'+(str(rec.data.dateIssued)?', '+str(rec.data.dateIssued):'')) : rec.kind==='ho' ? ('Handover sheet'+(str(rec.data.hoDate)?', '+str(rec.data.hoDate):'')) : rec.kind==='sp' ? ('Safety plan'+(str(rec.data.spDate)?', '+str(rec.data.spDate):'')) : 'Case';
 
+  /* ----- App Store version: monthly subscription (window.PINative from js/native.js). The website has no limit.
+     Free users can add PINative.FREE_LIMIT patients; the sample patient does not count. Nothing is ever locked:
+     without a subscription, every record can still be opened, edited, exported and backed up. */
+  const PIN = () => window.PINative;
+  const TERMS_URL = 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/';
+  const PRIVACY_URL = 'https://isaymotion.github.io/case-psychinterview/privacy.html';
+  function patientAllowed(){ const n=PIN(); if(!n || n.canAddPatient()) return true; showPaywall(); return false; }
+  function patientCounted(){ const n=PIN(); if(n) n.countPatient(); }
+  function subTerms(){ const n=PIN(), p=(n&&n.sub.price)||'USD 1.99';
+    return `<p class="subterms">PsychInterview Monthly: ${h(p)} per month. Payment is charged to your Apple Account when you confirm. The subscription renews automatically each month unless you cancel at least 24 hours before the end of the current month; cancel anytime in Settings &gt; your name &gt; Subscriptions. <a href="${TERMS_URL}" target="_blank" rel="noopener">Terms of Use</a> · <a href="${PRIVACY_URL}" target="_blank" rel="noopener">Privacy Policy</a></p>`; }
+  function showPaywall(){
+    const n=PIN(); if(!n) return; n.price();
+    sheet(`<h3>Subscribe to add more patients</h3>
+      <p>You have used your ${n.FREE_LIMIT} free patients. A subscription lets you add unlimited patients. All your existing records stay available, with or without a subscription.</p>
+      ${subTerms()}
+      <p class="err" id="subErr" role="alert"></p>
+      <div class="tools end"><button class="btn quiet" data-close>Not now</button><button class="btn" id="subRestore">Restore Purchases</button><button class="btn primary" id="subBuy">Subscribe</button></div>`, (s, close)=>{
+      s.querySelector('[data-close]').onclick=close;
+      const err=s.querySelector('#subErr');
+      const run=(fn, okMsg)=>async()=>{ err.textContent=''; s.querySelectorAll('button').forEach(b=>b.disabled=true);
+        try{ const on=await fn(); if(on){ close(); toast(okMsg); if(!cur) renderHome(); } else err.textContent='No active subscription was found for this Apple Account.'; }
+        catch(e){ const m=String(e&&(e.message||e)||''); err.textContent=/cancel/i.test(m)?'':'The App Store could not finish this. Check your connection and try again.'; }
+        s.querySelectorAll('button').forEach(b=>b.disabled=false); };
+      s.querySelector('#subBuy').onclick=run(()=>n.buy(), 'Thank you! You can now add unlimited patients.');
+      s.querySelector('#subRestore').onclick=run(()=>n.restore(), 'Subscription restored.');
+    });
+  }
+  function subCard(){
+    const n=PIN(); if(!n) return '';
+    const st = n.sub.active ? '<p><strong>Active.</strong> You can add unlimited patients.</p>'
+      : `<p>${n.freeLeft()} of ${n.FREE_LIMIT} free patients left. The sample patient does not count.</p>`;
+    return `<div class="backup" id="subCard"><h3>Subscription</h3>${st}
+      <div class="row">${n.sub.active?'':'<button class="btn primary" id="subOpen">Subscribe</button>'}<button class="btn" id="subRestore2">Restore Purchases</button><button class="btn" id="subManage">Manage subscription</button></div>
+      ${subTerms()}</div>`;
+  }
+  function wireSubCard(){
+    const n=PIN(); if(!n) return;
+    const o=$('#subOpen'); if(o) o.onclick=showPaywall;
+    const r=$('#subRestore2'); if(r) r.onclick=async()=>{ try{ const on=await n.restore(); toast(on?'Subscription restored.':'No active subscription was found for this Apple Account.'); }catch(e){ toast('The App Store could not be reached. Try again.'); } renderHome(); };
+    const m=$('#subManage'); if(m) m.onclick=()=>n.manage().catch(()=>toast('Open Settings > your name > Subscriptions.'));
+  }
   function sheet(html, onReady, cls){
     const s=document.createElement('div'); s.className='scrim';
     s.innerHTML=`<div class="sheet${cls?' '+cls:''}" role="dialog" aria-modal="true">${html}</div>`;
@@ -3658,6 +3731,7 @@ const DocxImport = (() => {
               <p>${list.length?'Save every record on this iPad to one file, as a safety copy or to move to another iPad. ':''}${store.last.backupAt?'Last backup saved '+h(when(store.last.backupAt))+'.':list.length?'No backup has been saved from this iPad yet.':'Have a backup file from this app? Bring its records back here.'}</p>
               <div class="row">${list.length?'<button class="btn" id="bkSave">Save a backup file</button>':''}<button class="btn" id="bkOpen">Restore from a backup file</button></div>
               <input type="file" id="bkFile" accept=".json,application/json" hidden></div>
+            ${subCard()}
             ${canLock()?`<div class="backup" id="lockCard"><h3>Passcode lock</h3>
               ${lockOn()?`<p><strong>On.</strong> The app asks for the passcode when it opens and after <select id="lockIdle" aria-label="Lock after">${LOCK_IDLE.map(m=>`<option value="${m}"${m===lockIdle()?' selected':''}>${m} minute${m===1?'':'s'}</option>`).join('')}</select> without use.</p>
               <div class="row"><button class="btn" id="lockNow">Lock now</button><button class="btn" id="lockChange">Change passcode</button><button class="btn" id="lockOff">Turn off</button></div>`
@@ -3676,7 +3750,7 @@ const DocxImport = (() => {
     $('#newca').onclick = chooseAbstractSource;
     $('#newho').onclick = newHandover;
     $('#newsp').onclick = chooseSafetySource;
-    $('#imp').onclick = ()=>{ pickFile(importFile); }; wireLook();
+    $('#imp').onclick = ()=>{ pickFile(importFile); }; wireLook(); wireSubCard();
     ['#news','#newsStrip','#newsLink'].forEach(q=>{ const b=$(q); if(b) b.onclick=renderNews; });
     document.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>openRec(b.dataset.open));
     document.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>askDelete(b.dataset.del));
@@ -3928,6 +4002,7 @@ const DocxImport = (() => {
   }
   async function importFile(file){
     const res = await readWord(file); if(!res) return;
+    if(res.kind==='case'){ if(!patientAllowed()) return; patientCounted(); }
     const id=newId();
     store.cases[id] = {id, kind:res.kind, created:Date.now(), updated:Date.now(), importedFrom:file.name, data:res.data};
     persist(); openRec(id);
@@ -3939,9 +4014,10 @@ const DocxImport = (() => {
       ${res.kind==='ho'?`<p>Overnight events typed into the sheet were read in. To write this morning's notes, go to <strong>3. Next morning</strong>.</p><div class="tools"><button class="btn primary" data-morning>Go to Next morning</button><button class="btn" data-close>Review handover</button></div>`:`<button class="btn primary" data-close>Review ${what}</button>`}`, (s,close)=>{ s.querySelector('[data-close]').onclick=close; const m=s.querySelector('[data-morning]'); if(m) m.onclick=()=>{ close(); secIdx=SECS().findIndex(x=>x.morning); renderRail(); renderSection(); }; });
   }
   function newCase(){
+    if(!patientAllowed()) return;
     const id=newId();
     store.cases[id] = {id, kind:'case', created:Date.now(), updated:Date.now(), data:{ datetime:when(Date.now()), interviewer:store.last.interviewer||'', attending:store.last.attending||'', preparedBy:store.last.interviewer||'', supervisedBy:store.last.supervisedBy||'' }};
-    persist(); openRec(id);
+    patientCounted(); persist(); openRec(id);
   }
 
   /* ----- progress notes ----- */
@@ -4759,7 +4835,7 @@ const DocxImport = (() => {
   /* ----- Google Docs and Slides: an editable copy in the resident's own Google Drive -----
      Sign-in goes to Google's page and back (pop-up windows often fail in Home Screen apps). The access
      lasts about an hour and lets the app see only the files it creates. */
-  const gReady = () => /\.apps\.googleusercontent\.com$/.test(String(GOOGLE_CLIENT_ID||''));
+  const gReady = () => !window.PINative && /\.apps\.googleusercontent\.com$/.test(String(GOOGLE_CLIENT_ID||''));
   const GK = 'psyCaseApp.google';
   const sess = { get:k=>{ try{ return sessionStorage.getItem(k); }catch(e){ return null; } }, set:(k,v)=>{ try{ v==null ? sessionStorage.removeItem(k) : sessionStorage.setItem(k,v); }catch(e){} } };
   const keep = { get:k=>{ try{ return localStorage.getItem(k); }catch(e){ return null; } }, set:(k,v)=>{ try{ v==null ? localStorage.removeItem(k) : localStorage.setItem(k,v); }catch(e){} } };
@@ -5174,6 +5250,7 @@ const DocxImport = (() => {
   setTimeout(()=>{ if(gReady()) whenUnlocked(gResume); }, 0);
   document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='hidden' && cur) persist(); });
   if('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(()=>{});
+  addSample();
   applyLook();
   if(lockOn()){ document.body.innerHTML=''; showLock(); }   // nothing about a patient is drawn until the passcode is in
   whenUnlocked(()=>{ if(/^#\/(r\/|news$)/.test(location.hash)) route(); else renderHome(); checkInbox(); });

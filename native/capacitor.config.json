@@ -1,0 +1,10 @@
+{
+  "appId": "com.isaymotion.psychinterview",
+  "appName": "PsychInterview",
+  "webDir": "www",
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#F3F6F9"
+  },
+  "plugins": {}
+}

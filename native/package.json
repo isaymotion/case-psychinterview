@@ -1,0 +1,19 @@
+{
+  "name": "psychinterview-native",
+  "version": "1.0.0",
+  "description": "App Store (and later Google Play) version of PsychInterview (Capacitor wrapper). Not published on GitHub Pages.",
+  "scripts": {
+    "web": "node build-web.js",
+    "sync": "node build-web.js && npx cap sync"
+  },
+  "dependencies": {
+    "@capacitor/cli": "^8.6.2",
+    "@capacitor/core": "^8.6.2",
+    "@capacitor/filesystem": "^8.1.5",
+    "@capacitor/ios": "^8.6.2",
+    "@capacitor/preferences": "^8.0.1",
+    "@capacitor/share": "^8.0.3",
+    "@capgo/native-purchases": "^8.9.17"
+  },
+  "private": true
+}
