@@ -8,6 +8,8 @@ const COPY = ['index.html', 'slides.js', 'pdf.js', 'fonts', 'templates', 'icon-1
 fs.rmSync(out, { recursive: true, force: true }); fs.mkdirSync(path.join(out, 'js'), { recursive: true });
 for (const f of COPY) fs.cpSync(path.join(root, f), path.join(out, f), { recursive: true });
 fs.copyFileSync(path.join(__dirname, 'js', 'native.js'), path.join(out, 'js', 'native.js'));
+// Capacitor.registerPlugin() lives in @capacitor/core's JS, not in the native bridge, so the page must load it before native.js.
+fs.copyFileSync(path.join(__dirname, 'node_modules', '@capacitor', 'core', 'dist', 'capacitor.js'), path.join(out, 'js', 'capacitor.js'));
 let html = fs.readFileSync(path.join(out, 'index.html'), 'utf8');
 const list = [];
 html = html.replace(/<script src="([\w.-]+\.js)"><\/script>\s*/g, (m, src) => { list.push(src); return ''; });
@@ -19,6 +21,6 @@ app = app.replace(/\bthis iPad\b/g, 'this device').replace(/\bThis iPad\b/g, 'Th
 fs.writeFileSync(path.join(out, 'js', 'app.js'), app);
 list.push('js/app.js');
 html = html.replace('<link rel="manifest" href="manifest.webmanifest">', '')
-  .replace('</body>', '<script>window.PI_SCRIPTS = ' + JSON.stringify(list) + ';</script>\n<script src="js/native.js"></script>\n</body>');
+  .replace('</body>', '<script>window.PI_SCRIPTS = ' + JSON.stringify(list) + ';</script>\n<script src="js/capacitor.js"></script>\n<script src="js/native.js"></script>\n</body>');
 fs.writeFileSync(path.join(out, 'index.html'), html);
 console.log('www ready: ' + list.join(', ') + ' load after js/native.js');

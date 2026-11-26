@@ -55,7 +55,7 @@ jobs:
       - name: Check the app (bundled files, app ID, version)
         run: |
           APP=$RUNNER_TEMP/PsychInterview.xcarchive/Products/Applications/App.app
-          ls $APP/public/index.html $APP/public/js/native.js $APP/public/js/app.js $APP/public/slides.js
+          ls $APP/public/index.html $APP/public/js/capacitor.js $APP/public/js/native.js $APP/public/js/app.js $APP/public/slides.js
           /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' $APP/Info.plist | grep -qx com.isaymotion.psychinterview
           echo "Version $(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' $APP/Info.plist) build $(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' $APP/Info.plist)"
       - name: Export and upload to App Store Connect
