@@ -42,7 +42,10 @@ jobs:
         env: { ASC_KEY_P8: '${{ secrets.ASC_KEY_P8 }}' }
         run: |
           mkdir -p ~/.appstoreconnect/private_keys
-          printf '%s\n' "$ASC_KEY_P8" > ~/.appstoreconnect/private_keys/AuthKey_$ASC_KEY_ID.p8
+          # Accepts the key with or without its BEGIN/END lines
+          if printf '%s' "$ASC_KEY_P8" | grep -q 'BEGIN PRIVATE KEY'; then printf '%s\n' "$ASC_KEY_P8"
+          else printf -- '-----BEGIN PRIVATE KEY-----\n%s\n-----END PRIVATE KEY-----\n' "$(printf '%s' "$ASC_KEY_P8" | tr -d ' \r\n' | fold -w 64)"; fi \
+            > ~/.appstoreconnect/private_keys/AuthKey_$ASC_KEY_ID.p8
           echo "KEY_PATH=$HOME/.appstoreconnect/private_keys/AuthKey_$ASC_KEY_ID.p8" >> $GITHUB_ENV
       - name: Archive
         run: |
