@@ -1,0 +1,4 @@
+No sign-in is needed. All records stay on the device; the app sends no patient data anywhere.
+A made-up sample patient, "Santos, Maria Clara D. (sample patient)", is added on first launch so every feature can be tried. It does not count toward the free limit.
+Subscription: free users can add 2 patients. Tapping "New case" a third time opens the subscription screen (Subscribe, Restore Purchases, terms and privacy links). Restore Purchases and Manage subscription are also on the home screen under "Subscription".
+Optional features to try: Passcode lock (home screen, then Face ID unlock), Automatic backup (writes to Files > PsychInterview > Backups), Your slide templates (any .pptx), Letterhead.

@@ -1,0 +1,43 @@
+# Uploads the App Store listing for PsychInterview: the text in native/store/fastlane/metadata and the screenshots in
+# native/store/screenshots/iphone-6.9 and ipad-13. It does not upload a build or submit for review.
+# Runs by itself when those files change on store; to run it again, open its latest run in the Actions tab > Re-run all jobs.
+# Uses the same four secrets as ios.yml. Version: the editable App Store version is set to the app's MARKETING_VERSION.
+name: App Store listing
+on:
+  push:
+    branches: [store]
+    paths: ['native/store/fastlane/**', 'native/store/screenshots/iphone-6.9/**', 'native/store/screenshots/ipad-13/**', '.github/workflows/ios-listing.yml']
+  workflow_dispatch:
+jobs:
+  listing:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: native/store } }
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ruby/setup-ruby@v1
+        with: { ruby-version: '3.3' }
+      - run: gem install fastlane --no-document
+      - name: Gather the screenshots (iPhone first, then iPad, in number order)
+        run: |
+          mkdir -p fastlane/screenshots/en-US
+          for f in screenshots/iphone-6.9/*.png; do cp "$f" "fastlane/screenshots/en-US/a-$(basename "$f")"; done
+          for f in screenshots/ipad-13/*.png; do cp "$f" "fastlane/screenshots/en-US/b-$(basename "$f")"; done
+          ls fastlane/screenshots/en-US
+      - name: Upload the listing and screenshots
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+        run: |
+          VERSION=$(grep -m1 -oE 'MARKETING_VERSION = [0-9.]+' ../ios/App/App.xcodeproj/project.pbxproj | grep -oE '[0-9.]+$')
+          echo "App Store version: $VERSION"
+          KEY="$ASC_KEY_P8"   # accepts the key with or without its BEGIN/END lines
+          printf '%s' "$KEY" | grep -q 'BEGIN PRIVATE KEY' || KEY=$(printf -- '-----BEGIN PRIVATE KEY-----\n%s\n-----END PRIVATE KEY-----' "$(printf '%s' "$KEY" | tr -d ' \r\n' | fold -w 64)")
+          jq -n --arg id "$ASC_KEY_ID" --arg iss "$ASC_ISSUER_ID" --arg key "$KEY" \
+            '{key_id: $id, issuer_id: $iss, key: $key, in_house: false}' > "$RUNNER_TEMP/asc.json"
+          fastlane deliver --api_key_path "$RUNNER_TEMP/asc.json" \
+            --app_identifier com.isaymotion.psychinterview --platform ios --app_version "$VERSION" \
+            --metadata_path fastlane/metadata --screenshots_path fastlane/screenshots \
+            --skip_binary_upload true --overwrite_screenshots true --force true \
+            --submit_for_review false --automatic_release false --run_precheck_before_submit false
+          rm -f "$RUNNER_TEMP/asc.json"

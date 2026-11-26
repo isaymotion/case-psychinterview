@@ -1,0 +1,29 @@
+PsychInterview helps psychiatry residents and clinicians write a complete psychiatric case: from the first interview and mental status examination to progress notes, discharge summaries and the case presentation.
+
+WRITE THE CASE
+• Guided sections in the order of a psychiatric case: identifying data, chief complaint, history of present illness, past psychiatric and medical history, substance use, family history with a genogram, personal and social history, and the full mental status examination
+• Pertinent positives and negatives, differential and primary diagnosis, biopsychosocial formulation, risk assessment and plan
+• PHQ-9 and GAD-7 that score themselves, lab panels with normal ranges, and interview reminders
+• A sample patient to try every feature first
+
+EVERY DOCUMENT FROM ONE RECORD
+• Progress notes, discharge summary, clinical abstract, medical certificate, safety plan and an on-call handover sheet, filled from the case you already wrote
+• Export to Word, in a clean format or the case presentation protocol with your hospital's letterhead and logos
+• Case presentation slides for PowerPoint, Keynote or PDF, with speaker notes and patient names hidden as initials or "Patient A"
+• Use your own PowerPoint template: add any .pptx and the slides take its design
+
+PRIVATE BY DESIGN
+• Records are saved only on your device. No account, no analytics, no tracking
+• Optional passcode lock with Face ID or Touch ID
+• Automatic daily password-protected backups in the Files app
+• Open Word files, backups and templates straight from Files or Mail
+
+Works on iPad, iPhone and Apple silicon Macs.
+
+SUBSCRIPTION
+Free users can add 2 patients (the sample patient does not count). PsychInterview Monthly unlocks unlimited patients for USD 1.99 per month (or the equivalent in your currency). Payment is charged to your Apple Account at confirmation. The subscription renews automatically unless cancelled at least 24 hours before the end of the current period; manage or cancel it in Settings > your name > Subscriptions. Your existing records always stay available, with or without a subscription.
+
+Terms of Use: https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
+Privacy Policy: https://isaymotion.github.io/case-psychinterview/privacy.html
+
+PsychInterview is a documentation and training aid. It does not diagnose or give medical advice.

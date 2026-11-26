@@ -1,0 +1,1 @@
+psychiatry,MSE,mental status exam,case presentation,progress note,resident,psych interview,HPI
